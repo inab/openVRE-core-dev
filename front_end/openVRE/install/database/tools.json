@@ -11,7 +11,7 @@
       "institution": "Your institution",
       "contact": "Your email account"
     },
-    "status": 1,
+    "status": 0,
     "external": true,
     "keywords": ["next gen seq", "dna"],
     "keywords_tool": ["Tool skeleton", "Sample keyword"],
