@@ -3,7 +3,7 @@
 function getTemplate($fn, $idioma = False) {
     if ($idioma)
         $fn = $GLOBALS['idioma'] . '/' . $fn;
-    return file_get_contents($GLOBALS['htmlib'] . '/' . $fn);
+    return file_get_contents($GLOBALS['htmlib'] . '/' . $fn, FILE_TEXT);
 }
 
 function existTemplate($fn, $idioma = False) {

@@ -472,6 +472,7 @@ function getVisualizerTableList($file_types, $visualizer = null) {
 		$a["project"] = getProject($p[1])["name"];
 		$a["execution"] = $p[2];
 		$a["file"] = $p[3];
+		$a["refGenome"] = $GLOBALS['refGenomes_names'][$file["refGenome"]];
 
 		$list[] = $a;
 	}

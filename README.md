@@ -21,11 +21,11 @@ Cloning this directory in your system:
 
 
 ```
-git clone https://github.com/inab/openVRE-core-dev.git --branch techton 2025
+git clone https://gitlab.bsc.es/disc4all/openvre/new_vre.git
 
-cd openVRE-core-dev
+cd new_vre
 
-mv openVRE-core-dev dockerized_vre
+mv new_vre dockerized_vre
 
 cd dockerized_vre 
 
@@ -41,9 +41,11 @@ docker compose up -d
 Manually entering the SGEcore container and modify the docker group permission:
 
 ```
+
 docker exec -ti sgecore /bin/bash
 
 in the container -> groupmod -g 120 docker
 
 in the container -> usermod -aG docker application
+
 ```

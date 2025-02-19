@@ -1,3 +1,5 @@
+{"_id":"tool_statistics","name":"Tool summary file","file_types":["TAR"],"taxon_id":false,"assembly":[]}
+{"_id":"site_manifest","name":"site_manifest","file_types":["JSON"]}
 {"_id":"data_manifest","name":"data_manifest","file_types":["JSON"]}
 {"_id":"data_quality_report","name":"data_quality_report","file_types":["JSON"]}
 {"_id":"FE_Query","name":"FE_Query","file_types":["JSON"]}
@@ -9,16 +11,16 @@
 {"_id":"3d_simulation","name":"3D Simulation","file_types":["PTH","OBJ","STL"],"assembly":[]}
 {"_id":"tool_statistics","name":"Tool summary file","file_types":["TAR"],"taxon_id":false,"assembly":[]}
 {"_id":"site_manifest","name":"site_manifest","file_types":["JSON"]}{
-    "_id": "sequence_data",
-    "name": "sequence_data",
-    "file_types": [
-      "FASTA"
-    ]
-  }
-  {
-    "_id": "id_list",
-    "name": "id_list",
-    "file_types": [
-      "TXT"
-    ]
-  }
+  "_id": "sequence_data",
+  "name": "sequence_data",
+  "file_types": [
+    "FASTA"
+  ]
+}
+{
+  "_id": "id_list",
+  "name": "id_list",
+  "file_types": [
+    "TXT"
+  ]
+}

@@ -81,20 +81,17 @@ require __DIR__."/../../config/bootstrap.php";
 					<!-- END THEME LAYOUT SCRIPTS -->
 					
 
-<?php
-if (isset($GLOBALS['GA_TAG'])) { ?>
-	<!-- GOOGLE ANALYTICS  Global site tag (gtag.js) - Google Analytics -->
-	<script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo $GLOBALS['GA_TAG'];?>"></script>
-	<script>
-	window.dataLayer = window.dataLayer || [];
-	function gtag(){dataLayer.push(arguments);}
-	gtag('js', new Date());
+<!-- GOOGLE ANALYTICS  Global site tag (gtag.js) - Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=<?php echo $GLOBALS['GA_TAG'];?>"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
 
-	gtag('config', '<?php echo $GLOBALS['GA_TAG'];?>');
-	</script>
+  gtag('config', '<?php echo $GLOBALS['GA_TAG'];?>');
+</script>
 
-	<!-- END GOOGLE ANALYTICS -->
-<?php } ?>
+<!-- END GOOGLE ANALYTICS -->
 
     </body>
 
