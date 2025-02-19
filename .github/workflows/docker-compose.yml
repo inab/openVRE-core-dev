@@ -70,7 +70,7 @@ jobs:
         run: |
           for service in $(docker compose --profile "*" -f docker-compose.yml config --images | uniq); do
             echo $service
-            image_name="ghcr.io/${{ github.repository_owner }}/$service"
+            image_name="ghcr.io/${{ vars.DOCKER_USERNAME }}/$service"
             docker tag $service $image_name
             docker push $image_name
           done
