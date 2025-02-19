@@ -81,7 +81,7 @@ jobs:
 
 
       - name: Start Docker Compose
-        run: docker-compose up -d --build
+        run: docker-compose --profile "local_auth" --profile populate_DB up -d 
 
       - name: Verify running containers
         run: docker ps -a
