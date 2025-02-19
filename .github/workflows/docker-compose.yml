@@ -59,21 +59,17 @@ jobs:
           echo "FRONTEND_HOSTNAME=${{ vars.FRONTEND_HOSTNAME }}" >> .env
           echo "DOCKER_GROUP=${{ vars.DOCKER_GROUP }}" >> .env
 
-      - name: Docker compose install
-        run: |
-          curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
-          chmod +x /usr/local/bin/docker-compose
-
       - name: Check Docker Compose
         run: |
-          docker-compose --version
+          docker compose --version
       - name: Build and push Docker images
         run: |
-          docker-compose -f docker-compose.yml build
+          docker compose -f docker-compose.yml build
           
       - name: Tag and Push Docker Images to GHCR
         run: |
-          for service in $(docker-compose --profile "*" -f docker-compose.yml config --images | uniq); do
+          for service in $(docker compose --profile "*" -f docker-compose.yml config --images | uniq); do
+            echo $service
             image_name="ghcr.io/${{ github.repository_owner }}/$service"
             docker tag $service $image_name
             docker push $image_name
@@ -81,7 +77,7 @@ jobs:
 
 
       - name: Start Docker Compose
-        run: docker-compose --profile "local_auth" --profile populate_DB up -d 
+        run: docker compose --profile "local_auth" --profile populate_DB up -d 
 
       - name: Verify running containers
         run: docker ps -a
