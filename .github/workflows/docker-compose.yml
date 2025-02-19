@@ -64,7 +64,7 @@ jobs:
           docker compose --version
       - name: Build and push Docker images
         run: |
-          docker compose -f docker-compose.yml build
+          docker compose --profile "*" -f docker-compose.yml build && docker compose --profile "*" -f docker-compose.yml pull --ignore-buildable
           
       - name: Tag and Push Docker Images to GHCR
         run: |
