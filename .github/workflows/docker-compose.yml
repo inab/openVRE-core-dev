@@ -65,7 +65,13 @@ jobs:
       - name: Build and push Docker images
         run: |
           docker compose --profile "*" -f docker-compose.yml build && docker compose --profile "*" -f docker-compose.yml pull --ignore-buildable
-          
+      
+      - name: Login to Docker registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ vars.DOCKER_USERNAME }}
+          password: ${{ secrets.  MFERRI_GITHUB_TOKEN }}  
       - name: Tag and Push Docker Images to GHCR
         run: |
           for service in $(docker compose --profile "*" -f docker-compose.yml config --images | uniq); do
