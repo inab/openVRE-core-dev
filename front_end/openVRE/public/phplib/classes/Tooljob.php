@@ -44,7 +44,6 @@ class Tooljob {
     public $logName;
     public $stdout_file;
     public $stderr_file;
-
     public $stageout_data   = [];
     public $input_files     = [];
     public $input_files_pub = [];
@@ -72,13 +71,13 @@ class Tooljob {
 
         // Set paths in VRE
         $this->root_dir  = $GLOBALS['dataDir']."/".$_SESSION['User']['id'];
-	$this->pub_dir   = $GLOBALS['pubDir'];
-	$this->arguments_exec = $arguments_exec;
+		$this->pub_dir   = $GLOBALS['pubDir'];
+		$this->arguments_exec = $arguments_exec;
 
         // Set paths in the virtual machine
         //$this->set_cloudName($tool);
-	//$this->launcher         = $tool['infrastructure']['clouds'][$this->cloudName]['launcher'];
-	//$_SESSION['errorData']['Error'][]="Tool '$this->toolId' '$this->cloudName' '$this->launcher' ";
+		//$this->launcher         = $tool['infrastructure']['clouds'][$this->cloudName]['launcher'];
+		//$_SESSION['errorData']['Error'][]="Tool '$this->toolId' '$this->cloudName' '$this->launcher' ";
 
 	if (!empty($this->arguments_exec['site_list']) && count($this->arguments_exec['site_list']) >= 1) {
 		$site_list = $this->arguments_exec['site_list'];
@@ -96,45 +95,43 @@ class Tooljob {
 	
 	}	
         switch ($this->launcher){
-            case "SGE":
+        case "SGE":
 	    case "docker_SGE":
 		    $this->root_dir_virtual = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual']. "/".$_SESSION['User']['id'];
 		    $this->root_dir_mug     = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual'];
 		    $this->pub_dir_virtual  = $GLOBALS['clouds'][$this->cloudName]['pubDir_virtual'];
 		    $this->pub_dir_volumes  = $GLOBALS['clouds'][$this->cloudName]['pubDir_host'];
 		    $this->root_dir_volumes  = $GLOBALS['clouds'][$this->cloudName]['dataDir_host']. "/".$_SESSION['User']['id'];
-    		    $this->pub_dir_intern   = rtrim($this->pub_dir_virtual,"/"). "_tmp";
-	    case "ega_demo":
-                $this->root_dir_virtual = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual']. "/".$_SESSION['User']['id'];
-                $this->pub_dir_virtual  = $GLOBALS['clouds'][$this->cloudName]['pubDir_virtual'];
-		$this->root_dir_host    = $GLOBALS['clouds'][$this->cloudName]['dataDir_host'];
-		$this->pub_dir_host     = $GLOBALS['clouds'][$this->cloudName]['pubDir_host'];
-		$this->scripts_dir_host = $GLOBALS['clouds'][$this->cloudName]['scriptsDir_host'];
+    		$this->pub_dir_intern   = rtrim($this->pub_dir_virtual,"/"). "_tmp";
+	    case "ega_demo":    
+			$this->root_dir_virtual = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual']. "/".$_SESSION['User']['id'];     
+			$this->pub_dir_virtual  = $GLOBALS['clouds'][$this->cloudName]['pubDir_virtual'];	
+			$this->root_dir_host    = $GLOBALS['clouds'][$this->cloudName]['dataDir_host'];	
+			$this->pub_dir_host     = $GLOBALS['clouds'][$this->cloudName]['pubDir_host'];
+			$this->scripts_dir_host = $GLOBALS['clouds'][$this->cloudName]['scriptsDir_host'];
 		break;
-            case "PMES":
-                $this->root_dir_virtual = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual'];
-                $this->pub_dir_virtual  = $GLOBALS['clouds'][$this->cloudName]['pubDir_virtual'];
+        case "PMES":
+            $this->root_dir_virtual = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual'];
+            $this->pub_dir_virtual  = $GLOBALS['clouds'][$this->cloudName]['pubDir_virtual'];
 		break;
+		case "ssh_remote":
 	    case "DTRCLONE":
-                $this->root_dir_virtual = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual'];
-                $this->pub_dir_virtual  = $GLOBALS['clouds'][$this->cloudName]['pubDir_virtual'];
-                $this->root_dir_fs = $GLOBALS['clouds'][$this->cloudName]['dataDir_fs'];
-                $this->pub_dir_fs = $GLOBALS['clouds'][$this->cloudName]['pubDir_fs'];
-                $this->auth = $GLOBALS['clouds'][$this->cloudName]['auth'];
-                $this->http_host = $GLOBALS['clouds'][$this->cloudName]['http_host'];
-                break;
+            $this->root_dir_virtual = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual'];
+            $this->pub_dir_virtual  = $GLOBALS['clouds'][$this->cloudName]['pubDir_virtual'];
+            $this->root_dir_fs = $GLOBALS['clouds'][$this->cloudName]['dataDir_fs'];
+            $this->pub_dir_fs = $GLOBALS['clouds'][$this->cloudName]['pubDir_fs'];
+            $this->auth = $GLOBALS['clouds'][$this->cloudName]['auth'];
+            $this->http_host = $GLOBALS['clouds'][$this->cloudName]['http_host'];
+            break;
 	    case "Slurm":
-                    $this->root_dir_df = $GLOBALS['clouds'][$this->cloudName]['mn_dir'] .  "/".substr($_SESSION['User']['linked_accounts']['MN']['username'], 0, 6). "/".$_SESSION['User']['linked_accounts']['MN']['username']. "/". $GLOBALS['clouds'][$this->cloudName]['dataDir_fs'];
-                    $this->pub_dir_fs = $GLOBALS['clouds'][$this->cloudName]['mn_dir'] .  "/".substr($_SESSION['User']['linked_accounts']['MN']['username'], 0, 6)."/".$_SESSION['User']['linked_accounts']['MN']['username']. "/". $GLOBALS['clouds'][$this->cloudName]['pubDir_fs'];
-                //$this->pub_dir_virtual  = $GLOBALS['clouds'][$this->cloudName]['pubDir_virtual'];
-                //$this->root_dir_fs = $GLOBALS['clouds'][$this->cloudName]['dataDir_fs'];
-                //$this->pub_dir_fs = $GLOBALS['clouds'][$this->cloudName]['pubDir_fs'];
-                    $this->auth = $GLOBALS['clouds'][$this->cloudName]['auth'];
+            $this->root_dir_df = $GLOBALS['clouds'][$this->cloudName]['mn_dir'] .  "/".substr($_SESSION['User']['linked_accounts']['MN']['username'], 0, 6). "/".$_SESSION['User']['linked_accounts']['MN']['username']. "/". $GLOBALS['clouds'][$this->cloudName]['dataDir_fs'];
+            $this->pub_dir_fs = $GLOBALS['clouds'][$this->cloudName]['mn_dir'] .  "/".substr($_SESSION['User']['linked_accounts']['MN']['username'], 0, 6)."/".$_SESSION['User']['linked_accounts']['MN']['username']. "/". $GLOBALS['clouds'][$this->cloudName]['pubDir_fs'];
+            $this->auth = $GLOBALS['clouds'][$this->cloudName]['auth'];
 		    $this->http_host = $GLOBALS['clouds'][$this->cloudName]['http_host'];
 		    break;
                 //$this->port = $GLOBALS['clouds'][$this->cloudName]['port'];     
-            default:
-                $_SESSION['errorData']['Error'][]="Tool '$this->toolId' not properly registered. Launcher type is set to '".$this->launcher."'. Case not implemented.";
+        default:
+            $_SESSION['errorData']['Error'][]="Tool '$this->toolId' not properly registered. Launcher type is set to '".$this->launcher."'. Case not implemented.";
         }
 
     	// Creating execution folder

@@ -6,7 +6,7 @@ require __DIR__."/../../config/bootstrap.php";
 use OpenStack\OpenStack;
 redirectOutside();
 
-$debug=0;
+$debug=1;
 
 $SGE_updated = getUserJobs($_SESSION['User']['id']);
 
@@ -162,18 +162,25 @@ foreach ($files as $fnId => $file) {
 
     // If it's not a directory, proceed with file-specific checks
 
-
+	
     $rfn  = $GLOBALS['dataDir']."/$fn";
 
     if (!is_file($rfn)){
 	    $_SESSION['errorData']['Error'][]="File '".basename($fn)."' is not found or has size zero. Checking other locations available.";
 
+		
 	    if ($isDir === true) {
      	   // Skip file-specific checks and processing, but store the directory for later use
         	$_SESSION['infoData']['Info'][] = "Directory '".basename($fn)."' detected. Skipping file-specific checks.";
         	continue; // Continue to the next file in the loop
-	    } 
-	    
+	    }
+
+		//moving the dataTransfer session to Tooljob
+		/*
+	    if ($debug) {
+			print "<br/>?????</br>";
+			var_dump($r);
+		}
 	    
 	    $jobData = new DataTransfer($tool, $filesId, $_REQUEST['execution'], $_REQUEST['project'], $_REQUEST['description']);
 	    $r = $jobData->getList($filesId);
@@ -198,7 +205,10 @@ foreach ($files as $fnId => $file) {
 		    }  elseif ($prova === 0) {
 			    $_SESSION['errorData']['Error'][]= "No stored credentials are present in the system. Go to the profile section to save them.";
 		    }
-	    }
+
+		}
+		*/
+
 	    //?><script type="text/javascript">//window.history.go(-1);</script><?php
 	    //exit(0);
 	    //redirect($_SERVER['HTTP_REFERER']);
