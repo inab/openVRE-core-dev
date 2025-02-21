@@ -6,7 +6,7 @@ require __DIR__."/../../config/bootstrap.php";
 use OpenStack\OpenStack;
 redirectOutside();
 
-$debug=0;
+$debug=1;
 
 $SGE_updated = getUserJobs($_SESSION['User']['id']);
 
