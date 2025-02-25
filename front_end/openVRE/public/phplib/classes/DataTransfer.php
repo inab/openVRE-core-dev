@@ -254,7 +254,7 @@ class DataTransfer {
     public function getUrifrom($obj){  //pasandole solo el $fileId o $fileUrl/fileUrls. ej. mn5:userdata/_PROJ123/uploads/myInput.txt
 	    if(!isset($obj['file_url'])) {
 		    $_SESSION['ErrorData']['Error'][]="URI not found in object. Expected 'uri' atribute in object File";
-	    }s
+	    }
 	    $array = [];
 	    $array['_id'] = $obj['_id'];
 	    $array['local_path'] = $obj['path'];
