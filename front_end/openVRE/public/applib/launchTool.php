@@ -182,7 +182,7 @@ foreach ($files as $fnId => $file) {
 			var_dump($r);
 		}
 	    
-	    $jobData = new DataTransfer($tool, $filesId, $_REQUEST['execution'], $_REQUEST['project'], $_REQUEST['description']);
+	    $jobData = new DataTransfer($tool, $filesId, $_REQUEST['execution'], $_REQUEST['project'], $_REQUEST['description']); add $launcher y $siteid
 	    $r = $jobData->getList($filesId);
 	    $s = $jobData->checkLoc($r);
 

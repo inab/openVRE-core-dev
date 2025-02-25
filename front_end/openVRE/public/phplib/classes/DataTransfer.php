@@ -53,8 +53,8 @@ class DataTransfer {
         $this->toolId    = $tool['_id'];
         $this->title     = $tool['name'] ." job";
         $this->execution = $execution;
-	$this->project   = $project;
-	$this->input_files = $input_files;
+        $this->project   = $project;
+        $this->input_files = $input_files;
 
 	//$this->vaultHost = 'vault';
 	//$this->vaultPort = 8200;
@@ -65,12 +65,12 @@ class DataTransfer {
         $this->pub_dir   = $GLOBALS['pubDir'];
 
         // Set paths in the virtual machine
-	$this->set_cloudName($tool);
-	// will come out the marenostrum_dt (dtrclone)
-	// will do another function?
-	$this->launcher         = $tool['infrastructure']['clouds'][$this->cloudName]['launcher'];
-	// will come out DTRCLONE
-        switch ($this->launcher){
+        $this->set_cloudName($tool);
+        // will come out the marenostrum_dt (dtrclone)
+        // will do another function?
+        $this->launcher         = $tool['infrastructure']['clouds'][$this->cloudName]['launcher'];
+	    // will come out DTRCLONE
+        switch ($this->launcher){ 
             case "SGE":
             case "docker_SGE":
                 $this->root_dir_virtual = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual']. "/".$_SESSION['User']['id'];
@@ -79,25 +79,25 @@ class DataTransfer {
                 break;
             case "DTRCLONE":
                 $this->root_dir_virtual = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual'];
-		$this->pub_dir_virtual  = $GLOBALS['clouds'][$this->cloudName]['pubDir_virtual'];
-		$this->root_dir_fs = $GLOBALS['clouds'][$this->cloudName]['dataDir_fs'];
-		$this->pub_dir_fs = $GLOBALS['clouds'][$this->cloudName]['pubDir_fs'];
-		$this->auth = $GLOBALS['clouds'][$this->cloudName]['auth'];
-		$this->http_host = $GLOBALS['clouds'][$this->cloudName]['http_host'];
-		$this->port = $GLOBALS['clouds'][$this->cloudName]['port'];
-		break;
-	    case "Slurm":
-		    $this->root_dir_df = $GLOBALS['clouds'][$this->cloudName]['mn_dir'] .  "/".substr($_SESSION['User']['linked_accounts']['SSH']['hpc_username'], 0, 5). "/".$_SESSION['User']['linked_accounts']['SSH']['hpc_username']. "/".$GLOBALS['clouds'][$this->cloudName]['dataDir_fs'];
-		    $this->pub_dir_fs = $GLOBALS['clouds'][$this->cloudName]['mn_dir'] .  "/".substr($_SESSION['User']['linked_accounts']['SSH']['hpc_username'], 0, 5)."/".$_SESSION['User']['linked_accounts']['SSH']['hpc_username']. "/".$GLOBALS['clouds'][$this->cloudName]['pubDir_fs'];
-		    $this->auth = $GLOBALS['clouds'][$this->cloudName]['auth'];
-		    $this->http_host = $GLOBALS['clouds'][$this->cloudName]['http_host'];
-		    break;  
+                $this->pub_dir_virtual  = $GLOBALS['clouds'][$this->cloudName]['pubDir_virtual'];
+                $this->root_dir_fs = $GLOBALS['clouds'][$this->cloudName]['dataDir_fs'];
+                $this->pub_dir_fs = $GLOBALS['clouds'][$this->cloudName]['pubDir_fs'];
+                $this->auth = $GLOBALS['clouds'][$this->cloudName]['auth'];
+                $this->http_host = $GLOBALS['clouds'][$this->cloudName]['http_host'];
+                $this->port = $GLOBALS['clouds'][$this->cloudName]['port'];
+                break;
+            case "Slurm":
+                $this->root_dir_df = $GLOBALS['clouds'][$this->cloudName]['mn_dir'] .  "/".substr($_SESSION['User']['linked_accounts']['SSH']['hpc_username'], 0, 5). "/".$_SESSION['User']['linked_accounts']['SSH']['hpc_username']. "/".$GLOBALS['clouds'][$this->cloudName]['dataDir_fs'];
+                $this->pub_dir_fs = $GLOBALS['clouds'][$this->cloudName]['mn_dir'] .  "/".substr($_SESSION['User']['linked_accounts']['SSH']['hpc_username'], 0, 5)."/".$_SESSION['User']['linked_accounts']['SSH']['hpc_username']. "/".$GLOBALS['clouds'][$this->cloudName]['pubDir_fs'];
+                $this->auth = $GLOBALS['clouds'][$this->cloudName]['auth'];
+                $this->http_host = $GLOBALS['clouds'][$this->cloudName]['http_host'];
+                break;  
             default:
                 $_SESSION['errorData']['Error'][]="Tool '$this->toolId' not properly registered. Launcher type is set to '".$this->launcher."'. Case not implemented.";
 	}
 
 
-	        // Creating execution folder
+	        // Creating execution folder --- why? we shouldn't 
         if ($execution != "0"){
             //create Project Folder
             $this->hasExecutionFolder = true;
@@ -251,10 +251,10 @@ class DataTransfer {
     }
  
     
-    public function getUrifrom($obj){
+    public function getUrifrom($obj){  //pasandole solo el $fileId o $fileUrl/fileUrls. ej. mn5:userdata/_PROJ123/uploads/myInput.txt
 	    if(!isset($obj['file_url'])) {
 		    $_SESSION['ErrorData']['Error'][]="URI not found in object. Expected 'uri' atribute in object File";
-	    }
+	    }s
 	    $array = [];
 	    $array['_id'] = $obj['_id'];
 	    $array['local_path'] = $obj['path'];
