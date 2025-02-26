@@ -34,11 +34,11 @@ docker pull mapoferri/techton-seq-tool
 docker pull ghcr.io/mapoferri/front_end:latest
 ```
 
-### Setup configuration files
+## Setup configuration files (Techthon Session 1)
 
 First thing, is to create and configure your own  `.env` file:
 ```
-cd dockerized_vre
+cd openVRE-core-dev
 cp .env.sample .env
 ```
 
@@ -67,25 +67,12 @@ cp oauth2_admin.conf.sample oauth2_admin.conf
 ## Import container images
 
 #### Option 1: pull images
-You can user already build images from [GitHub Container Registry](https://github.com/orgs/inab/packages?tab=packages&q=dockerized_vre). Select the version you are insterested and pull them using the following commands:
+You can user already build images from [GitHub Container Registry](https://github.com/mapoferri?tab=packages). 
 
+#### Option 2: build images 
+Return to the `openVRE-core-dev` folder and check the `docker-compose.yml` file before building the containers. Two docker images are going to be build according to it:  `sgecore` and `front_end`. The task could take a while...
 ```
-# Front-end image
-docker pull ghcr.io/inab/dockerized_vre/frontend:1.1
-
-# SGE core image
-docker pull ghcr.io/inab/dockerized_vre/sgecore:1.0
-```
-
-Check the new images:
-```
-docker images
-```
-
-#### Option 2: build images
-Return to the `dockerized_vre` folder and check the `docker-compose.yml` file before building the containers. Two docker images are going to be build according to it:  `sgecore` and `front_end`. The task could take a while...
-```
-cd dockerized_vre/
+cd openVRE-core-dev/
 docker compose build
 ```
 Check the new images:
@@ -93,18 +80,18 @@ Check the new images:
 docker images
 ```
 
-## Start the services
+## Start the services  (Techthon Session 1)
 
 Validate the `docker-compose.yml` file before creating and starting them with the following command: 
 ```
-docker compose up -d
+docker-compose --profile "local_auth" --profile populate_DB up -d 
 ```
 and check the status of the resulting containers
 ```
 docker ps -a
 ```
 
-## Apply manual configuration:
+## Apply manual SGE configuration (Techthon Session 1):
 
 ### sgecore username:
 
@@ -119,13 +106,13 @@ Change minimal UID in SGE master configuration to allow job submission from web 
 docker exec -it sgecore /bin/bash
 qconf -as ${FRONT_END_HOSTNAME}
 
-qconf -mconf # change UID from 1000 to 33)
+qconf -mconf # change UID from 1000 to 33
 ```
 
 ### sgecore docker usage permission
 
 ```
-groupmod -g 120 docker
+groupmod -g 120 docker   #or to the respective docker group of the system, which could be obtained by running bash command: getent group docker
 usermod -aG docker application
 
 
@@ -134,7 +121,7 @@ chmod 660 /var/run/docker.sock
 
 ```
 
-## Keycloak Configuration
+## Set Keycloak Configuration (Techthon Session 1):
 
 Check match user and secret with keycloak config.
 Keycloak to front-end should be allowes via iptables in some systems, so run the command locally on the machine:
@@ -165,7 +152,7 @@ Before closing the session, check the Vault configuration, since it needs a KeyC
 
 
 
-## Vault Configuration
+## Set Vault Configuration (Techthon Session 1):
 
 
 ### Keycloak Configuration for HashiCorp Vault Integration
@@ -356,7 +343,7 @@ vault secrets enable -path=secret/mysecret kv-v2
 
 ```
 
-## Graphic configuration
+## Set Graphic configuration (Techthon Session 1):
 
 
 Whenever you want your own version of the VRE, some steps have to be followed:
@@ -380,7 +367,7 @@ Replace *assets/your_project_path/your-logo.png* with the path to your logo file
 
 2. Step 2: Modify Your Theme in `assets/layouts/layout/css`
 
-To further customize the look and feel of your application, you can modify the theme-related CSS files located in **/dockerized_vre/front_end/openVRE/public/assets/layouts/layout/css**.
+To further customize the look and feel of your application, you can modify the theme-related CSS files located in **/openVRE-core-dev/front_end/openVRE/public/assets/layouts/layout/css**.
 
 ### 2.1 Update Global Styles and Theme Settings
 
@@ -444,7 +431,7 @@ RUN curl -fsSL https://pgp.mongodb.com/server-4.2.asc | apt-key add -
 sudo timedatectl set-timezone Europe/Madrid
 ```
 
-3. **Error response from daemon: path /home/jmfernandez/TEMP/dockerized_vre/volumes/shared_data is mounted on / but it is not a shared mount**
+3. **Error response from daemon: path /home/jmfernandez/TEMP/openVRE-core-dev/volumes/shared_data is mounted on / but it is not a shared mount**
     - You can solve this problem running this command:
     ```
     sudo mount --make-shared /
@@ -453,9 +440,11 @@ sudo timedatectl set-timezone Europe/Madrid
     - Another solution you can use (can change based on the operating system), is commenting or deleting the line **:rshared** in the *docker-compose.yml* **sgecore** Volumes section. 
 
 4. **Data is not accessible**
-    - After setting up the *docker-compose up* command, and trying to connect to the *front_end* via web, the error **Data is not accessible** comes out. In your system, you will have to change permissions of the *dockerized_vre/volumes/* dir permission:
+    - After setting up the *docker-compose up* command, and trying to connect to the *front_end* via web, the error **Data is not accessible** comes out. In your system, you will have to change permissions of the *openVRE-core-dev
+  /volumes/* dir permission:
     ```
     chmod 777 volumes/shared/data
     ```
 5. **$FQDN_HOST port 272017 already in use**
-    - After setting up the *docker-compose up* command, from the *front_end* container errors (coming from running *docker logs front_end*) and this is the error appearing, it would be needed to change the value for port configuration for *$MONGO_PORT* in the *.env* file, as well as in *dockerized_vre/front_end/openVRE/config/mongo.conf* corresponding port value.
+    - After setting up the *docker-compose up* command, from the *front_end* container errors (coming from running *docker logs front_end*) and this is the error appearing, it would be needed to change the value for port configuration for *$MONGO_PORT* in the *.env* file, as well as in *openVRE-core-dev
+  /front_end/openVRE/config/mongo.conf* corresponding port value.
