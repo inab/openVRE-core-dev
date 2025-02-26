@@ -73,15 +73,18 @@ function get_url_interactive_tool_333332($pid, $login="session") {
 
 	if ($ok_service){
 		// Build IP from port (md5)
-		$url_proxy_path = 'rstudio_'.md5($tool_port);
-		$proxy_tool_url = $GLOBALS['interactive_server'] . "/" . "$url_proxy_path/";
+		// for techthon $url_proxy_path = 'rstudio_'.md5($tool_port);
+		//for techothon $proxy_tool_url = $GLOBALS['interactive_server'] . "/" . "$url_proxy_path/";
+		$proxy_tool_url = $GLOBALS['SERVER'] . ":" . "$tool_port/";
+
 
 		// TODO: set gdx proxy headers
 		$_SESSION['errorData']['Info'][]="Interactive session successfully established. Active session accessible at URL = <a target=_blank href='$proxy_tool_url'>$proxy_tool_url</a> .";
 
 		// Set custom headers
 
-		$proxy_tool_headers= array('"X-RStudio-Root-Path": "/'.$url_proxy_path.'"');
+		//for techothon $proxy_tool_headers= array('"X-RStudio-Root-Path": "/'.$url_proxy_path.'"');
+		$proxy_tool_headers= array('"X-Root-Path": "/'.$proxy_tool_url.'"');
 	}
 	return array($proxy_tool_url, $proxy_tool_headers, $autorefresh);
 
@@ -208,7 +211,8 @@ list($proxy_tool_url,$proxy_tool_headers,$autorefresh) = get_url_interactive_too
     xhr.open('GET', '<?=$proxy_url;?>', true);
     //xhr.setRequestHeader('x-interactive-tool-host', '<?=$tool_host;?>');
     //xhr.setRequestHeader('x-interactive-tool-port', '<?=$tool_port;?>');
-    xhr.setRequestHeader('X-RStudio-Root-Path',     '<?=$tool_rootp;?>');
+    // for techton xhr.setRequestHeader('X-RStudio-Root-Path',     '<?=$tool_rootp;?>');
+	xhr.setRequestHeader('X-Root-Path',     '<?=$tool_rootp;?>');
     //xhr.setRequestHeader('X-Forwarded-Proto', 'https://longitools.bsc.es');
     xhr.onreadystatechange = function () {
       if (xhr.readyState === 4 && xhr.status === 200) {
@@ -236,6 +240,7 @@ list($proxy_tool_url,$proxy_tool_headers,$autorefresh) = get_url_interactive_too
 			//"x-interactive-tool-host": "<?=$tool_host;?>",
 			//"x-interactive-tool-port": <?=$tool_port;?>,
 			"X-RStudio-Root-Path": "<?=$tool_rootp;?>"
+			// for techthon "X-RStudio-Root-Path": "<?=$tool_rootp;?>"
 		        }
 	      });
 	      const blob = await res.blob();
@@ -249,7 +254,8 @@ list($proxy_tool_url,$proxy_tool_headers,$autorefresh) = get_url_interactive_too
     	    fetch("<?=$proxy_url;?>", {
 		        method: "GET",
 			headers: {
-			"X-RStudio-Root-Path": "<?=$tool_rootp;?>"
+			//for techthon "X-RStudio-Root-Path": "<?=$tool_rootp;?>"
+			"X-Root-Path": "<?=$tool_rootp;?>"
 		        }
 	    }).then(function(res) {
 	        const blob = res.blob();
@@ -265,12 +271,13 @@ list($proxy_tool_url,$proxy_tool_headers,$autorefresh) = get_url_interactive_too
 
 
 	<?php
-	$proxy_url = $GLOBALS['interactive_server'] . "/" . "tool-proxy/";; 
+	// for techthon $proxy_url = $GLOBALS['interactive_server'] . "/" . "tool-proxy/";; 
+	$proxy_url = $GLOBALS['SERVER'] . "/" . "tool-proxy/";;
 	$headers = array(
 		'x-interactive-tool-host: RStudio_b04cbeb0bc6f0e70',
 		'x-interactive-tool-port: 8787',
 		'Host: $proxy_url',
-		'X-RStudio-Root-Path: /tool-proxy',
+		'X-Root-Path: /tool-proxy',   //X-RStudio-Root-Path
 		'X-Forwarded-Proto: https'
 	);
 

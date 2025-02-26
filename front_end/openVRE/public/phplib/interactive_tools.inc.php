@@ -74,16 +74,17 @@ function get_url_interactive_tool($pid, $login="session") {
 
         if ($ok_service){
                 // Build IP from port (md5)
-                $url_proxy_path = 'rstudio_'.md5($tool_port);
-                $proxy_tool_url = $GLOBALS['interactive_server'] . "/" . "$url_proxy_path/";
+                // for techthon $url_proxy_path = 'rstudio_'.md5($tool_port);
+                // for techthon $proxy_tool_url = $GLOBALS['interactive_server'] . "/" . "$url_proxy_path/";
+                $proxy_tool_url = $GLOBALS['SERVER'] . ":" . "$tool_port/";
 
                 // TODO: set gdx proxy headers
                 $_SESSION['errorData']['Info'][]="Interactive session successfully established. Active session accessible at URL = <a target=_blank href='$proxy_tool_url'>$proxy_tool_url</a> .";
 
                 // Set custom headers
 
-		$proxy_tool_headers= array('"X-RStudio-Root-Path": "/'.$url_proxy_path.'"');
-		//$proxy_tool_headers= array('"X-Root-Path": "/'.$url_proxy_path.'"');
+		// for techthon $proxy_tool_headers= array('"X-RStudio-Root-Path": "/'.$url_proxy_path.'"');
+		$proxy_tool_headers= array('"X-Root-Path": "/'.$proxy_tool_url.'"');
         }
         return array($proxy_tool_url, $proxy_tool_headers, $autorefresh);
 

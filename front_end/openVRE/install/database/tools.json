@@ -13,30 +13,40 @@
     },
     "status": 0,
     "external": true,
-    "keywords": ["next gen seq", "dna"],
-    "keywords_tool": ["Tool skeleton", "Sample keyword"],
+    "keywords": [
+      "next gen seq",
+      "dna"
+    ],
+    "keywords_tool": [
+      "Tool skeleton",
+      "Sample keyword"
+    ],
     "infrastructure": {
-    "memory": 12,
-    "cpus": 1,
-    "executable": "/home/vre_template_tool/VRE_RUNNER",
-    "container_image": "dockerhub/tool-skeleton:latest",
-    "clouds": {
-      "local": {
-        "launcher": "docker_SGE",
-        "default_cloud": true,
-        "queue": "local.q",
-        "executable": "/home/vre_template_tool/VRE_RUNNER",
-        "executable_type": "docker"
+      "memory": 12,
+      "cpus": 1,
+      "executable": "/home/vre_template_tool/VRE_RUNNER",
+      "container_image": "dockerhub/tool-skeleton:latest",
+      "clouds": {
+        "local": {
+          "launcher": "docker_SGE",
+          "default_cloud": true,
+          "queue": "local.q",
+          "executable": "/home/vre_template_tool/VRE_RUNNER",
+          "executable_type": "docker"
+        }
       }
-    }
-  },
+    },
     "input_files": [
       {
         "name": "fasta1",
         "description": "FASTA input file 1",
         "help": "This is the input file 1 help tooltip",
-        "file_type": ["FASTA"],
-        "data_type": ["dna_sequence"],
+        "file_type": [
+          "FASTA"
+        ],
+        "data_type": [
+          "dna_sequence"
+        ],
         "required": true,
         "allow_multiple": false
       },
@@ -44,8 +54,12 @@
         "name": "fasta2",
         "description": "FASTA input file 2",
         "help": "This is the input file 2 help tooltip",
-        "file_type": ["FASTA"],
-        "data_type": ["dna_sequence"],
+        "file_type": [
+          "FASTA"
+        ],
+        "data_type": [
+          "dna_sequence"
+        ],
         "required": false,
         "allow_multiple": false
       }
@@ -53,20 +67,31 @@
     "input_files_combinations": [
       {
         "description": "Start tool with 1 FASTA FILE",
-        "input_files": ["fasta1"]
+        "input_files": [
+          "fasta1"
+        ]
       },
       {
         "description": "Start tool with 2 FASTA FILES",
-        "input_files": ["fasta1", "fasta2"]
+        "input_files": [
+          "fasta1",
+          "fasta2"
+        ]
       }
     ],
     "input_files_combinations_internal": [
       [
-        { "dna_sequence": 1 },
-        { "dna_sequence": 1 }
+        {
+          "dna_sequence": 1
+        },
+        {
+          "dna_sequence": 1
+        }
       ],
       [
-        { "dna_sequence": 1 }
+        {
+          "dna_sequence": 1
+        }
       ]
     ],
     "arguments": [
@@ -83,8 +108,14 @@
         "help": " Tooltip for this argument",
         "type": "enum_multiple",
         "enum_items": {
-          "name": ["option 1 name", "option 2 name"],
-          "description": ["option1", "option2"]
+          "name": [
+            "option 1 name",
+            "option 2 name"
+          ],
+          "description": [
+            "option1",
+            "option2"
+          ]
         },
         "required": true,
         "default": ""
@@ -124,10 +155,217 @@
         }
       }
     ],
-  "sites": [
-    {
-      "site_id": "local",
-      "status": 1
-    }   
-  ]
+    "sites": [
+      {
+        "site_id": "local",
+        "status": 1
+      }
+    ]
+  }
+  {
+    "_id": "seqio_tool",
+    "name": "SEQIO Tool",
+    "title": "SEQIO Tool for FASTA Extraction",
+    "short_description": "A tool for extracting sequences from FASTA files based on IDs.",
+    "long_description": "SEQIO Tool is designed to extract specific sequences from a FASTA file using a list of IDs provided in a separate text file.",
+    "url": "https://example.com/seqio_tool",
+    "publication": "",
+    "owner": {
+      "author": "Maria Paola Ferri",
+      "institution": "Barcelona Supercomputing Center",
+      "contact": "maria.ferri@bsc.es",
+      "url": ""
+    },
+    "status": {
+      "$numberInt": "1"
+    },
+    "external": true,
+    "keywords": [
+      "fasta",
+      "extraction",
+      "sequence"
+    ],
+    "infrastructure": {
+      "memory": {
+        "$numberInt": "12"
+      },
+      "cpus": {
+        "$numberInt": "4"
+      },
+      "executable": "/home/vre_template_tool/VRE_RUNNER",
+      "container_image": "mapoferri/techton-seq-tool",
+      "clouds": {
+        "my_on_premises_cloud": {
+          "launcher": "docker_SGE",
+          "default_cloud": true,
+          "queue": "local.q",
+          "executable": "/home/vre_template_tool/VRE_RUNNER",
+          "executable_type": "docker"
+        }
+      }
+    },
+    "input_files": [
+      {
+        "name": "input_fasta",
+        "description": "Input FASTA file containing sequences.",
+        "help": "Provide the FASTA file from which to extract sequences.",
+        "file_type": [
+          "FASTA"
+        ],
+        "data_type": [
+          "sequence_data"
+        ],
+        "required": true,
+        "allow_multiple": false
+      },
+      {
+        "name": "ids_txt",
+        "description": "Text file containing the IDs of sequences to extract.",
+        "help": "Provide a text file with sequence IDs, one per line.",
+        "file_type": [
+          "TXT"
+        ],
+        "data_type": [
+          "id_list"
+        ],
+        "required": true,
+        "allow_multiple": false
+      }
+    ],
+    "input_files_public_dir": [],
+    "input_files_combinations": [],
+    "arguments": [
+      {
+        "name": "min_length",
+        "description": "Minimum length for sequences to be extracted.",
+        "help": "Specify a number between 30 and 100.",
+        "type": "integer",
+        "min": 30,
+        "max": 100
+      }
+    ],
+    "has_custom_viewer": false,
+    "output_files": [
+      {
+        "name": "output_fasta",
+        "required": true,
+        "allow_multiple": false,
+        "file": {
+          "file_type": "FASTA",
+          "data_type": "extracted_sequences",
+          "meta_data": {
+            "visible": true,
+            "description": "FASTA file containing the extracted sequences based on the provided IDs.",
+            "tool": "seqio_tool"
+          }
+        }
+      }
+    ],
+    "sites": [
+      {
+        "site_id": "local",
+        "status": {
+          "$numberInt": "1"
+        }
+      }
+    ]
+  }
+  {
+    "_id": "vtk_viewer",
+    "name": "VTK Viewer",
+    "title": "VTK Viewer",
+    "short_description": "Interactive viewer",
+    "long_description": "",
+    "url": "http://gitbub.com/mapoferri/Biobb",
+    "publication": "",
+    "owner": {
+      "author": "Maria Paola Ferri",
+      "institution": "Barcelona Supercomputing Center",
+      "contact": "maria.ferri@bsc.es",
+      "url": ""
+    },
+    "status": 1,
+    "external": true,
+    "keywords": [
+      "viewer",
+      "structure"
+    ],
+    "keywords_tool": [],
+    "infrastructure": {
+      "memory": 12,
+      "cpus": 1,
+      "interactive": true,
+      "executable": "bin/pvpython -m paraview.apps.visualizer",
+      "container_image": "paraview_image2",
+      "container_port": "8787",
+      "container_env": {
+        "host": "172.21.0.3",
+        "port": "8787"
+      },
+      "clouds": {
+        "local": {
+          "launcher": "docker_SGE",
+          "default_cloud": true
+        }
+      },
+      "free_port": "9001"
+    },
+    "input_files": [
+      {
+        "name": "object_file",
+        "description": "OBJ / PTH 3D file",
+        "help": "3D files for visualization",
+        "file_type": [
+          "OBJ"
+        ],
+        "data_type": [
+          "3d_simulation",
+          "vertebral_disc_coordinates"
+        ],
+        "required": true,
+        "allow_multiple": false
+      }
+    ],
+    "input_files_public_dir": []
+    ,
+    "has_custom_viewer": true,
+    "custom_viewer": "3D_Viewer",
+    "custom_viewer_description": "A tool for visualizing 3D structures and analyzing spatial data from the generated PPI network.",
+    "output_files": [
+      {
+        "name": "output",
+        "required": true,
+        "allow_multiple": false,
+        "file": {
+          "file_type": "TXT",
+          "data_type": "variants",
+          "meta_data": {
+            "visible": true,
+            "description": "TXT file containing the variants/genomic ids correlated to the disease.",
+            "tool": "vtk_viewer"
+          }
+        }
+      }
+    ],
+    "sites": [
+      {
+        "status": 1,
+        "site_id": "local"
+      }
+    ],
+    "input_files_combinations": [
+      {
+        "description": "3D Simulations",
+        "input_files": [
+          "3d_simulation",
+          "vertebral_disc_coordinates"
+        ]
+      }
+    ],
+    "input_files_combinations_internal": [
+      {
+        "3d_simulation": "+",
+        "vertebral_disc_coordinates": "+"
+      }
+    ]
   }

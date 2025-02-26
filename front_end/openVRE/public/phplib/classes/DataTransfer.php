@@ -232,7 +232,7 @@ class DataTransfer {
 
 	    foreach ($input_files as $input_file){
 		   $id = $input_file['_id'];
-		   $location = $item['location'];
+		   $location = $id['location'];
 
 		   if ($firstLoc == null) {
 			   $firstLoc = $location;
@@ -425,7 +425,7 @@ public function handleFileLocation($location, $file_path, $local_file_path, $vau
 		} else {
         		//Logic to copy the file to the SSH server
 			$remoteSSH = new RemoteSSH($credentials, $remote_dir, $http_server );
-			$success = $this->copyFileToSSH_SFTP($path_file, $remoteDir, $credentials, $http_server);
+			$success = $this->copyFileToSSH_SFTP($file_path, $remote_dir, $credentials, $http_server);
 
         		if ($success) {
             			// File copied successfully, continue with the tool
