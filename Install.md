@@ -1,11 +1,11 @@
 ## OpenVRE Development Setup Guide
 
-### Pre-requisites
+## Pre-requisites
 
 - **Docker Engine - Community** (Version: 26.1.0)
 - **Docker Compose** (Version: v2.26.1)
 
-### Cloning the Repository
+## Cloning the Repository
 
 Clone the OpenVRE core development repository using the following command:
 
