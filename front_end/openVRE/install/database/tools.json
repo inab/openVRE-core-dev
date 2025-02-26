@@ -176,9 +176,7 @@
       "contact": "maria.ferri@bsc.es",
       "url": ""
     },
-    "status": {
-      "$numberInt": "1"
-    },
+    "status": 0,
     "external": true,
     "keywords": [
       "fasta",
@@ -186,16 +184,12 @@
       "sequence"
     ],
     "infrastructure": {
-      "memory": {
-        "$numberInt": "12"
-      },
-      "cpus": {
-        "$numberInt": "4"
-      },
+      "memory": 12,
+      "cpus": 1,
       "executable": "/home/vre_template_tool/VRE_RUNNER",
-      "container_image": "mapoferri/techton-seq-tool",
+      "container_image": "seqio_tool",
       "clouds": {
-        "my_on_premises_cloud": {
+        "local": {
           "launcher": "docker_SGE",
           "default_cloud": true,
           "queue": "local.q",
@@ -236,10 +230,10 @@
     "input_files_combinations": [],
     "arguments": [
       {
-        "name": "min_length",
+        "name": "min_lenght",
         "description": "Minimum length for sequences to be extracted.",
         "help": "Specify a number between 30 and 100.",
-        "type": "integer",
+        "type": "string",
         "min": 30,
         "max": 100
       }
@@ -257,16 +251,15 @@
             "visible": true,
             "description": "FASTA file containing the extracted sequences based on the provided IDs.",
             "tool": "seqio_tool"
-          }
+          },
+          "file_path": "output_fasta.fasta"
         }
       }
     ],
     "sites": [
       {
         "site_id": "local",
-        "status": {
-          "$numberInt": "1"
-        }
+        "status": 1
       }
     ]
   }
