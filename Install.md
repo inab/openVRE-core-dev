@@ -1,19 +1,37 @@
-## Installation guide
+## OpenVRE Development Setup Guide
 
 ### Pre-requisites
 
- Docker Engine - Community
- Version:           26.1.0
+- **Docker Engine - Community** (Version: 26.1.0)
+- **Docker Compose** (Version: v2.26.1)
 
- Docker Compose version v2.26.1
+### Cloning the Repository
 
+Clone the OpenVRE core development repository using the following command:
 
-### Clone repository
-
-For the installation, the following commands are to be run cli:
-
+```sh
+ git clone https://github.com/inab/openVRE-core-dev.git --branch techton2025
 ```
-git clone -b hpc_access https://github.com/inab/dockerized_vre.git
+
+Navigate into the cloned directory:
+
+```sh
+cd openVRE-core-dev
+```
+
+## Pulling Required Docker Images
+
+Run the following commands to pull the necessary Docker images from [GitHub Container Registry](https://github.com/mapoferri?tab=packages) and from [Docker Hub](https://hub.docker.com/repositories/mapoferri):
+
+```sh
+docker pull ghcr.io/mapoferri/sgecore:latest
+docker pull ghcr.io/mapoferri/vault:1.13.3
+docker pull ghcr.io/mapoferri/mongo:4.4
+docker pull ghcr.io/mapoferri/quay.io/keycloak/keycloak:15.0.2
+docker pull ghcr.io/mapoferri/postgres:latest
+docker pull mapoferri/paraview_image2
+docker pull mapoferri/techton-seq-tool
+docker pull ghcr.io/mapoferri/front_end:latest
 ```
 
 ### Setup configuration files
@@ -35,7 +53,7 @@ Edit the new `.env` file and adapt it to your own environment. At the moment, th
 
 The *frontend* component uses its own set of configuration files. Make sure to create and update the default values according to your needs:
 
-```
+```bash
 cd front_end/openVRE/config
 
 cp globals.inc.php.sample globals.inc.php

@@ -15,35 +15,4 @@ Deployment of a full openVRE-based analysis platform, including:
 
 
 ## Getting started
-
-Cloning this directory in your system: 
-
-
-
-```
-git clone https://github.com/inab/openVRE-core-dev.git --branch techton 2025
-
-cd openVRE-core-dev
-
-mv openVRE-core-dev dockerized_vre
-
-cd dockerized_vre 
-
-docker compose build
-
-docker compose up -d 
-
-```
-
-## Fixes 
-
-
-Manually entering the SGEcore container and modify the docker group permission:
-
-```
-docker exec -ti sgecore /bin/bash
-
-in the container -> groupmod -g 120 docker
-
-in the container -> usermod -aG docker application
-```
+For reference material on instantiation, refer to [Install.md](https://github.com/inab/openVRE-core-dev/blob/techton2025/Install.md)
