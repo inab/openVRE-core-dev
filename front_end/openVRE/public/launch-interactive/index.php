@@ -75,7 +75,7 @@ function get_url_interactive_tool_333332($pid, $login="session") {
 		// Build IP from port (md5)
 		// for techthon $url_proxy_path = 'rstudio_'.md5($tool_port);
 		//for techothon $proxy_tool_url = $GLOBALS['interactive_server'] . "/" . "$url_proxy_path/";
-		$proxy_tool_url = $GLOBALS['SERVER'] . ":" . "$tool_port/";
+		$proxy_tool_url = "http://localhost" . ":" . "$tool_port/";
 
 
 		// TODO: set gdx proxy headers
@@ -272,7 +272,7 @@ list($proxy_tool_url,$proxy_tool_headers,$autorefresh) = get_url_interactive_too
 
 	<?php
 	// for techthon $proxy_url = $GLOBALS['interactive_server'] . "/" . "tool-proxy/";; 
-	$proxy_url = $GLOBALS['SERVER'] . "/" . "tool-proxy/";;
+	$proxy_url = "http://localhost" . "/" . "tool-proxy/";;
 	$headers = array(
 		'x-interactive-tool-host: RStudio_b04cbeb0bc6f0e70',
 		'x-interactive-tool-port: 8787',

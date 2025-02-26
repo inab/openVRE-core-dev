@@ -76,7 +76,7 @@ function get_url_interactive_tool($pid, $login="session") {
                 // Build IP from port (md5)
                 // for techthon $url_proxy_path = 'rstudio_'.md5($tool_port);
                 // for techthon $proxy_tool_url = $GLOBALS['interactive_server'] . "/" . "$url_proxy_path/";
-                $proxy_tool_url = $GLOBALS['SERVER'] . ":" . "$tool_port/";
+                $proxy_tool_url = "http://localhost" . ":" . "$tool_port/";
 
                 // TODO: set gdx proxy headers
                 $_SESSION['errorData']['Info'][]="Interactive session successfully established. Active session accessible at URL = <a target=_blank href='$proxy_tool_url'>$proxy_tool_url</a> .";

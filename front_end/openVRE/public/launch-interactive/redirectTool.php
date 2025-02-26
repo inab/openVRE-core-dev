@@ -10,7 +10,7 @@ $port=$_REQUEST['port'];
 // for techthon $url_path = 'rstudio_'.md5($port);
 //for techthon $url = $GLOBALS['interactive_server'] . "/" . "$url_path/";;
  
-$url = $GLOBALS['SERVER'] . ":" . "$port/";
+$url = "http://localhost" . ":" . "$port/";
  
 # c3daba8ba04565423e12eb8cb6237b46 == 9001
 # f3957fa3bea9138b3f54f0e18975a30c == 9002
