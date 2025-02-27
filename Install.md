@@ -11,7 +11,7 @@ Clone the OpenVRE core development repository using the following command:
 
 ```sh
  git clone https://github.com/inab/openVRE-core-dev.git --branch techton2025
- git clone https://github.com/mapoferri/vre_dockerized_tool_techthon.git
+ git clone https://github.com/mapoferri/vre_dockerized_tool_techthon25.git
 ```
 
 Navigate into the cloned directory:

@@ -1193,7 +1193,7 @@ EOF;
                                 " --log_file "       .$this->log_file_virtual ;
 
 
-                $cmd =  "docker run --privileged -v /var/run/docker.sock:/var/run/docker.sock -d " .
+                $cmd =  "docker run -e DEBUG=true --privileged -v /var/run/docker.sock:/var/run/docker.sock -d " .
 			" ". $cmd_envs .
                         " -v " . $this->pub_dir_volumes . ":" . $GLOBALS['shared']."public_tmp/ " .
                         " -v " . $this->root_dir_volumes . ":" .$GLOBALS['shared']."userdata_tmp/{$_SESSION['User']['id']}" .

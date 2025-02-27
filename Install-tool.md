@@ -69,10 +69,10 @@ The following guide will help you achive that:
 
 ## Download the VRE Dockerized tool directory
 
-Clone the **[vre_template_tool_dockerized]**(https://github.com/inab/vre_template_tool_dockerized/) in your system
+Clone the **[vre_template_tool_dockerized]**(https://github.com/mapoferri/vre_dockerized_tool_techthon25.git) in your system
 
 ```
-git clone https://github.com/inab/vre_template_tool_dockerized/
+git clone https://github.com/mapoferri/vre_dockerized_tool_techthon25.git
 cd vre_template_tool_dockerized/template/
 ```
 
@@ -98,7 +98,7 @@ Since the new modified **Dockerfile** is gonna create it for you automatically f
 ```
 class myTool(Tool):
     DEFAULT_KEYS = ['execution', 'project', 'description']
-    PYTHON_SCRIPT_PATH = "/home/../seqio_tool/extract_sequences.py"
+    PYTHON_SCRIPT_PATH = "/../seqio_tool/extract_sequences.py"
 ```
 
 The *$PYTHON_SCRIPT_PATH* will point directly to your script **as you saved it in your Dockeri image**. Make sure the path is consistent.
@@ -115,11 +115,11 @@ This is how the **runToolExecution** section of *VRE_Tool_Template.py* has been 
 ```
 try:
             # Get input files
-            input_file_1 = input_files.get('fasta_file')
+            input_file_1 = input_files.get('input_fasta')
             if not os.path.isabs(input_file_1):
                 input_file_1 = os.path.normpath(os.path.join(self.parent_dir, input_file_1))
 
-            input_file_2 = input_files.get('ids_file')
+            input_file_2 = input_files.get('ids_txt')
             if not os.path.isabs(input_file_2):
                 input_file_2 = os.path.normpath(os.path.join(self.parent_dir, input_file_2))
 
@@ -221,6 +221,7 @@ You would find output data in whatever directoy was specified in the *metadata* 
 
 ## VRE integration:
 
+
 1.  Adding the Tool in the MongoDB collection;
 
 2. In /volumes/openVRE/tools, make a new directory copying the tool_skeleton one with the name of the tool (same ID that was used in Mongo);
@@ -230,14 +231,14 @@ You would find output data in whatever directoy was specified in the *metadata* 
 4. Modify the /volumes/openVRE/tools/$your_tool/assets/home/ the index.html file, for ur tool to be consinstent with the mongoDB. 
 
 
+Follow the instructions in detail [here](https://github.com/inab/openVRE/wiki/Register-new-tool).
+
 
 
 ## Conclusion
 
 By following these steps, you’ve successfully Dockerized your tool, integrated it with the OpenVRE environment, and configured the necessary Dockerfiles to run the tool in both local and OpenVRE environments.
 ```
-
 This version is fully formatted as a **Markdown file** with working hyperlinks and a structured list for easy readability. You can now use this as an installation guide for your project.
-
 
 ```
