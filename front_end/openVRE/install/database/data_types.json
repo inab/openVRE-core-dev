@@ -38,3 +38,10 @@
     "TXT"
   ]
 }
+{
+  "_id": "extracted_sequences",
+  "name": "extracted_sequences",
+  "file_types": [
+    "FASTA"
+  ]
+}
