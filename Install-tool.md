@@ -21,7 +21,7 @@ In this example we are going to use a SeqIo tool, a sequence extraction tool usi
 
 The Dockerfile sets up the environment by installing dependencies like Biopython and placing the necessary Python script into the container.
 
-**Create the Dockerfile** in your project directory, that defines the environment and the tool configuration. Using as an example the extraction tool mentioned as before: 
+**Create the Dockerfile** in your project directory *openVRE/vre_mock_tool/*, that defines the environment and the tool configuration. Using as an example the extraction tool mentioned as before: 
 
 ```
 # Use a lightweight Python image
@@ -34,7 +34,7 @@ WORKDIR /home/
 RUN pip install biopython
 
 # Copy your Python script into the container
-COPY seqio_tool/extract_sequences.py /home/seqio_tool/extract_sequences.py
+COPY extract_sequences.py /home/seqio_tool/extract_sequences.py
 
 # Make the Python script executable
 RUN chmod +x /home/seqio_tool/extract_sequences.py
@@ -47,7 +47,10 @@ ENTRYPOINT ["python", "/home/seqio_tool/extract_sequences.py"]
 ---
 
 **Build the Docker image** once the Dockerfile is set up, with the command:
-```
+
+Remember to change the name of the Dockerfile from *Dockerfile_template* to **Dockerfile** to be able to build the image. 
+
+```bash
 docker build -t my_tool_image .
 ```
 
@@ -112,7 +115,7 @@ The *$PYTHON_SCRIPT_PATH* will point directly to your script **as you saved it i
 You would also need to specify in this code the inputs, arguments. The default is one *input_file* and one *argument*. 
 This is how the **runToolExecution** section of *VRE_Tool_Template.py* has been modify to adapt to the SeqIO tool dependencies:
 
-```
+```python
 try:
             # Get input files
             input_file_1 = input_files.get('input_fasta')
@@ -138,7 +141,7 @@ Finally, you would need to change the **cmd** command in the same code section,*
 
 In the template version:
 
-```
+```python
 cmd = [
                 'bash', '/home/my_demo_pipeline.sh', output_file_path 
             ]
@@ -146,8 +149,7 @@ cmd = [
 
 In the example SeqIO tool: 
 
-
-```
+```python
 
 cmd = [
                     'python3',
@@ -162,10 +164,6 @@ cmd = [
 
 
 Remember to change the name of the Dockerfile from *VRE_Tool_Template.py* to **VRE_Tool.py** to be able to build the image.
-
-
-
-
 
 
 ## Prepare the metadata files
@@ -201,7 +199,7 @@ For testing purposes, the tool is momentainarly called *demo_tool*, but later on
 
 In the *vre_template_tool_dockerized/template* dir, run this command:
 
-```
+```bash
 docker build -t demo_tool .
 ```
 
