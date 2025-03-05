@@ -176,7 +176,7 @@
       "contact": "maria.ferri@bsc.es",
       "url": ""
     },
-    "status": 0,
+    "status": 1,
     "external": true,
     "keywords": [
       "fasta",
@@ -187,7 +187,7 @@
       "memory": 12,
       "cpus": 1,
       "executable": "/home/vre_template_tool/VRE_RUNNER",
-      "container_image": "seqio_tool",
+      "container_image": "demo_tool",
       "clouds": {
         "local": {
           "launcher": "docker_SGE",
@@ -289,7 +289,7 @@
       "cpus": 1,
       "interactive": true,
       "executable": "bin/pvpython -m paraview.apps.visualizer",
-      "container_image": "paraview_image2",
+      "container_image": "paraview_image",
       "container_port": "8787",
       "container_env": {
         "host": "172.21.0.3",
