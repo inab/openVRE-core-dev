@@ -35,5 +35,5 @@ WORKDIR /ParaView-5.12.1-egl-MPI-Linux-Python3.10-x86_64
 EXPOSE 8090
 
 # Command to start the ParaView visualizer
-CMD ["sh", "-c", "./bin/pvpython -m paraview.apps.visualizer --data /data --port 8090 --host 0.0.0.0 && tail -f /dev/null"]
+CMD ["./bin/pvpython", "-m", "paraview.apps.visualizer", "--data", "/data", "--port", "8090", "--host", "0.0.0.0"]
 
