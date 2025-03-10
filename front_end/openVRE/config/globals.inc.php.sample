@@ -12,9 +12,10 @@ $GLOBALS['AppPrefix'] = "PROJECT"; // project url acronym
 $GLOBALS['NAME']      = "PROJECT_NAME"; // project name
 $GLOBALS['SITETITLE'] = "PROJECT_TITLE | Virtual Research Environment"; // site title
 $GLOBALS['TIMEOUT']   = 3600; // session and cookies timeout
-$GLOBALS['host_volumes_path'] = "/your/path/to/volumes/volumes";
+$GLOBALS['host_volumes_path'] = "/your_system_path/dockerized_vre/volumes";
+$GLOBALS['vre_network_name'] = "open-vre";  //Docker vnet name - make sure consistent with Docker Compose file
 $GLOBALS['interactive_server']    = "http://localhost:8088";
-$GLOBALS['vre_network_name'] = "net_vre";
+
 
 // Email
 $GLOBALS['mail_credentials'] = __DIR__."/mail.conf"; // SMTP credentials
@@ -77,7 +78,7 @@ $GLOBALS['vaultRolename'] = 'demo';
 $GLOBALS['secretPath'] = 'secret/mysecret/data/';
 
 // Google Analytics
-$GLOBALS['GA_TAG']; // if used, set the id for: https://www.googletagmanager.com/gtag/js?id=
+#$GLOBALS['GA_TAG']; // if used, set the id for: https://www.googletagmanager.com/gtag/js?id=
 
 
 /************************
@@ -154,11 +155,11 @@ $GLOBALS['clouds'] = Array(
                         "http_host"         => "www.mydomain.com",           // used in getCurrentCloud
                         "dataDir_fs"        => "/NFS/export/path/userdata/", // export path for NFS server
                         "pubDir_fs"         => "/NFS/export/path/public/",   // export path for NFS server
-						"dataDir_virtual"   => $GLOBALS['dataDir'],
+                        "dataDir_virtual"   => $GLOBALS['dataDir'],
                         "pubDir_virtual"    => $GLOBALS['pubDir'],
                         "dataDir_host"    => $GLOBALS["host_volumes_path"].$GLOBALS['dataDir'],
                         "pubDir_host"    => $GLOBALS["host_volumes_path"].$GLOBALS['pubDir'],
-						"PMESserver_domain" => "pmes.mydomain.com",
+                        "PMESserver_domain" => "pmes.mydomain.com",
                         "PMESserver_port"   => "80",
                         "PMESserver_address"=> "/",
                         "imageTypes"        => array(),                      // list of cloud OCCI templates indexed by RAM (GB)
