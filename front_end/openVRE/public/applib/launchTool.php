@@ -6,7 +6,7 @@ require __DIR__."/../../config/bootstrap.php";
 use OpenStack\OpenStack;
 redirectOutside();
 
-$debug=0;
+$debug=1;
 
 $SGE_updated = getUserJobs($_SESSION['User']['id']);
 
@@ -58,8 +58,7 @@ if (!isset($_REQUEST['execution']) || !isset($_REQUEST['project'])){
 
 
 if ($debug){
-	print "<br/>SIGN</br>";
-	print "BHu";
+	print "<br/>SYSTEM FOR JOB EXECUTION</br>";
 	var_dump($_REQUEST['arguments_exec']);
 }
 
@@ -168,6 +167,7 @@ foreach ($files as $fnId => $file) {
     if (!is_file($rfn)){
 	    $_SESSION['errorData']['Error'][]="File '".basename($fn)."' is not found or has size zero. Checking other locations available.";
 
+		/*
 	    if ($isDir === true) {
      	   // Skip file-specific checks and processing, but store the directory for later use
         	$_SESSION['infoData']['Info'][] = "Directory '".basename($fn)."' detected. Skipping file-specific checks.";
@@ -203,7 +203,8 @@ foreach ($files as $fnId => $file) {
 	    //exit(0);
 	    //redirect($_SERVER['HTTP_REFERER']);
     } else {
-    }
+     */
+	}
 
 }
 
@@ -249,7 +250,26 @@ if ($debug){
 if (!$workDirId){
     	redirect($_SERVER['HTTP_REFERER']);
 }
+$inputDirVirtual = $jobMeta->input_dir_virtual ?? '';
 
+$dataMeta = new DataTransfer(
+    $files, 
+    'async', 
+    $tool['_id'], 
+    $inputDirVirtual, 
+    $workDirId, 
+    $_REQUEST['execution'], 
+    $_REQUEST['project'], 
+    $_REQUEST['description']
+);
+		
+$dataLocations = $dataMeta->getDataLocation();
+		
+if ($debug) {		
+	print "<br/>Data Transfer Locations:</br>";	
+	var_dump($dataLocations); // This will show where the files will be transferre		
+}
+		
 //
 // Setting Command line. Adding parameters
 
@@ -301,3 +321,4 @@ if (!isset($_SESSION['errorData']['Error'])){
 }
 
 redirect($GLOBALS['BASEURL']."workspace/");
+
