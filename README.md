@@ -14,5 +14,8 @@ Deployment of a full openVRE-based analysis platform, including:
 ## Getting started
 For reference material on instantiation, refer to [Install.md](https://github.com/inab/openVRE-core-dev/blob/techton2025/Install.md)
 
+For reference material on instantiation of non-interactive tool of the Techthon session nº2, refer to [Install-tool.md](https://github.com/inab/openVRE-core-dev/blob/techton2025/Install-tool.md)
+
+For reference material on instantiation of interactive tool of the Techthon session nº2, refer to [Install-tool-interactive.md](https://github.com/inab/openVRE-core-dev/blob/techton2025/Install-tool-interactive.md)
 
 For a resume of the 1st Techthon session, please watch the tutorial here: [Video](https://github.com/inab/openVRE-core-dev/blob/techton2025/techthon_examples/openVRE_techthon_1session.mp4)

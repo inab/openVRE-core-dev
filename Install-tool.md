@@ -21,7 +21,7 @@ In this example we are going to use a SeqIo tool, a sequence extraction tool usi
 
 The Dockerfile sets up the environment by installing dependencies like Biopython and placing the necessary Python script into the container.
 
-**Create the Dockerfile** in your project directory *openVRE/vre_mock_tool/*, that defines the environment and the tool configuration. Using as an example the extraction tool mentioned as before: 
+**Create the Dockerfile** in your project directory *open-core-dev/techthon_examples/vre_mock_tool/*, that defines the environment and the tool configuration. Using as an example the extraction tool mentioned as before: 
 
 ```
 # Use a lightweight Python image

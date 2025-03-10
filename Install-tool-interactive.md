@@ -21,7 +21,7 @@ In this example we are going to use a VTK Viewer tool, an interactive VTK based 
 
 The Dockerfile sets up the environment by installing dependencies like Biopython and placing the necessary Python script into the container.
 
-**Create the Dockerfile** in your project directory *openVRE/vre_mock_tool/*, that defines the environment and the tool configuration. Using as an example the extraction tool mentioned as before: 
+**Create the Dockerfile** in your project directory *open-core-dev/techthon_examples/vre_interactive_tool/*, that defines the environment and the tool configuration. Using as an example the extraction tool mentioned as before: 
 
 ```
 FROM ubuntu:20.04

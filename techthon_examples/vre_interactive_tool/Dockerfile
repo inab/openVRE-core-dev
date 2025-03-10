@@ -36,3 +36,4 @@ EXPOSE 8090
 
 # Command to start the ParaView visualizer
 CMD ["./bin/pvpython", "-m", "paraview.apps.visualizer", "--data", "/data", "--port", "8090", "--host", "0.0.0.0"]
+
