@@ -251,23 +251,24 @@ if (!$workDirId){
     	redirect($_SERVER['HTTP_REFERER']);
 }
 $inputDirVirtual = $jobMeta->input_dir_virtual ?? '';
+$workDirHost =  $jobMeta->working_dir; 
 
 $dataMeta = new DataTransfer(
     $files, 
     'async', 
     $tool['_id'], 
-    $inputDirVirtual, 
-    $workDirId, 
+    $workDirHost, 
     $_REQUEST['execution'], 
     $_REQUEST['project'], 
-    $_REQUEST['description']
+    $_REQUEST['description'],
+	$_REQUEST['arguments_exec']
 );
 		
 $dataLocations = $dataMeta->getDataLocation();
 		
 if ($debug) {		
 	print "<br/>Data Transfer Locations:</br>";	
-	var_dump($dataLocations); // This will show where the files will be transferre		
+	var_dump($dataLocations); // This will show where the files will be transferre
 }
 		
 //

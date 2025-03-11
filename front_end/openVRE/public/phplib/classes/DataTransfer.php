@@ -19,7 +19,6 @@ class DataTransfer {
         array $filesId,
         string $mode,
         string $toolId,
-        string $inputDirVirtual,
         string $workingDirPath,
         string $execution = "",
         string $project = "",
@@ -29,7 +28,6 @@ class DataTransfer {
         $this->filesId = $filesId;
         $this->mode = $mode;
         $this->toolId = $toolId;
-        $this->inputDirVirtual = $inputDirVirtual;
         $this->workingDirPath = $workingDirPath;
         $this->execution = $execution;
         $this->project = $project;
@@ -37,60 +35,64 @@ class DataTransfer {
         $this->siteList = $siteList;
     }
 
-    /**
-     * Combines the working directory path and the virtual input directory to form the absolute path.
-     *
-     * @param string $workingDirPath The base working directory.
-     * @param string $inputDirVirtual The virtual input directory.
-     * @return string The absolute path.
-     */
-    public function getAbsolutePath(string $workingDirPath, string $inputDirVirtual): string
-    {
-        // Ensure paths are combined correctly using DIRECTORY_SEPARATOR
-        $combinedPath = rtrim($workingDirPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($inputDirVirtual, DIRECTORY_SEPARATOR);
-
-        // Return the absolute path, resolving any symlinks or relative paths
-        return realpath($combinedPath) ?: $combinedPath;
-    }
-
+   
     /**
      * Get data locations, combining the base directory and file paths.
      *
      * @return array
      */
     public function getDataLocation(): array
-    {
-        $dataLocations = [];
-        
-        // Assuming you want to use $workingDirPath and $inputDirVirtual to compute the absolute path
-        $workingDirPath = $this->workingDirPath ?? '';  // Get the working directory (you might need to pass this from the constructor)
-        $inputDirVirtual = $this->inputDirVirtual ?? '';  // Get the virtual directory (you might need to pass this from the constructor)
-        
-        // Combine the working directory and input directory to get the absolute path
-        $baseDir = rtrim($workingDirPath, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($inputDirVirtual, DIRECTORY_SEPARATOR);
+{
+    $dataLocations = [];
+    
+    // Assuming you want to use $workingDirPath and $inputDirVirtual to compute the absolute path
+    $workingDirPath = $this->workingDirPath ?? '';  // Get the working directory (you might need to pass this from the constructor)
+   
+    echo "Working {$workingDirPath}\n";
 
-        // Loop through files and resolve their absolute paths
-        foreach ($this->files as $fileId => $fileData) {
-            // Combine baseDir with file's relative path to form the full path
-            $absolutePath = realpath("{$baseDir}/{$fileData['path']}") ?: "{$baseDir}/{$fileData['path']}";
-            
-            $site = in_array('local', $this->siteList, true) ? 'local' : $this->destinationSite;
-            
-            if ($site === 'local') {
-                $this->log("Skipping file {$fileId} as it is already local.");
-                continue;
-            }
-            
-            $dataLocations[] = [
-                'filename' => basename($absolutePath),
-                'site' => $site,
-                'absolute_path' => $absolutePath,
-                'file_type' => is_dir($absolutePath) ? 'directory' : 'file'
-            ];
+    
+
+
+    // Loop through files and resolve their absolute paths
+    foreach ($this->filesId as $fileId => $fileData) {
+        // Combine baseDir with file's relative path to form the full path
+        echo "File ID: {$fileId}\n";
+    
+        echo "Original Path: {$fileData['path']}\n";
+        echo "Basename Extracted: " . basename($fileData['path']) . "\n";
+
+        $fullPath = $this->generateFinalPath($workingDirPath, $fileData['path'] );
+        // Form the full path
+        echo "Full Path Before realpath(): {$fullPath}\n";
+
+        $absolutePath = realpath($fullPath);
+        if ($absolutePath === false) {
+            echo "realpath() failed: File does not exist or invalid path.\n";
+        } else {
+            echo "Absolute Path: {$absolutePath}\n";
         }
 
-        return $dataLocations;
+        // Get the site (using the first element of site_list or 'local')
+        $site = in_array('local', $this->siteList, true) ? 'local' : $this->siteList['site_list'][0];
+        echo "Site: {$site}\n";
+
+        if ($site === 'local') {
+            $this->log("Skipping file {$fileId} as it is already local.");
+            continue;
+        }
+        
+        // Append file information to the dataLocations array
+        $dataLocations[] = [
+            'filename' => basename($absolutePath), // Extract just the filename from the absolute path
+            'site' => $site,
+            'absolute_path' => $absolutePath,
+            'file_type' => is_dir($absolutePath) ? 'directory' : 'file'
+        ];
     }
+
+    return $dataLocations;
+}
+
  
     public function prepareSyncCommand(array $dataLocations): string
     {
@@ -132,5 +134,37 @@ class DataTransfer {
         $this->logs[] = '[' . date('Y-m-d H:i:s') . '] ' . $message;
     }
 
+    private function generateFinalPath($workingDir, $originalPath) {
+        // Normalize paths: Remove trailing slashes from the working directory
+        $workingDir = rtrim($workingDir, DIRECTORY_SEPARATOR);
+    
+        // Ensure originalPath is relative to the base folder (remove extra directories like 'runXXX')
+        $originalPath = ltrim($originalPath, DIRECTORY_SEPARATOR);
+    
+        // Strip 'runXXX' part from workingDir
+        // First, split the workingDir into parts
+        $workingDirParts = explode(DIRECTORY_SEPARATOR, $workingDir);
+        
+        // Remove the last part which is the 'runXXX' folder
+        array_pop($workingDirParts);
+    
+        // Rebuild the base directory without the 'runXXX' part
+        $baseDirWithoutRun = implode(DIRECTORY_SEPARATOR, $workingDirParts);
+    
+        // Combine the cleaned baseDir with the 'uploads' directory and the file name
+        $pathParts = explode(DIRECTORY_SEPARATOR, $originalPath);
+        
+        // Extract the original file name with its extension
+        $pathInfo = pathinfo($originalPath);
+        
+        // Get the original file name with its extension (no change to the extension)
+        $finalFileName = $pathInfo['basename'];  // Keeps the original file extension
+    
+        // Construct the final path without 'runXXX' part, keeping the original extension
+        $finalPath = $baseDirWithoutRun . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . $finalFileName;
+        
+        return $finalPath;
+    }
+        
+    }
 
-}
