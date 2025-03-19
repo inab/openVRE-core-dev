@@ -33,7 +33,7 @@ class VaultClient {
 			"Content-Type: application/json",
 		);
 
-		$url = $this->vaultUrl . "auth/jwt/login";
+		$url = $this->vaultUrl . "/auth/jwt/login";
 		//$url = $this->vaultUrl . "vault/auth/oidc/oidc/callback";
 
 		echo "Authentication URL: " . $url . "\n";

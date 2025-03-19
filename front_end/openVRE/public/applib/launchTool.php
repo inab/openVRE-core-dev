@@ -264,7 +264,7 @@ $dataMeta = new DataTransfer(
 	$_REQUEST['arguments_exec']
 );
 		
-$dataLocations = $dataMeta->getDataLocation();
+$dataLocations = $dataMeta->syncFiles();
 		
 if ($debug) {		
 	print "<br/>Data Transfer Locations:</br>";	
