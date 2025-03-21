@@ -434,7 +434,9 @@ class VaultClient {
 
 
     public function uploadKeystoVault($data){
-	    if (isset($data['data']['SSH'])){
+	    
+		if (isset($data['data']['SSH'])){
+			
 		    $publicKey = $data['data']['SSH']['public_key'];
 		    $privateKey = $data['data']['SSH']['private_key'];
 		    // Validate the public key
@@ -604,7 +606,7 @@ class VaultClient {
 	public function retrieveDatafromVault($system, $vaultToken, $url, $secretPath, $filename) {
 		// Set up cURL options
 
-		$vaultUrl = $url . $secretPath . $filename;
+		$vaultUrl = $url . '/' . $secretPath . $filename;
 
 		$curl = curl_init();
 		curl_setopt($curl, CURLOPT_URL, $vaultUrl);
@@ -680,7 +682,7 @@ class VaultClient {
 			$user_id = $data['data']['data']['SSH']['_id'];
 			$pub_key = $data['data']['data']['SSH']['public_key'];
 			$priv_key = $data['data']['data']['SSH']['private_key'];
-			$username = $data['data']['data']['SSH']['username'];
+			$username = $data['data']['data']['SSH']['user_key'];
 
 			return [
 				'user_id' => $user_id,

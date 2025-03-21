@@ -77,6 +77,7 @@ class DataTransfer {
         echo "<br>Username: " . $username . "<br>";
 
         $sshCredentials = $this->getSSHcredentials($vaultUrl, $vaultToken, $accessToken, $vaultRolename, $username);
+        
         if (!$sshCredentials) {
             return "Error: Failed to retrieve SSH credentials from Vault.";
         }
@@ -88,9 +89,11 @@ class DataTransfer {
         echo "<br>Sync Command: " . $syncCommand . "<br>";
 
         // Step 6: Execute the sync command
-        $result = $this->executeTransfer($syncCommand, $sshCredentials);
-        return $result;        
- 
+        // Step 6: Execute the rsync command using SSH credentials
+        $rsyncResult = $this->executeRsyncCommand($sshCredentials, $syncCommand);
+
+        echo "<br>" . $rsyncResult;       
+        
     }
 
 
@@ -173,8 +176,10 @@ class DataTransfer {
         #Failing
 
         $credentials = $vaultClient->retrieveDatafromVault('SSH', $vaultKey, $vaultUrl, 'secret/mysecret/data/', $_SESSION['User']['_id'] . '_credentials.txt');
+        
         echo "Credentials:\n";
         var_dump($credentials);
+
         if (!$credentials) {
             return ['error' => 'Failed to retrieve SSH credentials from Vault, not present.'];
         }
@@ -190,6 +195,8 @@ class DataTransfer {
             'public_key' => $sshPublicKey,
             'username' => $sshUsername
         ];
+
+        return $this->sshCredentials; 
 
     }
 
@@ -227,19 +234,54 @@ class DataTransfer {
         return implode(" && ", $commands);
     }
 
-    public function executeTransfer(string $command, $sshCredentials): void
+   
+        /**
+     * Execute rsync command using retrieved SSH credentials.
+     *
+     * @param array $sshCredentials SSH credentials (private key, public key, username)
+     * @param string $syncCommand The rsync command to execute
+     * @return string The output of the rsync command or an error message
+     */
+    private function executeRsyncCommand($sshCredentials, $syncCommand)
     {
-        if (empty($command)) {
-            $this->log("No transfer command to execute.");
-            return;
+        // Extract SSH credentials
+        $sshPrivateKey = $sshCredentials['private_key'];
+        $sshUsername = $sshCredentials['username'];
+        $remoteHost = "remote.hpc.server"; // Replace with the actual remote HPC server
+
+        // Ensure credentials are valid
+        if (empty($sshPrivateKey) || empty($sshUsername)) {
+            return "Error: Missing SSH credentials.";
         }
 
-        $this->log("Executing: $command");
-        if ($this->mode === 'async') {
-            shell_exec($command . " > /dev/null 2>&1 &");
-        } else {
-            shell_exec($command);
+        // Create SSH connection
+        $connection = ssh2_connect($remoteHost, 22);
+        if (!$connection) {
+            return "Error: Unable to establish SSH connection.";
         }
+
+        // Authenticate using the private key
+        $authSuccess = ssh2_auth_pubkey_file($connection, $sshUsername, "/path/to/public_key.pub", "/path/to/private_key.pem");
+        if (!$authSuccess) {
+            return "Error: SSH authentication failed.";
+        }
+
+        // Execute the rsync command
+        $stream = ssh2_exec($connection, $syncCommand);
+        if (!$stream) {
+            return "Error: Failed to execute rsync command.";
+        }
+
+        // Enable output buffering
+        stream_set_blocking($stream, true);
+
+        // Capture the command output
+        $output = stream_get_contents($stream);
+
+        // Close the SSH connection
+        fclose($stream);
+
+        return "Rsync Output: <br>" . nl2br(htmlspecialchars($output));
     }
 
     public function registerMongoTransferredFile(): void

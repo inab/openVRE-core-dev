@@ -543,7 +543,7 @@ foreach (array_values(iterator_to_array($GLOBALS['countriesCol']->find(array(), 
                                                                     class="fa fa-eye font-green"
                                                                     style="margin:10px; font-size:18px"></i>
                                                                 <br />
-                                                                <div style="height:150px;display:none;" id="ssh_priv_key">
+                                                                <div style="height:150px;display:none;" id="ssh_">
                                                                     <pre><?php echo $_SESSION['User']['linked_accounts']['SSH']['hpc_priv_key'] ?></pre>
                                                                 </div>
                                                             </div>
