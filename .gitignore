@@ -1,9 +1,19 @@
+#Environmental variables
 .env
-demo.hcl
 front_end/openVRE/config/globals.inc.php
 front_end/openVRE/config/*.conf
+
+#Vault configuration and secret dirs
 vault/config/public-key.pem
+vault/file/*
+vault/logs/*
+
+#Front-end
 vendor/
 composer.lock
+
+#Volumes environment
 volumes/shared_data/userdata
 
+#Others
+docker-compose-pre.yml

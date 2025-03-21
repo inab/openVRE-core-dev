@@ -53,22 +53,23 @@ services:
   
   vault-server:
     container_name: vault-server
-    image: vault:1.13.3
+    image: hashicorp/vault
     environment:
        VAULT_DEV_ROOT_TOKEN_ID: myroot
-       VAULT_ADDR: "http://0.0.0.0:8200"
-       VAULT_API_ADDR: "http://0.0.0.0:8200"
-       VAULT_ADDRESS: "http://0.0.0.0:8200"
+       VAULT_ADDR: "https://localhost:8200"
+       VAULT_API_ADDR: "https://localhost:8200"
+       VAULT_ADDRESS: "https://localhost:8200"
     ports:
       - "8200:8200"
       - "${VAULT_UI_PORT}:8080"
     volumes:
-      - ./vault/config:/vault/config
-      - ./vault/logs:/vault/logs
-      - ./vault/file:/vault/file
+      - ./vault/config:/vault/config:rw
+      - ./vault/logs:/vault/logs:rw
+      - ./vault/certs:/vault/certs:rw
+      - ./vault/file:/vault/file:rw
     cap_add:
       - IPC_LOCK
-    entrypoint: vault server -config /vault/config/vault.json
+    entrypoint: ["vault", "server", "-config=/vault/config/vault-server.hcl"]
     networks:
              net_vre:
                 ipv4_address: 172.21.0.18

@@ -53,7 +53,7 @@ class VaultClient {
 		$curlCommand .= "-d '" . json_encode($data) . "' ";
 
 		// Outputting the curl command
-		// echo "Curl Command: $curlCommand\n";
+		echo "Curl Command: $curlCommand\n";
 
 		//echo "VABBE   \n";
 		$ch = curl_init($url);
