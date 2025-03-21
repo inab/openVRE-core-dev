@@ -12,9 +12,6 @@
 
 function addUserLinkedAccount($accountType, $action, $site_id, $postData) {
 	switch ($accountType) {
-        	case "euBI":
-           		handleEuBIAccount($action, $postData);
-            		break;
 		case "SSH":
 			if (isset($_POST["submitOption"])) {
                                 $submitOption = $_POST["submitOption"];
@@ -82,28 +79,6 @@ case "ega":
     		}
 }
 
-
-function handleEuBIAccount($action, $postData) {
-    switch ($action) {
-        case "update":
-        case "new":
-            if (!isset($postData['alias_token']) || !isset($postData['secret'])) {
-                handleInvalidData();
-            }
-
-            $r = addUserLinkedAccount_euBI($postData['alias_token'], $postData['secret']);
-            handleResult($r);
-            break;
-
-        case "delete":
-            $r = deleteUserLinkedAccount($_SESSION['User']['_id'], 'euBI');
-            handleResult($r);
-            break;
-
-        default:
-            handleInvalidAction();
-    }
-}
 
 /*
 function handleMNAccount($action, $postData) {
@@ -275,6 +250,7 @@ function handleSSHAccount($action, $site_id, $postData){
 		#var_dump($postData);
 		$_SESSION['errorData']['Info'][] = "Credentials for user erased, please provide new ones.";
 
+	
 		if (isset($site_id)) {  
 		    	#echo 'aoooooooooooooooo';	
 			$updateResult = $GLOBALS['sitesCol']->updateOne(
@@ -300,41 +276,42 @@ function handleSSHAccount($action, $site_id, $postData){
         } else {
                 handleInvalidAction();
         }
+				
 	
-		if (empty($postData['user_key'])) {
-			error_log("Error: 'username' is missing in postData.");
-			throw new Exception("Username is required.");
-			exit;
-		}
-	
-		$postData['user_key'] = $postData['user_key'] . '_' . $site_id;
-        $vaultClient = new VaultClient(
-                        $GLOBALS['vaultUrl'],
-                        $_SESSION['User']['Vault']['vaultToken'],
-                        $accessToken,
-                        $_SESSION['User']['Vault']['vaultRolename'],
-                        $postData['username']
-        );
-	//var_dump($data);
-        $key = $vaultClient->uploadKeystoVault($data);
-	//echo ("key");
-	//var_dump($key);
+	if (empty($postData['user_key'])) {
+		error_log("Error: 'username' is missing in postData.");
+		throw new Exception("Username is required.");
+		exit;
+	}
+
+	$postData['user_key'] = $postData['user_key'] . '_' . $site_id;
+	$vaultClient = new VaultClient(
+					$GLOBALS['vaultUrl'],
+					$_SESSION['User']['Vault']['vaultToken'],
+					$accessToken,
+					$_SESSION['User']['Vault']['vaultRolename'],
+					$postData['username']
+	);
+	var_dump($data);
+    $key = $vaultClient->uploadKeystoVault($data);
+	echo ("key");
+	var_dump($key);
 	$tokenTime = $vaultClient->getTokenExpirationTime($GLOBALS['vaultUrl'], $key);
 	//echo ("TOKEN TIME" . $tokenTime);
 	if ($tokenTime !== false) {
 		$_SESSION['User']['Vault']['expires_in'] = $tokenTime;
 	}
 	// Update user data with vault key
-        $_SESSION['User']['Vault']['vaultKey'] = $key;
-        updateUser($_SESSION['User']);
-        if (!$key) {
-                $_SESSION['errorData']['Error'][] = "Failed to link SSH account";
-                $_SESSION['formData'] = $postData;
-                redirect($_SERVER['HTTP_REFERER']);
-        }
+	$_SESSION['User']['Vault']['vaultKey'] = $key;
+	updateUser($_SESSION['User']);
+	if (!$key) {
+			$_SESSION['errorData']['Error'][] = "Failed to link SSH account";
+			$_SESSION['formData'] = $postData;
+			redirect($_SERVER['HTTP_REFERER']);
+	}
 
-        $_SESSION['errorData']['Info'][] = "SSH account successfully linked.";
-        redirect($_SERVER['HTTP_REFERER']);
+	$_SESSION['errorData']['Info'][] = "SSH account successfully linked.";
+	redirect($_SERVER['HTTP_REFERER']);
 }
 
 
@@ -553,14 +530,14 @@ function handleEGAAccount($action, $postData) {
 
 function handleInvalidData() {
     $_SESSION['errorData']['Error'][] = "Not receiving expected fields. Please submit the data again.";
-    $_SESSION['formData'] = $postData;
+    #$_SESSION['formData'] = $postData;
     redirect($_SERVER['HTTP_REFERER']);
 }
 
 function handleResult($result) {
     if (!$result) {
         $_SESSION['errorData']['Error'][] = "Failed to perform the requested action.";
-        $_SESSION['formData'] = $postData;
+        #$_SESSION['formData'] = $postData;
         redirect($_SERVER['HTTP_REFERER']);
     }
 
