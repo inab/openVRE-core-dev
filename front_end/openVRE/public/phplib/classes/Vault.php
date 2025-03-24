@@ -98,7 +98,8 @@ class VaultClient {
 		$curlCommand .= "-H 'Content-Type: application/json' ";
 		$curlCommand .= "-d '" . json_encode($data) . "' ";
 		$curlCommand .= "--insecure";  // Equivalent to -k
-	
+		
+		#echo $curlCommand;
 		// Initialize the curl session
 		$curl = curl_init($url);
 		curl_setopt($curl, CURLOPT_POST, true);
@@ -113,7 +114,7 @@ class VaultClient {
 	
 		// Execute the curl request
 		$response = curl_exec($curl);
-
+		var_dump($response);
 		// Check if the curl execution was successful
 		if ($response === false) {
 			$error = curl_error($curl);
@@ -129,6 +130,7 @@ class VaultClient {
 		// Decode the response JSON into an array
 		$responseArray = json_decode($response, true);
 	
+		
 		// Return the status code and response array
 		return array(
 			'statusCode' => $httpCode,
@@ -457,11 +459,20 @@ class VaultClient {
 					$token = $this->checkToken($this->vaultUrl, $this->jwtToken, $this->roleName);
 
 					$responseArray = $token["response"];
+					
+				
+					if ($token["statusCode"] !== 200) {
+						$errorMessage = isset($responseArray['errors']) ? implode(", ", $responseArray['errors']) : "Unknown error";
+						$_SESSION['errorData']['Error'][] = "Vault request failed with status: $errorMessage"; 
+					}
+					
 					$vaultToken = $responseArray["auth"]["client_token"];
-
-					echo "client token:";
-					echo  $vaultToken;	
-
+					if (empty($vaultToken)) {
+						$_SESSION['errorData']['Error'][] = " Vault authentication failed. No client token received.";
+						error_log("Vault Error: Vault authentication failed. No client token received.");
+						return false;
+					}
+				
 					if ($this->isTokenExpired($this->vaultUrl, $vaultToken)) {
 						$_SESSION['errorData']['Error'][] = "The Vault token has expired.";
 

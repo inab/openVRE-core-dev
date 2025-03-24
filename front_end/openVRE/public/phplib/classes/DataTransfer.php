@@ -1,6 +1,12 @@
 <?php
 
 
+use phpseclib3\Net\SSH2;
+use phpseclib3\Crypt\PublicKeyLoader;
+use phpseclib3\Crypt\RSA;
+
+
+
 class DataTransfer {
     private array $filesId;
     private string $mode; // "async" or "sync"
@@ -81,16 +87,17 @@ class DataTransfer {
         if (!$sshCredentials) {
             return "Error: Failed to retrieve SSH credentials from Vault.";
         }
+
         // Step 5: Create the rsync command using data locations
-        $syncCommand = $this->prepareSyncCommand($dataLocations);
+        $syncCommand = $this->prepareSyncCommand($dataLocations, $sshCredentials);
+
         if (empty($syncCommand)) {
             return "Error: Failed to generate rsync command.";
         }
         echo "<br>Sync Command: " . $syncCommand . "<br>";
 
-        // Step 6: Execute the sync command
-        // Step 6: Execute the rsync command using SSH credentials
-        $rsyncResult = $this->executeRsyncCommand($sshCredentials, $syncCommand);
+        // Step 6: Execute the rsync command using SSH credentials        
+        $rsyncResult = $this->executeRsyncCommand($sshCredentials, $syncCommand, $dataLocations);
 
         echo "<br>" . $rsyncResult;       
         
@@ -171,14 +178,14 @@ class DataTransfer {
             $_SESSION['errorData']['Error'][]="Vault Key is empty, are you sure you saved your credentials?";
             exit;
         }
-        echo "Vault Key: {$vaultKey}\n";
+        #echo "Vault Key: {$vaultKey}\n";
         
         #Failing
 
         $credentials = $vaultClient->retrieveDatafromVault('SSH', $vaultKey, $vaultUrl, 'secret/mysecret/data/', $_SESSION['User']['_id'] . '_credentials.txt');
         
-        echo "Credentials:\n";
-        var_dump($credentials);
+        #echo "Credentials:\n";
+        #var_dump($credentials);
 
         if (!$credentials) {
             return ['error' => 'Failed to retrieve SSH credentials from Vault, not present.'];
@@ -217,19 +224,26 @@ class DataTransfer {
         ];
     }
 
- 
-    public function prepareSyncCommand(array $dataLocations): string
+     public function prepareSyncCommand(array $dataLocations, array $sshCredentials): string
     {
+        echo "<br> Preparing the Sync Command";
+
         if (empty($dataLocations)) {
             $this->log("No files to transfer.");
             return "";
         }
 
+        if (empty($sshCredentials)) {
+            error_log("No credentials for the transfer.");
+            return "";
+        }
 
-
+        $username = $sshCredentials['username'];
         $commands = [];
         foreach ($dataLocations as $file) {
-            $commands[] = "rsync --avz --progress --partial --mkpath {$file['absolute_path']} username@{$this->$dataLocations['siteDetails']['server']}:{$file['filename']}";
+            $server = $file['site_details']['server'];
+            $destinationPath = "{$file['site_details']['root_path']}" . substr($username, 0, 6) . "/{$username}/uploads/{$file['filename']}";
+            $commands[] = "rsync --avz --progress --partial --mkpath {$file['absolute_path']} {$username}@{$server}:{$destinationPath}";
         }
         return implode(" && ", $commands);
     }
@@ -242,46 +256,79 @@ class DataTransfer {
      * @param string $syncCommand The rsync command to execute
      * @return string The output of the rsync command or an error message
      */
-    private function executeRsyncCommand($sshCredentials, $syncCommand)
-    {
+
+
+    private function executeRsyncCommand($sshCredentials, $syncCommand, $dataLocations) {
         // Extract SSH credentials
-        $sshPrivateKey = $sshCredentials['private_key'];
-        $sshUsername = $sshCredentials['username'];
-        $remoteHost = "remote.hpc.server"; // Replace with the actual remote HPC server
+        $sshPrivateKey = trim($sshCredentials['private_key']);
+        $username = $sshCredentials['username'];
+        $server = $dataLocations[0]['site_details']['server']; // Assuming all files go to the same server
+        $rootPath = $dataLocations[0]['site_details']['root_path'];
+        $remoteDir = "{$rootPath}{$username}/uploads";
 
         // Ensure credentials are valid
-        if (empty($sshPrivateKey) || empty($sshUsername)) {
+        if (empty($sshPrivateKey) || empty($username) || empty($server)) {
             return "Error: Missing SSH credentials.";
         }
 
-        // Create SSH connection
-        $connection = ssh2_connect($remoteHost, 22);
-        if (!$connection) {
-            return "Error: Unable to establish SSH connection.";
+
+        try {
+            // Initialize SSH connection
+            $ssh = new SSH2($server);
+
+            // Load private key for authentication
+            var_dump($sshPrivateKey);
+            $formattedKey = formatSSHPrivateKey($sshPrivateKey);
+            $key = PublicKeyLoader::load($formattedKey);
+
+            // Output the PEM formatted key
+            echo "Formatted Private Key:\n";
+            echo $formattedKey . "\n";
+
+            // If loading the private key fails
+            if (!$key) {
+                return "Error: Failed to load RSA private key.";
+            }
+            if (!$ssh->login($username, $formattedKey)) {
+                return "Error: SSH authentication failed.";
+            }
+
+            // Step 1: Check if the remote directory exists
+            $checkDirCommand = "[ -d \"$remoteDir\" ] && echo 'Exists' || echo 'NotExists'";
+            $dirStatus = trim($ssh->exec($checkDirCommand));
+
+            // Step 2: If directory does not exist, create it
+            if ($dirStatus === "NotExists") {
+                $createDirCommand = "mkdir -p \"$remoteDir\"";
+                $ssh->exec($createDirCommand);
+            }
+
+            // Step 3: Execute the rsync command
+            $output = $ssh->exec($syncCommand);
+
+            return "Rsync Output:<br>" . nl2br(htmlspecialchars($output));
+        } catch (Exception $e) {
+            return "SSH Error: " . $e->getMessage();
         }
+    }
 
-        // Authenticate using the private key
-        $authSuccess = ssh2_auth_pubkey_file($connection, $sshUsername, "/path/to/public_key.pub", "/path/to/private_key.pem");
-        if (!$authSuccess) {
-            return "Error: SSH authentication failed.";
+    public function formatSSHPrivateKey($singleLineKey) {
+        // Function to insert newlines every 64 characters in the key
+        function formatSSHKey($key) {
+            // Remove any existing newlines or spaces, just in case
+            $key = str_replace(array("\n", "\r", " "), "", $key);
+    
+            // Break the key into chunks of 64 characters
+            return chunk_split($key, 64, "\n");
         }
-
-        // Execute the rsync command
-        $stream = ssh2_exec($connection, $syncCommand);
-        if (!$stream) {
-            return "Error: Failed to execute rsync command.";
-        }
-
-        // Enable output buffering
-        stream_set_blocking($stream, true);
-
-        // Capture the command output
-        $output = stream_get_contents($stream);
-
-        // Close the SSH connection
-        fclose($stream);
-
-        return "Rsync Output: <br>" . nl2br(htmlspecialchars($output));
+    
+        // Format the key and add BEGIN/END markers
+        $formattedKey = "-----BEGIN OPENSSH PRIVATE KEY-----\n";
+        $formattedKey .= formatSSHKey($singleLineKey);
+        $formattedKey .= "-----END OPENSSH PRIVATE KEY-----";
+    
+        // Return the formatted key
+        return $formattedKey;
     }
 
     public function registerMongoTransferredFile(): void
@@ -325,6 +372,36 @@ class DataTransfer {
         $finalPath = $baseDirWithoutRun . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . $finalFileName;
         
         return $finalPath;
+    }
+
+    private function checkRemoteDirectory (string $server, string $username, string $remoteDir, string $privateKey): bool {
+
+        $sshCommand = "ssh -i /tmp/private_key -o StrictHostKeyChecking=no {$username}@{$server} 'test -d \"{$directory}\" && echo EXISTS'";
+        // Save private key temporarily
+        file_put_contents('/tmp/private_key', $privateKey);
+        chmod('/tmp/private_key', 0600);
+
+        $output = shell_exec($sshCommand);
+        
+        // Clean up the private key file
+        unlink('/tmp/private_key');
+
+        return trim($output) === "EXISTS";
+    }
+
+    private function createRemoteDirectory ($server, $username, $remoteDir, $privateKey){
+        $sshCommand = "ssh -i /tmp/private_key -o StrictHostKeyChecking=no {$username}@{$server} 'mkdir -p \"{$directory}\"'";
+
+        // Save private key temporarily
+        file_put_contents('/tmp/private_key', $privateKey);
+        chmod('/tmp/private_key', 0600);
+
+        shell_exec($sshCommand);
+
+        // Clean up the private key file
+        unlink('/tmp/private_key');
+
+        error_log("<br> Directory created: $directory");
     }
         
     }
