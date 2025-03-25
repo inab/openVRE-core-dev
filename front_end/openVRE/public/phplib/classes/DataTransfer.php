@@ -57,14 +57,14 @@ class DataTransfer {
         if ($dataLocations == 0) {
             
             $this->log("No files to transfer.");
-            $_SESSION['errorData']['Info'] ="No files to transfer.";
+            $_SESSION['errorData']['Info'][] ="No files to transfer.";
             exit; 
         } else {
-            $_SESSION['errorData']['Info'] = "Files are gonna be transferred in remote system.";
+            $_SESSION['errorData']['Info'][] = "Files are gonna be transferred in remote system.";
 
             foreach ($dataLocations as $fileData) {
                 // Get the site details for each file
-                $_SESSION['errorData']['Info'] = " Transferring file $fileData to remote system";
+                $_SESSION['errorData']['Info'][] = " Transferring file $fileData to remote system";
                 $siteDetails = $fileData['site_details'];
             }
 
@@ -77,7 +77,7 @@ class DataTransfer {
             $sshCredentials = $this->getSSHcredentials($vaultUrl, $vaultToken, $accessToken, $vaultRolename, $username);
             
             if ($sshCredentials == 0) {
-                $_SESSION['errorData']['Info'] = "Error: Failed to retrieve SSH credentials from Vault.";
+                $_SESSION['errorData']['Info'][] = "Error: Failed to retrieve SSH credentials from Vault.";
                 exit;
             }
 
@@ -85,7 +85,7 @@ class DataTransfer {
             $syncCommand = $this->prepareSyncCommand($dataLocations, $sshCredentials);
 
             if (empty($syncCommand)) {
-                $_SESSION['errorData']['Info'] = "Error: Failed to generate rsync command.";
+                $_SESSION['errorData']['Info'][] = "Error: Failed to generate rsync command.";
                 exit;
                 
             }
@@ -98,8 +98,7 @@ class DataTransfer {
    
     }
 
-
- 
+    
     /**
      * Get data locations, combining the base directory and file paths.
      *
@@ -120,10 +119,10 @@ class DataTransfer {
         // Form the full path
         $absolutePath = realpath($fullPath);
         if ($absolutePath === false) {
-            $_SESSION['errorData']['Info'] = "realpath() failed: File does not exist or invalid path.";
+            $_SESSION['errorData']['Info'][] = "realpath() failed: File does not exist or invalid path.";
             return 0;
         } else {
-            $_SESSION['errorData']['Info'] = "Absolute Path: {$absolutePath}";
+            $_SESSION['errorData']['Info'][] = "Absolute Path: {$absolutePath}";
         }
 
         // Get the site (using the first element of site_list or 'local')
@@ -131,12 +130,12 @@ class DataTransfer {
 
         $siteDetails = $this->getSiteDetailsFromMongoDB($site);
             if (!$siteDetails) {
-                 $_SESSION['errorData']['Info'] = "Site '{$site}' not found in MongoDB collection!";
+                 $_SESSION['errorData']['Info'][] = "Site '{$site}' not found in MongoDB collection!";
                 return 0;
             }   
         
         if ($site === 'local') {
-            $_SESSION['errorData']['Info'] = "Skipping file {$fileId} as it is already local.";
+            $_SESSION['errorData']['Info'][] = "Skipping file {$fileId} as it is already local.";
             return 0; 
         }
         // Append file information to the dataLocations array
@@ -304,13 +303,13 @@ class DataTransfer {
                 error_log("Directory Creation Status:" . htmlspecialchars($dirStatusAfter));
 
                 if (preg_match('/Created/', $dirStatusAfter)) {
-                    $_SESSION['errorData']['Info'] = "Mirror Directory for $remotePath created in the system: $server";
+                    $_SESSION['errorData']['Info'][] = "Mirror Directory for $remotePath created in the system: $server";
                 } else {
-                    $_SESSION['errorData']['Info'] = "Directory creation failed! Check permissions.";
+                    $_SESSION['errorData']['Info'][] = "Directory creation failed! Check permissions.";
                     return 0;
                 }
             } else {
-                $_SESSION['errorData']['Info'] = "Directory already exists in $server, no need to create it.";
+                $_SESSION['errorData']['Info'][] = "Directory already exists in $server, no need to create it.";
             }
            
 

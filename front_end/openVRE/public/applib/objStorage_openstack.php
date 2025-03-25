@@ -17,7 +17,7 @@ function logError($errorMessage, $responseText = '') {
 function logSuccess($successMessage) {
     session_start();
     if (!isset($_SESSION['errorData']['Info'])) {
-        $_SESSION['errorData']['Info'] = ['Info' => []];
+        $_SESSION['errorData']['Info'][] = ['Info' => []];
     }
     $_SESSION['errorData']['Info'][] = $successMessage;
 }

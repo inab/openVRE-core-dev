@@ -21,9 +21,9 @@ function get_url_interactive_tool($pid, $login="session") {
 
         if (! $job['state'] == "RUNNING"){
                 if ($job['state'] == "PENDING"){
-                        $_SESSION['errorData']['Info'] = "Please, wait. The tool session is not yet accessible. Job petition status: PENDING.\n Page is going to be automatically reloaded.";
+                        $_SESSION['errorData']['Info'][] = "Please, wait. The tool session is not yet accessible. Job petition status: PENDING.\n Page is going to be automatically reloaded.";
                 }else{
-                        $_SESSION['errorData']['Info'] = "Tool session is not accessible anymore. Please, check the execution status.\n Page is going to be automatically reloaded.";
+                        $_SESSION['errorData']['Info'][] = "Tool session is not accessible anymore. Please, check the execution status.\n Page is going to be automatically reloaded.";
                 }
                 return array($proxy_tool_url, $proxy_tool_headers, $autorefresh);
         }
