@@ -17,3 +17,4 @@ volumes/shared_data/userdata
 
 #Others
 docker-compose-pre.yml
+key
