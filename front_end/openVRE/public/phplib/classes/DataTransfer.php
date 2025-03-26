@@ -227,7 +227,7 @@ class DataTransfer {
         foreach ($dataLocations as $file) {
             $server = $file['site_details']['server'];
             $destinationPath = $this->constructingDestination_MN($file['site_details']['root_path'],$username); 
-            $commands[] = "rsync -avz -e 'ssh -i $tempKeyFile' --progress {$file['absolute_path']} {$username}@{$server}:{$destinationPath}";
+            $commands[] = "rsync -avz -e 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i $tempKeyFile' --progress {$file['absolute_path']} {$username}@{$server}:{$destinationPath}";
         }
         return implode(" && ", $commands);
     }
