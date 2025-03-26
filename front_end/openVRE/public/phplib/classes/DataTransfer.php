@@ -47,7 +47,7 @@ class DataTransfer {
      *
      * @return boolean
      */
-    public function syncFiles(): string
+    public function syncFiles(): bool 
     {
         // Step 1: Get Data Locations
     
@@ -55,16 +55,14 @@ class DataTransfer {
         echo "<br>Data Locations: " . print_r($dataLocations, true) . "<br>";
         // Step 2: Check if there are no files to transfer
         if ($dataLocations == 0) {
-            
-            $this->log("No files to transfer.");
             $_SESSION['errorData']['Info'][] ="No files to transfer.";
-            exit; 
+            return false; 
         } else {
-            $_SESSION['errorData']['Info'][] = "Files are gonna be transferred in remote system.";
+            #$_SESSION['errorData']['Info'][] = "Files are gonna be transferred in remote system.";
 
             foreach ($dataLocations as $fileData) {
                 // Get the site details for each file
-                $_SESSION['errorData']['Info'][] = " Transferring file $fileData to remote system";
+                #$_SESSION['errorData']['Info'][] = " Transferring file $fileData to remote system";
                 $siteDetails = $fileData['site_details'];
             }
 
@@ -78,22 +76,45 @@ class DataTransfer {
             
             if ($sshCredentials == 0) {
                 $_SESSION['errorData']['Info'][] = "Error: Failed to retrieve SSH credentials from Vault.";
-                exit;
+                return false;
             }
 
             // Step 5: Create the rsync command using data locations
-            $syncCommand = $this->prepareSyncCommand($dataLocations, $sshCredentials);
+            list($updatedDataLocations, $syncCommand) = $this->prepareSyncCommand($dataLocations, $sshCredentials);
 
             if (empty($syncCommand)) {
                 $_SESSION['errorData']['Info'][] = "Error: Failed to generate rsync command.";
-                exit;
+                return false;
                 
             }
-            
+
+            foreach ($updatedDataLocations as $file) {
+                // Example: Use the updated data locations
+                // For instance, logging the updated remote path
+                var_dump($file);
+                $_SESSION['errorData']['Info'][] = "File {$file['filename']} will be transferred to {$file['remote_path']}";
+            }
+
             // Step 6: Execute the rsync command using SSH credentials        
-            $rsyncResult = $this->executeRsyncCommand($sshCredentials, $syncCommand, $dataLocations);
+            $rsyncResult = $this->executeRsyncCommand($sshCredentials, $syncCommand, $updatedDataLocations);
 
             echo "<br>" . $rsyncResult;
+
+            if ($rsyncResult === true){
+                $mongoUpdate = $this->registerMongoTransferredFile($updatedDataLocations);
+                if ($mongoUpdate === true) {
+                    foreach ($updatedDataLocations as $file) {
+                        $_SESSION['errorData']['Info'][] = "File {$file['filename']} new location registered to {$file['remote_path']}/{$file['filename']}";
+                        return true;
+                    }
+                } else { 
+                    $_SESSION['errorData']['Error'][] = "Something went wrong with the MongoUpdate for the file new location.";
+                    return false;
+                }
+            } else {
+                $_SESSION['errorData']['Error'][] = "Something went wrong with the Rsync, can't move files to remote location.";
+                return false;
+            }
         }       
    
     }
@@ -115,14 +136,13 @@ class DataTransfer {
     foreach ($this->filesId as $fileId => $fileData) {
         // Combine baseDir with file's relative path to form the full path
         $fullPath = $this->generateFinalPath($workingDirPath, $fileData['path'] );
-        
         // Form the full path
         $absolutePath = realpath($fullPath);
         if ($absolutePath === false) {
             $_SESSION['errorData']['Info'][] = "realpath() failed: File does not exist or invalid path.";
             return 0;
         } else {
-            $_SESSION['errorData']['Info'][] = "Absolute Path: {$absolutePath}";
+            #$_SESSION['errorData']['Info'][] = "Absolute Path: {$absolutePath}";
         }
 
         // Get the site (using the first element of site_list or 'local')
@@ -140,6 +160,7 @@ class DataTransfer {
         }
         // Append file information to the dataLocations array
         $dataLocations[] = [
+            '_id' => $fileId, 
             'filename' => basename($absolutePath), // Extract just the filename from the absolute path
             'site' => $site,
             'absolute_path' => $absolutePath,
@@ -203,7 +224,7 @@ class DataTransfer {
         ];
     }
 
-     public function prepareSyncCommand(array $dataLocations, array $sshCredentials): string
+     public function prepareSyncCommand(array $dataLocations, array $sshCredentials): array
     {
         if (empty($dataLocations)) {
             $_SESSION['errorData']['Error']="prepareSync: No files to transfer.";
@@ -224,12 +245,16 @@ class DataTransfer {
         chmod($tempKeyFile, 0600);
 
         $commands = [];
-        foreach ($dataLocations as $file) {
+        foreach ($dataLocations as &$file) {
             $server = $file['site_details']['server'];
             $destinationPath = $this->constructingDestination_MN($file['site_details']['root_path'],$username); 
+            $file['remote_path'] = $destinationPath;
             $commands[] = "rsync -avz -e 'ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -i $tempKeyFile' --progress {$file['absolute_path']} {$username}@{$server}:{$destinationPath}";
         }
-        return implode(" && ", $commands);
+        unset($file);
+
+        #return implode(" && ", $commands);
+        return [$dataLocations, implode(" && ", $commands)];
     }
 
    
@@ -251,7 +276,7 @@ class DataTransfer {
         $remotePath = $dataLocations[0]['site_details']['root_path'];
 
         $remoteDir = $this->constructingDestination_MN($remotePath, $username);
-
+        
         // Ensure credentials are valid
         if (empty($sshPrivateKey) || empty($username) || empty($server)) {
             $_SESSION['errorData']['Error']="Error executeRsync: Missing SSH credentials.";
@@ -312,12 +337,21 @@ class DataTransfer {
                 $_SESSION['errorData']['Info'][] = "Directory already exists in $server, no need to create it.";
             }
            
-
             // Step 3: Execute the rsync command
             error_log("Command to be executed: $syncCommand");
-            $output = shell_exec($syncCommand);
-        
-            return "Rsync Output:<br>" . nl2br(htmlspecialchars($output));
+            exec($syncCommand, $output, $returnVar);
+    
+            if ($returnVar === 0) {
+                // Rsync completed successfully
+                // You can optionally log the output or return success message
+                error_log("Rsync command executed successfully: " . implode("\n", $output));
+                return true;
+            } else {
+                // Rsync encountered an error
+                // You can log the error or return an error message
+                error_log("Error: Rsync command failed with status code $returnVar. Output: " . implode("\n", $output));
+                return false;
+            }
         
         } catch (Exception $e) {
             return "SSH Error: " . $e->getMessage();
@@ -353,15 +387,42 @@ class DataTransfer {
         
     }
 
-    public function registerMongoTransferredFile(): void
+    public function registerMongoTransferredFile($updatedDataLocations): bool
     {
         // Example of logging transfer to MongoDB (actual implementation needed)
-        $this->log("Registering transferred files in MongoDB");
-    }
+        error_log("Registering transferred files in MongoDB");
+        $allFilesProcessed = true;
 
-    private function log(string $message): void
-    {
-        $this->logs[] = '[' . date('Y-m-d H:i:s') . '] ' . $message;
+        foreach ($updatedDataLocations as $file) {
+            $fileId = $file['_id'];
+            $remotePath = $file['remote_path'] . "/" . $file['filename'];
+            //looking for the file in Mongo
+            $fileMongo = $GLOBALS['filesCol']->findOne(["_id" => $fileId]);
+
+            if ($fileMongo){
+                error_log("File with _id: $fileId found in Mongo");
+                $newData = array('$set' => array(
+                    'remote_path' => $remotePath,
+                ));
+
+                $updatedMongo = $GLOBALS['filesCol']->updateOne(
+                    array('_id' => $fileId),
+                    $newData
+                ); 
+                if ($updatedMongo->getModifiedCount() > 0) {
+                    error_log("Successfully updated file with _id: $fileId.");
+                } else {
+                    error_log("No update was made for file with _id: $fileId.");
+                    $allFilesProcessed = false;
+                }
+            } else {
+                error_log("File with _id: $fileId not found in MongoDB.");
+                $allFilesProcessed = false;
+            }
+
+        }
+
+        return $allFilesProcessed;
     }
 
     private function generateFinalPath($workingDir, $originalPath) {
