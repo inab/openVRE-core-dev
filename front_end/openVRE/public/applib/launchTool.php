@@ -250,7 +250,7 @@ if ($debug){
 if (!$workDirId){
     	redirect($_SERVER['HTTP_REFERER']);
 }
-$inputDirVirtual = $jobMeta->input_dir_virtual ?? '';
+
 $workDirHost =  $jobMeta->working_dir; 
 
 $dataMeta = new DataTransfer(
@@ -259,8 +259,6 @@ $dataMeta = new DataTransfer(
     $tool['_id'], 
     $workDirHost, 
     $_REQUEST['execution'], 
-    $_REQUEST['project'], 
-    $_REQUEST['description'],
 	$_REQUEST['arguments_exec']
 );
 		
