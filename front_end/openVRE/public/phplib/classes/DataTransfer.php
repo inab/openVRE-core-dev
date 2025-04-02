@@ -94,7 +94,8 @@ class DataTransfer {
                 var_dump($file);
                 $_SESSION['errorData']['Info'][] = "File {$file['filename']} will be transferred to {$file['remote_path']}";
             }
-
+            // o return de syncommand o añadir al object $dataTransfer
+            // ASYNC or SYNC 
             // Step 6: Execute the rsync command using SSH credentials        
             $rsyncResult = $this->executeRsyncCommand($sshCredentials, $syncCommand, $updatedDataLocations);
 

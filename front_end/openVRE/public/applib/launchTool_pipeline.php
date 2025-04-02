@@ -2,8 +2,6 @@
 
 require __DIR__."/../../config/bootstrap.php";
 
-
-use OpenStack\OpenStack;
 redirectOutside();
 
 $debug=1;
@@ -34,43 +32,20 @@ if ($debug){
 // Get tool.
 
 $tool = getTool_fromId($_REQUEST['tool'],1);
-
-
 if (empty($tool)){
 	$_SESSION['errorData']['Error'][]="Tool not specified or not registered. Please, register '".$_REQUEST['tool']."'";
   	redirect($GLOBALS['BASEURL']."workspace/");
 }
-
-//
-// Set Tooljob
-
-/*
-    if (!isset($_REQUEST['execution']) ){ ## TODO: TEMPORAL HACK TO ENSURE WE HAVE EXECUTION VAR. WAIT UNTIL GENIS MODERNIZE ALL FORMS
-    $_REQUEST['execution'] = $_REQUEST['project'];
-    $_REQUEST['project'] = "99";
-    }
- */
 
 if (!isset($_REQUEST['execution']) || !isset($_REQUEST['project'])){
     $_SESSION['errorData']['Internal'][]="Error launching tool. 'execution' or 'project' are not received";
     redirect($GLOBALS['BASEURL']."workspace/");
 }
 
-
 if ($debug){
 	print "<br/>SYSTEM FOR JOB EXECUTION</br>";
 	var_dump($_REQUEST['arguments_exec']);
 }
-
-
-$jobMeta  = new Tooljob($tool,$_REQUEST['execution'],$_REQUEST['project'],$_REQUEST['description'], $_REQUEST['arguments_exec']); 
-
-if ($debug){
-	print "<br/>NEW TOOLJOB SET:</br>";
-	var_dump($jobMeta);
-}
-
-//
 // Check input file requirements
 
 if (!isset($_REQUEST['input_files']) && !isset($_REQUEST['input_files_public_dir'])){
@@ -78,9 +53,6 @@ if (!isset($_REQUEST['input_files']) && !isset($_REQUEST['input_files_public_dir
     redirect($GLOBALS['BASEURL']."workspace/");
 }
 
-
-
-//
 // Get input_files medatada (with associated_files)
 
 $files   = Array(); // distinct file Objs to stage in 
@@ -132,6 +104,75 @@ if ($debug){
 
 
 //
+// Checking input_files locally
+
+foreach ($files as $fnId => $file) {
+    $fn   = getAttr_fromGSFileId($fnId,'path');
+
+    // Check if the file is a directory
+    $isDir = getAttr_fromGSFileId($fnId, 'is_dir');
+
+    // If it's not a directory, proceed with file-specific checks
+
+
+    $rfn  = $GLOBALS['dataDir']."/$fn";
+
+    if (!is_file($rfn)){
+	    $_SESSION['errorData']['Error'][]="File '".basename($fn)."' is not found or has size zero. Checking other locations available.";
+	}
+
+}
+
+
+
+$pipeline = new Pipeline();
+ // Create pipeline-level directory first
+$pipelineDirId = $pipeline->createWorkingDir();
+// Define and add stages
+$pipeline->addStage(new StageInData($pipeline, $files, $tool, $_REQUEST['execution'], $_REQUEST['arguments_exec'],  $pipelineDirId, ));
+$pipeline->addStage(new StageInContainer($pipeline, $containerImage,  $pipelineDirId,));
+$pipeline->addStage(new JobExecution($pipeline, $tool, $_REQUEST['execution'], $_REQUEST['project'], $_REQUEST['description'], $_REQUEST['arguments_exec'], $_REQUEST['input_files'],$pipelineDirId )); // Assuming $files_pub is empty
+$pipeline->addStage(new StageOutData($pipeline, $outputFiles, $destinationPath, $pipelineDirId));
+
+// Run all stages
+$pipeline->run();
+
+/*
+
+// Create working_dir
+$pipelineDirId = $pipeline->createWorking_dir();  //run33
+
+// Stage in 1 (input_files)
+
+$dataMeta = new DataTransfer(
+    $files, 
+    'async', 
+    $tool['_id'], 
+   // $workDirHost,  cambiando y ponerlo en la funcion SyncFiles --> como stageinDataDir
+    workingDirPath: $_REQUEST['execution'], 
+	$_REQUEST['arguments_exec']
+);
+
+$stageinDataDir = $DataTransfer->createWorking_dir($pipelineDirId); 	
+list($execCommand, $inputLocations) = $dataMeta->syncFiles(); //hasta el prepare linea 99 
+  
+$result = $dataMeta->prepareRSyncExecution(); //add con 
+if ($debug) {		
+	print "<br/>Data Transfer Locations:</br>";	
+	var_dump($dataLocations); // This will show where the files will be transferre
+}
+	
+
+// Tooljob
+
+$jobMeta  = new Tooljob($tool,$_REQUEST['execution'],$_REQUEST['project'],$_REQUEST['description'], $_REQUEST['arguments_exec']); 
+
+if ($debug){
+	print "<br/>NEW TOOLJOB SET:</br>";
+	var_dump($jobMeta);
+}
+
+//
 // Set Arguments
 if (!$_REQUEST['arguments']){
     $_REQUEST['arguments']=array();
@@ -150,64 +191,29 @@ if ($debug){
 if ($r == "0"){
     redirect($_SERVER['HTTP_REFERER']);
 }
-//
-// Checking input_files locally
-
-foreach ($files as $fnId => $file) {
-    $fn   = getAttr_fromGSFileId($fnId,'path');
-
-    // Check if the file is a directory
-    $isDir = getAttr_fromGSFileId($fnId, 'is_dir');
-
-    // If it's not a directory, proceed with file-specific checks
 
 
-    $rfn  = $GLOBALS['dataDir']."/$fn";
+$workDirId = $jobMeta->createWorking_dir($pipelineDirId); //run33/id_tool para casa fase 
 
-    if (!is_file($rfn)){
-	    $_SESSION['errorData']['Error'][]="File '".basename($fn)."' is not found or has size zero. Checking other locations available.";
-
-		/*
-	    if ($isDir === true) {
-     	   // Skip file-specific checks and processing, but store the directory for later use
-        	$_SESSION['infoData']['Info'][] = "Directory '".basename($fn)."' detected. Skipping file-specific checks.";
-        	continue; // Continue to the next file in the loop
-	    } 
-	    
-	    
-	    $jobData = new DataTransfer($tool, $filesId, $_REQUEST['execution'], $_REQUEST['project'], $_REQUEST['description']);
-	    $r = $jobData->getList($filesId);
-	    $s = $jobData->checkLoc($r);
-
-	    if ($debug) {
-            	print "<br/>DATA TRANSFER</br>";
-	    }
-	    
-	    if ($s) {
-		    $location = $r[0]['protocol'];
-		    if ($debug) {
-			    print "<br/>?????</br>";
-			    var_dump($r);
-		    }
-		    $path_file = $r[0]['path'];
-		    $local_path_file =  $r[0]['local_path'];
-		    $prova = $jobData->handleFileLocation($location, $path_file, $local_path_file, $GLOBALS['vaultUrl'], $_SESSION['User']['Vault']['vaultToken'], $_SESSION['User']['Vault']['vaultRolename']);
-		    if (!$prova) {
-			    //print ('Bhu?');
-			    $_SESSION['errorData']['Error'][]= "Null files";
-		    }  elseif ($prova === 0) {
-			    $_SESSION['errorData']['Error'][]= "No stored credentials are present in the system. Go to the profile section to save them.";
-		    }
-	    }
-	    //?><script type="text/javascript">//window.history.go(-1);</script><?php
-	    //exit(0);
-	    //redirect($_SERVER['HTTP_REFERER']);
-    } else {
-     */
-	}
-
+if ($debug){
+	echo $workDirId;
+	echo "<br/></br>WD CREATED SCCESSFULLY AT: $jobMeta->working_dir<br/>";
 }
 
+if (!$workDirId){
+    	redirect($_SERVER['HTTP_REFERER']);
+}
+
+//
+// Setting Command line. Adding parameters
+// 
+//$r = $jobMeta->prepareExecution($tool,$files,$files_pub);
+$r = $jobMeta->prepareExecution($tool,$files,$files_pub);
+if ($debug)
+	echo "<br/></br>PREPARE EXECUTION RETURNS ($r). <br/>";
+if($r == 0){
+    	redirect($_SERVER['HTTP_REFERER']);
+}
 // Set InputFilesPublic from public directory
 
 $files_pub = array();
@@ -235,58 +241,17 @@ if ($_REQUEST['input_files_public_dir']){
     }
 }
 
-// Stage in (fake)  TODO
-
-//exit(0);
-//
-// Create working_dir
-$workDirId = $jobMeta->createWorking_dir();
-
-if ($debug){
-	echo $workDirId;
-	echo "<br/></br>WD CREATED SCCESSFULLY AT: $jobMeta->working_dir<br/>";
-}
-
-if (!$workDirId){
-    	redirect($_SERVER['HTTP_REFERER']);
-}
-
-$workDirHost =  $jobMeta->working_dir; 
-
-$dataMeta = new DataTransfer(
-    $files, 
-    'async', 
-    $tool['_id'], 
-    $workDirHost, 
-    $_REQUEST['execution'], 
-	$_REQUEST['arguments_exec']
-);
-		
-$dataLocations = $dataMeta->syncFiles();
-// return jobId in async mode
-// another pid same as $pid jobMeta  
-
-
-if ($debug) {		
-	print "<br/>Data Transfer Locations:</br>";	
-	var_dump($dataLocations); // This will show where the files will be transferre
-}
-		
-//
-// Setting Command line. Adding parameters
-
-
-$r = $jobMeta->prepareExecution($tool,$files,$files_pub);
-
-if ($debug)
-	echo "<br/></br>PREPARE EXECUTION RETURNS ($r). <br/>";
-if($r == 0){
-    	redirect($_SERVER['HTTP_REFERER']);
-}
-
-
+// Stageout -- missing 
 // Launching Tooljob
 // once $jobId_data  
+// ----
+
+
+//Calling pipeline to execute ---missing
+//Somewhere after this stageout
+// return jobId in async mode --> prepare
+*/
+
 
 $pid = $jobMeta->submit($tool);	
 
