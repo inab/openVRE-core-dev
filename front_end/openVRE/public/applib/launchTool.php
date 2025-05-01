@@ -253,6 +253,20 @@ if (!$workDirId){
 
 $workDirHost =  $jobMeta->working_dir; 
 
+if ($debug) {
+    echo "<br/><br/><strong>DEBUG: Parameters passed to DataTransfer:</strong><br/>";
+    echo "<pre>";
+    print_r([
+        'files' => $files,
+        'mode' => 'async',
+        'tool_id' => $tool['_id'],
+        'workDirHost' => $workDirHost,
+        'execution' => $_REQUEST['execution'],
+        'arguments_exec' => $_REQUEST['arguments_exec'],
+    ]);
+    echo "</pre><br/>";
+}
+
 $dataMeta = new DataTransfer(
     $files, 
     'async', 
@@ -262,6 +276,8 @@ $dataMeta = new DataTransfer(
 	$_REQUEST['arguments_exec']
 );
 		
+
+
 $dataLocations = $dataMeta->syncFiles();
 // return jobId in async mode
 // another pid same as $pid jobMeta  
@@ -272,6 +288,7 @@ if ($debug) {
 	var_dump($dataLocations); // This will show where the files will be transferre
 }
 		
+
 //
 // Setting Command line. Adding parameters
 

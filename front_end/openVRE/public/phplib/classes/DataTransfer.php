@@ -19,24 +19,22 @@ class DataTransfer {
     private array $movedFiles = [];
     private array $siteList;
 
+    private array $arguments_exec;
+
     public function __construct(
         array $filesId,
         string $mode,
         string $toolId,
         string $workingDirPath,
         string $execution = "",
-        string $project = "",
-        string $description = "",
-        array $siteList = []
+        array $arguments_exec = []
     ) {
         $this->filesId = $filesId;
         $this->mode = $mode;
         $this->toolId = $toolId;
         $this->workingDirPath = $workingDirPath;
         $this->execution = $execution;
-        $this->project = $project;
-        $this->description = $description;
-        $this->siteList = $siteList;
+        $this->arguments_exec = $arguments_exec;
     }
 
    

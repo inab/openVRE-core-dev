@@ -295,8 +295,6 @@ class Tooljob {
 
 
     /**
-
-    /**
      * Create working directory
     */
     public function createWorking_dir() {

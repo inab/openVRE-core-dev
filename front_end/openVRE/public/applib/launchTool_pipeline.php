@@ -123,20 +123,61 @@ foreach ($files as $fnId => $file) {
 
 }
 
+// Asyncronous
 
-
-$pipeline = new Pipeline();
- // Create pipeline-level directory first
+$pipeline = new Pipeline($tool, $_REQUEST['execution'], $_REQUEST['project'], $_REQUEST['description'], $_REQUEST['arguments_exec']);
 $pipelineDirId = $pipeline->createWorkingDir();
+if ($debug){
+	echo "<br/></br>JDIR ID = $pipelineDirId<br/>";
+}
+ // Create pipeline-level directory first
 // Define and add stages
 $pipeline->addStage(new StageInData($pipeline, $files, $tool, $_REQUEST['execution'], $_REQUEST['arguments_exec'],  $pipelineDirId, ));
-$pipeline->addStage(new StageInContainer($pipeline, $containerImage,  $pipelineDirId,));
-$pipeline->addStage(new JobExecution($pipeline, $tool, $_REQUEST['execution'], $_REQUEST['project'], $_REQUEST['description'], $_REQUEST['arguments_exec'], $_REQUEST['input_files'],$pipelineDirId )); // Assuming $files_pub is empty
-$pipeline->addStage(new StageOutData($pipeline, $outputFiles, $destinationPath, $pipelineDirId));
+// output de esos tiene que ser submission_file 
+//$pipeline->addStage(new StageInJobConfigs($pipeline, $containerImage,  $pipelineDirId,)); //config jsons too 
+//$pipeline->addStage(new JobExecution($pipeline, $tool, $_REQUEST['execution'], $_REQUEST['project'], $_REQUEST['description'], $_REQUEST['arguments_exec'], $_REQUEST['input_files'],$pipelineDirId )); // Assuming $files_pub is empty
+//$pipeline->addStage(new StageOutData($pipeline, $outputFiles, $destinationPath, $pipelineDirId)); // data_trasfer_diff x MongoDB, log, output_metadata, 
 
 // Run all stages
-$pipeline->run();
+//$pipeline->run(); //sge define dependencies for each stage --> run as a new ProcessSGE()
+// qsub -hold_jid job_id of the dependecies job  
 
+//$pid = $jobMeta->submit($tool);	
+
+
+if ($debug){
+	echo "<br/></br>JOB SUBMITTED. PID = $pid<br/>";
+}
+if(!$pid)
+  	redirect($GLOBALS['BASEURL']."workspace/");
+
+
+if ($debug){
+	print "<br/>ERROR_DATA<br/>";
+	var_dump($_SESSION['errorData']);
+	unset($_SESSION['errorData']);
+	print "</br><br/>JOB_META END<br/>";
+	var_dump((array)$jobMeta);
+}
+
+if ($debug)
+	echo "<br/>Saving JOB MEDATA  USER <br/>";
+
+addUserJob($_SESSION['User']['_id'],(array)$jobMeta,$jobMeta->pid);
+
+if ($debug)
+	exit(0);
+
+if (!isset($_SESSION['errorData']['Error'])){
+    $proj = getProject($jobMeta->project);
+    $_SESSION['errorData']['Info'][]="Job successfully sent! Monitor it at <b>".$proj['name']." &rsaquo; ".$jobMeta->execution." &rsaquo; ".$jobMeta->title."</b>.";
+    if ($_SESSION['User']['activeProject'] != $jobMeta->project){
+        $projWS = getProject($_SESSION['User']['activeProject']);
+        $_SESSION['errorData']['Info'][]="Notice that your current workspace belongs to project '".$projWS['name']."'. Move to '".$proj['name']."' to check out your job.";
+    }
+}
+
+redirect($GLOBALS['BASEURL']."workspace/");
 /*
 
 // Create working_dir
@@ -253,40 +294,4 @@ if ($_REQUEST['input_files_public_dir']){
 */
 
 
-$pid = $jobMeta->submit($tool);	
-
-
-if ($debug)
-	echo "<br/></br>JOB SUBMITTED. PID = $pid<br/>";
-
-if(!$pid)
-  	redirect($GLOBALS['BASEURL']."workspace/");
-
-
-if ($debug){
-	print "<br/>ERROR_DATA<br/>";
-	var_dump($_SESSION['errorData']);
-	unset($_SESSION['errorData']);
-	print "</br><br/>JOB_META END<br/>";
-	var_dump((array)$jobMeta);
-}
-
-if ($debug)
-	echo "<br/>Saving JOB MEDATA  USER <br/>";
-
-addUserJob($_SESSION['User']['_id'],(array)$jobMeta,$jobMeta->pid);
-
-if ($debug)
-	exit(0);
-
-if (!isset($_SESSION['errorData']['Error'])){
-    $proj = getProject($jobMeta->project);
-    $_SESSION['errorData']['Info'][]="Job successfully sent! Monitor it at <b>".$proj['name']." &rsaquo; ".$jobMeta->execution." &rsaquo; ".$jobMeta->title."</b>.";
-    if ($_SESSION['User']['activeProject'] != $jobMeta->project){
-        $projWS = getProject($_SESSION['User']['activeProject']);
-        $_SESSION['errorData']['Info'][]="Notice that your current workspace belongs to project '".$projWS['name']."'. Move to '".$proj['name']."' to check out your job.";
-    }
-}
-
-redirect($GLOBALS['BASEURL']."workspace/");
 
