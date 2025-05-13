@@ -1,5 +1,6 @@
 #Environmental variables
 .env
+composer.lock
 front_end/openVRE/config/globals.inc.php
 front_end/openVRE/config/*.conf
 
@@ -10,11 +11,9 @@ vault/logs/*
 
 #Front-end
 vendor/
-composer.lock
 
 #Volumes environment
-volumes/shared_data/userdata
-
+volumes/
 #Others
 docker-compose-pre.yml
 key
