@@ -20,7 +20,7 @@ if ($debug){
 	print "</br>RAW  INPUT_FILES ARE<br/>";
 	var_dump($_REQUEST['input_files']);
 	print "<br/>";
-	print "</br>RAW  INPUT_FILES PUBLIC ARE<br/>";
+	print "</br>RAW  INPUT_FILES PUBLIC ARE<br/>"; 
 	var_dump($_REQUEST['input_files_public_dir']);
 	print "<br/>";
 	foreach ($_REQUEST as $k=>$v){

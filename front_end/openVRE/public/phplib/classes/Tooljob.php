@@ -856,9 +856,6 @@ class Tooljob
 	{
 		$launcher = $this->launcher;
 		$cloudName = $this->cloudName;
-		//echo "Launcher: " . $launcher . "\n";
-		//echo "Cloud Name: " . $cloudName . "\n";
-		//echo "Metadata: " . var_dump($metadata) . "\n";
 		
 		if ($tool['external'] !== false) {
 			$configFilename = $this->setConfiguration_file($tool);
@@ -875,7 +872,7 @@ class Tooljob
 				$_SESSION['errorData']['Internal Error'][] = "Cannot set tool command line. It required configuration file ($this->config_file) and metadata file ($this->metadata_file)";
 				return 0;
 			}
-
+			
 			switch ($launcher) {
 				case "SGE":
 					$cmd  = $this->setBashCmd_SGE($tool);
@@ -938,7 +935,7 @@ class Tooljob
 					if (!$cmd) {
 						return 0;
 					}
-					$_SESSION['errorData']['Debug'][] = "CMD:" . $cmd;
+					$_SESSION['errorData']['Info'][] = "CMD:" . $cmd;
 					break;
 
 					$submissionFilename = $this->createSubmitFile_Slurm($cloudName, $cmd); 
@@ -1224,6 +1221,84 @@ class Tooljob
 		return $cmd;
 	}
 
+	protected function ensureSingularityImage(array $tool, string $saveDir): array {
+		if (!empty($tool['infrastructure']['singularity_image'])) {
+			return $tool;
+		}
+	
+		if (empty($tool['infrastructure']['container_image'])) {
+			throw new Exception("No container_image specified in tool infrastructure.");
+		}
+		$dockerImage = $tool['infrastructure']['container_image'];
+    $safeName = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $dockerImage);
+
+    $tarFile = "$saveDir/{$safeName}.tar";
+    $singularityFile = "$saveDir/{$safeName}.sif";
+
+    // Save docker image as tarball
+    $dockerSaveCmd = "docker save $dockerImage -o $tarFile";
+    exec($dockerSaveCmd, $output1, $ret1);
+    if ($ret1 !== 0) {
+        throw new Exception("Failed to save docker image: $dockerSaveCmd");
+    }
+
+    // Build singularity image from docker archive
+    $singularityBuildCmd = "singularity build $singularityFile docker-archive://$tarFile";
+    exec($singularityBuildCmd, $output2, $ret2);
+    if ($ret2 !== 0) {
+        throw new Exception("Failed to build singularity image: $singularityBuildCmd");
+    }
+
+    // Optionally delete tar file
+    // unlink($tarFile);
+
+    // Update the $tool array with full path to singularity image
+    $tool['infrastructure']['singularity_image'] = $singularityFile;
+
+}
+	
+
+
+	protected function setBashCmd_Singularity($tool){
+
+		if (!isset($tool['infrastructure']['executable']) && !isset($tool['infrastructure']['container_image'])) {
+			$_SESSION['errorData']['Internal Error'][] = "Tool '$this->toolId' not properly registered. Missing 'executable' or 'container_image' properties";
+			return 0;
+		}
+		// Absolute path to your working scratch dir (where the PROJECTUSER... folder is)
+		$scratchBasePath = "/gpfs/scratch/bsc23/MN4/bsc23/bsc23829";
+		$projectUserDir = $_SESSION['User']['id']; // e.g., PROJECTUSER68245281ad3ee
+		$projectDir = $this->project;              // e.g., __PROJ68245281ad3f03.79906233
+		$runId = basename($this->working_dir);  // e.g., run024
+
+		// Singularity bind mount
+		$bindPath = "$scratchBasePath/$projectUserDir:/shared_data/userdata/$projectUserDir";
+		// Singularity image and executable
+		$singularitySaveDir = "/shared_data/userdata/$projectUserDir/$projectDir/$runId";
+		try {
+			$tool = $this->ensureSingularityImage($tool, $singularitySaveDir);
+		} catch (Exception $e) {
+			$_SESSION['errorData']['Info'][] = "Error preparing Singularity image for tool '$this->toolId': " . $e->getMessage();
+			return 0;
+		}
+		//$singularityImage = $tool['infrastructure']['container_image']; // e.g., seqio_tool.sif
+		$singularityExec = "/home/vre_template_tool/VRE_RUNNER";
+		$singularityImage = $tool['infrastructure']['singularity_image'];
+
+		// Tool parameters
+		$configFile     = "/shared_data/userdata/$projectUserDir/$projectDir/$runId/" . ".config.json";
+		$inputMetadata  = "/shared_data/userdata/$projectUserDir/$projectDir/$runId/" . ".input_metadata.json";
+		$outputMetadata = "/shared_data/userdata/$projectUserDir/$projectDir/$runId/" . ".results.json";
+		$logFile        = "$scratchBasePath/$projectUserDir/$projectDir/$runId/" . ".tool.log";
+
+		$cmd = "singularity exec --bind $bindPath $singularityImage $singularityExec " .
+			"--config $configFile " .
+			"--in_metadata $inputMetadata " .
+			"--out_metadata $outputMetadata " .
+			"> $logFile 2>&1";
+
+		return $cmd;
+	}
 
 	protected function setBashCmd_docker_EGA($tool)
 	{
