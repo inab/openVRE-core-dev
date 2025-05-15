@@ -6,7 +6,7 @@ require __DIR__."/../../config/bootstrap.php";
 use OpenStack\OpenStack;
 redirectOutside();
 
-$debug=1;
+$debug=0;
 
 $SGE_updated = getUserJobs($_SESSION['User']['id']);
 
@@ -166,44 +166,6 @@ foreach ($files as $fnId => $file) {
 
     if (!is_file($rfn)){
 	    $_SESSION['errorData']['Error'][]="File '".basename($fn)."' is not found or has size zero. Checking other locations available.";
-
-		/*
-	    if ($isDir === true) {
-     	   // Skip file-specific checks and processing, but store the directory for later use
-        	$_SESSION['infoData']['Info'][] = "Directory '".basename($fn)."' detected. Skipping file-specific checks.";
-        	continue; // Continue to the next file in the loop
-	    } 
-	    
-	    
-	    $jobData = new DataTransfer($tool, $filesId, $_REQUEST['execution'], $_REQUEST['project'], $_REQUEST['description']);
-	    $r = $jobData->getList($filesId);
-	    $s = $jobData->checkLoc($r);
-
-	    if ($debug) {
-            	print "<br/>DATA TRANSFER</br>";
-	    }
-	    
-	    if ($s) {
-		    $location = $r[0]['protocol'];
-		    if ($debug) {
-			    print "<br/>?????</br>";
-			    var_dump($r);
-		    }
-		    $path_file = $r[0]['path'];
-		    $local_path_file =  $r[0]['local_path'];
-		    $prova = $jobData->handleFileLocation($location, $path_file, $local_path_file, $GLOBALS['vaultUrl'], $_SESSION['User']['Vault']['vaultToken'], $_SESSION['User']['Vault']['vaultRolename']);
-		    if (!$prova) {
-			    //print ('Bhu?');
-			    $_SESSION['errorData']['Error'][]= "Null files";
-		    }  elseif ($prova === 0) {
-			    $_SESSION['errorData']['Error'][]= "No stored credentials are present in the system. Go to the profile section to save them.";
-		    }
-	    }
-	    //?><script type="text/javascript">//window.history.go(-1);</script><?php
-	    //exit(0);
-	    //redirect($_SERVER['HTTP_REFERER']);
-    } else {
-     */
 	}
 
 }
@@ -237,8 +199,8 @@ if ($_REQUEST['input_files_public_dir']){
 
 // Stage in (fake)  TODO
 
-//exit(0);
-//
+
+
 // Create working_dir
 $workDirId = $jobMeta->createWorking_dir();
 
@@ -253,43 +215,53 @@ if (!$workDirId){
 
 $workDirHost =  $jobMeta->working_dir; 
 
-if ($debug) {
-    echo "<br/><br/><strong>DEBUG: Parameters passed to DataTransfer:</strong><br/>";
-    echo "<pre>";
-    print_r([
-        'files' => $files,
-        'mode' => 'async',
-        'tool_id' => $tool['_id'],
-        'workDirHost' => $workDirHost,
-        'execution' => $_REQUEST['execution'],
-        'arguments_exec' => $_REQUEST['arguments_exec'],
-    ]);
-    echo "</pre><br/>";
+$siteList = $_REQUEST['arguments_exec']['site_list'] ?? [];
+
+if (!in_array('marenostrum', $siteList)) {
+    if ($debug) {
+        echo "<br/><strong>DEBUG:</strong> Skipping DataTransfer — 'marenostrum' not in site_list.<br/>";
+    }
+    // Skip DataTransfer logic
+} else {
+	
+	if ($debug) {
+		echo "<br/><br/><strong>DEBUG: Parameters passed to DataTransfer:</strong><br/>";
+		echo "<pre>";
+		print_r([
+			'files' => $files,
+			'mode' => 'async',
+			'tool_id' => $tool['_id'],
+			'workDirHost' => $workDirHost,
+			'execution' => $_REQUEST['execution'],
+			'arguments_exec' => $_REQUEST['arguments_exec'],
+		]);
+		echo "</pre><br/>";
+	}
+	
+	$dataMeta = new DataTransfer(
+		$files, 
+		'async', 
+		$tool['_id'], 
+		$workDirHost, 
+		$_REQUEST['execution'], 
+		$_REQUEST['arguments_exec']
+	);
+	
+	//$remoteDir = $dataMeta->syncWorkingDir();
+	$dataLocations = $dataMeta->syncFiles();
+	// return jobId in async mode
+	// another pid same as $pid jobMeta  
+
+	
+
+	if ($debug) {		
+		print "<br/>Data Transfer Locations:</br>";	
+		var_dump($dataLocations); // This will show where the files will be transferred
+	}
 }
 
-$dataMeta = new DataTransfer(
-    $files, 
-    'async', 
-    $tool['_id'], 
-    $workDirHost, 
-    $_REQUEST['execution'], 
-	$_REQUEST['arguments_exec']
-);
 		
 
-
-$dataLocations = $dataMeta->syncFiles();
-// return jobId in async mode
-// another pid same as $pid jobMeta  
-
-
-if ($debug) {		
-	print "<br/>Data Transfer Locations:</br>";	
-	var_dump($dataLocations); // This will show where the files will be transferre
-}
-		
-
-//
 // Setting Command line. Adding parameters
 
 

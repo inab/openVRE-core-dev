@@ -856,7 +856,10 @@ class Tooljob
 	{
 		$launcher = $this->launcher;
 		$cloudName = $this->cloudName;
-
+		//echo "Launcher: " . $launcher . "\n";
+		//echo "Cloud Name: " . $cloudName . "\n";
+		//echo "Metadata: " . var_dump($metadata) . "\n";
+		
 		if ($tool['external'] !== false) {
 			$configFilename = $this->setConfiguration_file($tool);
 			if ($configFilename == "0") {
@@ -930,13 +933,18 @@ class Tooljob
 				case "Slurm":
 					//$_SESSION['errorData']['Internal Error'][]="Cannot set tool command line. Case still not implemented.";    
 
-					$username = $_POST['username'];
-					$cmd = $this->setHPCRequest($cloudName, $tool, $username);
+					#$username = $_POST['username'];
+					$cmd = $this->setBashCmd_Singularity($tool);
 					if (!$cmd) {
 						return 0;
 					}
 					$_SESSION['errorData']['Debug'][] = "CMD:" . $cmd;
 					break;
+
+					$submissionFilename = $this->createSubmitFile_Slurm($cloudName, $cmd); 
+					if (!is_file($submissionFilename)) {
+						return 0;
+					}
 				default:
 					$_SESSION['errorData']['Error'][] = "Tool '$this->toolId' not properly registered. Launcher for '$this->toolId' is set to \"$launcher\". Case not implemented.";
 					return 0;
@@ -1425,18 +1433,11 @@ class Tooljob
 	protected function setBashCmd_Slurm($tool, $metadata, $launcherInfo)
 	{
 
-		// Ensure that the tool has a registered module to be loaded
-		if (!isset($tool['infrastructure']['module'])) {
-			$_SESSION['errorData']['Internal Error'][] = "Tool '$this->toolId' not properly registered. Missing 'module' property.";
-			return 0;
-		}
-
-		//Module name
-		$module = $tool['infrastructure']['module'];
-
-
-		// First cmd
-		$cmd = "module load $module && sbatch ";
+	    // Ensure that the tool has a registered module to be loaded
+	    if (!isset($tool['infrastructure']['module'])) {
+		    $_SESSION['errorData']['Internal Error'][] = "Tool '$this->toolId' not properly registered. Missing 'module' property.";
+		    return 0;
+	    }
 
 		//Setting the header of the SLURM script
 		$cmd .= "--job-name=" . escapeshellarg($this->toolId) . " ";  // Job name
@@ -1989,56 +1990,18 @@ class Tooljob
 
 				return true;
 
-				// aNOTHER FUNCTION Initialize the SSH client with retrieved credentials and site details
-				//$remoteSSH = new RemoteSSH($sshCredentials, $remote_dir, 22, $siteDocument['launcher']['http_server']);
-				//$SshCred = $remoteSSH->getCredentials();
-
-
-			} else {
-				return array('error' => 'Site document not found for site ID: ' . $siteId);
-			}
-		} else {
-			return array('error' => 'Failed to retrieve SSH credentials from Vault, not present.');
-		}
-	}
-
-
-	protected function setHPCRequest($cloudName, $tool, $username)
-	{
-		if ($cloudName == 'marenostrum') {
-			$vaultUrl = $GLOBALS['vaultUrl'];
-			$vaultToken = $_SESSION['User']['Vault']['vaultToken'];
-			$accessToken = $_SESSION['User']['Token']['access_token'];
-			$vaultRolename = $_SESSION['User']['Vault']['vaultRolename'];
-
-			//Get the credentials
-			$remoteSSH = $this->getSSHCred($vaultUrl, $vaultToken, $accessToken, $vaultRolename, $username, null, $cloudName);
-			if (isset($remoteSSH['error'])) {
-				$_SESSION['errorData']['Internal Error'][] = "Failed to retrieve SSH credentials: " . $remoteSSH['error'];
-				return 0;
-			}
-
-			//Retrieve the launcher details
-			$launcherInfo = $this->getLauncher_Info($cloudName);
-			if (!$launcherInfo || empty($launcherInfo)) {
-				$_SESSION['errorData']['Internal Error'][] = "Cannot set tool command line. Launcher details are not available.";
-				return 0;
-			}
-
-			//Set Bash command for Slurm
-			$cmd = $this->setBashCmd_Slurm($tool, $metadata, $launcherInfo);
-			if (!$cmd) {
-				return 0;
-			}
-
-
-			return $cmd; //Return the command if everything is fine for MN
-		} else {
-			//For future HPC environments
-			$_SESSION['errorData']['Internal Error'][] = "Cloud environment '$cloudName' is not supported yet.";
-			return 0;
-		}
-	}
+                        // aNOTHER FUNCTION Initialize the SSH client with retrieved credentials and site details
+                        //$remoteSSH = new RemoteSSH($sshCredentials, $remote_dir, 22, $siteDocument['launcher']['http_server']);
+			//$SshCred = $remoteSSH->getCredentials();
+			
+			
+                } else {
+                        return array('error' => 'Site document not found for site ID: ' . $siteId);
+                }
+        } else {
+                return array('error' => 'Failed to retrieve SSH credentials from Vault, not present.');
+        }
+    }
 
 
 	function getLauncher_Info($siteId)
