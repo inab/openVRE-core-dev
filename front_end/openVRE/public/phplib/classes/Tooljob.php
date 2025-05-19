@@ -936,12 +936,15 @@ class Tooljob
 						return 0;
 					}
 					$_SESSION['errorData']['Info'][] = "CMD:" . $cmd;
-					break;
-
+					//break
 					$submissionFilename = $this->createSubmitFile_Slurm($cloudName, $cmd); 
 					if (!is_file($submissionFilename)) {
 						return 0;
+					} else {
+						echo "Generated SLURM submission script:\n\n";
+    					echo file_get_contents($submissionFilename);
 					}
+
 				default:
 					$_SESSION['errorData']['Error'][] = "Tool '$this->toolId' not properly registered. Launcher for '$this->toolId' is set to \"$launcher\". Case not implemented.";
 					return 0;
@@ -1142,40 +1145,39 @@ class Tooljob
 		EOF;
 
 		$checkContainerStatus = <<<EOF
-			if ! docker top \$CONTAINER_ID &>/dev/null; then
-				printf '%s | %s\n' "$(date)" "Container crashed unexpectedly...";
-				exit 1;
-			fi
+	if ! docker top \$CONTAINER_ID &>/dev/null; then
+		printf '%s | %s\n' "$(date)" "Container crashed unexpectedly...";
+		exit 1;
+	fi
 
-			if ! docker inspect --format='{{.State.Running}}' \$CONTAINER_ID | grep -q true; then
-				printf '%s | %s\n' "$(date)" "Container not running anymore";
-				exit 1;
-			fi
-		EOF;
+	if ! docker inspect --format='{{.State.Running}}' \$CONTAINER_ID | grep -q true; then
+		printf '%s | %s\n' "$(date)" "Container not running anymore";
+		exit 1;
+	fi
+EOF;
 
 		$reportContainerInfo = <<<EOF
-			CONTAINER_URL="http://$this->containerName:$container_port"
-			printf '%s | %s\n' "\$(date)" "ContainerID: \$CONTAINER_ID";
-			printf '%s | %s\n' "\$(date)" "ExposedPort: \$FREE_PORT";
-			printf '%s | %s\n' "\$(date)" "ContainerURL: \$CONTAINER_URL";
-		EOF;
+	CONTAINER_URL="http://$this->containerName:$container_port"
+	printf '%s | %s\n' "\$(date)" "ContainerID: \$CONTAINER_ID";
+	printf '%s | %s\n' "\$(date)" "ExposedPort: \$FREE_PORT";
+	printf '%s | %s\n' "\$(date)" "ContainerURL: \$CONTAINER_URL";
+EOF;
 
 		$monitorContainer = <<<EOF
-			docker logs -f \$CONTAINER_ID &> $this->log_file_virtual &
+		docker logs -f \$CONTAINER_ID &> $this->log_file_virtual &
+		printf '%s | %s\n' "\$(date)" "Waiting for the service URL to become available in the internal network...";
+		if timeout 420 wget --retry-connrefused --tries=10 --waitretry=100 -O /dev/null \$CONTAINER_URL; then
+			printf '%s | %s\n' "\$(date)" "Service UP";
+		else
+			printf '%s | %s\n' "\$(date)" "Service TIMEOUT (7 minutes)";
+		fi
 
-			printf '%s | %s\n' "\$(date)" "Waiting for the service URL to become available in the internal network...";
-			if timeout 420 wget --retry-connrefused --tries=10 --waitretry=100 -O /dev/null \$CONTAINER_URL; then
-				printf '%s | %s\n' "\$(date)" "Service UP";
-			else
-				printf '%s | %s\n' "\$(date)" "Service TIMEOUT (7 minutes)";
-			fi
+		printf '%s | %s\n' "\$(date)" "Wait while container is running...";
+		exit_code="\$(docker wait \$CONTAINER_ID)";
+		printf '%s | Container has stopped (exit code = %s) \n' "\$(date)" "\$exit_code";
 
-			printf '%s | %s\n' "\$(date)" "Wait while container is running...";
-			exit_code="\$(docker wait \$CONTAINER_ID)";
-			printf '%s | Container has stopped (exit code = %s) \n' "\$(date)" "\$exit_code";
-
-			echo '# End time:' \$(date) >> $this->log_file_virtual;
-		EOF;
+		echo '# End time:' \$(date) >> $this->log_file_virtual;
+EOF;
 
 		return $checkEnvironment . "\n" . $configureDockerGroup . "\n" . $createNetwork . "\n" . $runContainer . "\n" . $checkContainerStatus . "\n" . $reportContainerInfo . "\n" . $monitorContainer;
 	}
@@ -1221,43 +1223,6 @@ class Tooljob
 		return $cmd;
 	}
 
-	protected function ensureSingularityImage(array $tool, string $saveDir): array {
-		if (!empty($tool['infrastructure']['singularity_image'])) {
-			return $tool;
-		}
-	
-		if (empty($tool['infrastructure']['container_image'])) {
-			throw new Exception("No container_image specified in tool infrastructure.");
-		}
-		$dockerImage = $tool['infrastructure']['container_image'];
-    $safeName = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $dockerImage);
-
-    $tarFile = "$saveDir/{$safeName}.tar";
-    $singularityFile = "$saveDir/{$safeName}.sif";
-
-    // Save docker image as tarball
-    $dockerSaveCmd = "docker save $dockerImage -o $tarFile";
-    exec($dockerSaveCmd, $output1, $ret1);
-    if ($ret1 !== 0) {
-        throw new Exception("Failed to save docker image: $dockerSaveCmd");
-    }
-
-    // Build singularity image from docker archive
-    $singularityBuildCmd = "singularity build $singularityFile docker-archive://$tarFile";
-    exec($singularityBuildCmd, $output2, $ret2);
-    if ($ret2 !== 0) {
-        throw new Exception("Failed to build singularity image: $singularityBuildCmd");
-    }
-
-    // Optionally delete tar file
-    // unlink($tarFile);
-
-    // Update the $tool array with full path to singularity image
-    $tool['infrastructure']['singularity_image'] = $singularityFile;
-
-}
-	
-
 
 	protected function setBashCmd_Singularity($tool){
 
@@ -1265,6 +1230,7 @@ class Tooljob
 			$_SESSION['errorData']['Internal Error'][] = "Tool '$this->toolId' not properly registered. Missing 'executable' or 'container_image' properties";
 			return 0;
 		}
+
 		// Absolute path to your working scratch dir (where the PROJECTUSER... folder is)
 		$scratchBasePath = "/gpfs/scratch/bsc23/MN4/bsc23/bsc23829";
 		$projectUserDir = $_SESSION['User']['id']; // e.g., PROJECTUSER68245281ad3ee
@@ -1273,15 +1239,9 @@ class Tooljob
 
 		// Singularity bind mount
 		$bindPath = "$scratchBasePath/$projectUserDir:/shared_data/userdata/$projectUserDir";
-		// Singularity image and executable
-		$singularitySaveDir = "/shared_data/userdata/$projectUserDir/$projectDir/$runId";
-		try {
-			$tool = $this->ensureSingularityImage($tool, $singularitySaveDir);
-		} catch (Exception $e) {
-			$_SESSION['errorData']['Info'][] = "Error preparing Singularity image for tool '$this->toolId': " . $e->getMessage();
-			return 0;
-		}
+		// Singularity image and executable		
 		//$singularityImage = $tool['infrastructure']['container_image']; // e.g., seqio_tool.sif
+
 		$singularityExec = "/home/vre_template_tool/VRE_RUNNER";
 		$singularityImage = $tool['infrastructure']['singularity_image'];
 
@@ -1291,7 +1251,7 @@ class Tooljob
 		$outputMetadata = "/shared_data/userdata/$projectUserDir/$projectDir/$runId/" . ".results.json";
 		$logFile        = "$scratchBasePath/$projectUserDir/$projectDir/$runId/" . ".tool.log";
 
-		$cmd = "singularity exec --bind $bindPath $singularityImage $singularityExec " .
+		$cmd = "singularity exec --bind $bindPath $scratchBasePath/$singularityImage $singularityExec " .
 			"--config $configFile " .
 			"--in_metadata $inputMetadata " .
 			"--out_metadata $outputMetadata " .
@@ -1505,61 +1465,6 @@ class Tooljob
 	}
 
 
-	protected function setBashCmd_Slurm($tool, $metadata, $launcherInfo)
-	{
-
-	    // Ensure that the tool has a registered module to be loaded
-	    if (!isset($tool['infrastructure']['module'])) {
-		    $_SESSION['errorData']['Internal Error'][] = "Tool '$this->toolId' not properly registered. Missing 'module' property.";
-		    return 0;
-	    }
-
-		//Setting the header of the SLURM script
-		$cmd .= "--job-name=" . escapeshellarg($this->toolId) . " ";  // Job name
-		if (isset($launcherInfo['launcher']['access_credentials']['username'])) {
-			$username = $launcherInfo['launcher']['access_credentials']['username'];
-			$remoteOutputDir = "/home/bsc/" . substr($username, 0, 6) . "/$username/MN4/$username";
-			$cmd .= "--output=" . escapeshellarg($remoteOutputDir . "/%x_%j.out") . " ";
-		} else {
-			$_SESSION['errorData']['Internal Error'][] = "Launcher info missing username details.";
-		}
-
-		// Check and add the partition (queue)
-		if (isset($launcherInfo['launcher']['partition']) && !empty($launcherInfo['launcher']['partition'])) {
-			$partition = $launcherInfo['launcher']['partition'];
-			$cmd .= "--partition=" . escapeshellarg($partition) . " ";
-		} else {
-			$_SESSION['errorData']['Internal Error'][] = "Launcher info missing partition/queue details.";
-		}
-
-		// Constructing the command 
-		$executable = $tool['infrastructure']['executable'];
-		$cmd .= "--wrap=\"" . $executable;
-
-
-		// Adding the inputs
-		foreach ($this->input_files as $input_name => $fnIds) {
-			$_SESSION['errorData']['Debug'][] = "Processing input:" . $input_name;
-			$_SESSION['errorData']['Debug'][] = "File IDs: " . print_r($fnIds, true);
-			foreach ($fnIds as $fnId) {
-
-				$_SESSION['errorData']['Debug'][] = "File: " . $fnId;
-				$fn = $metadata[$fnId]['path'];
-				// $rfn = $GLOBALS['dataDir'] . "/$fn";
-				$cmd .= " " . escapeshellarg($fnId);
-			}
-		}
-
-		// Arguments??
-		foreach ($this->arguments as $k => $v) {
-			$cmd .= " --$k " . escapeshellarg($v);
-		}
-
-
-
-		$cmd .= "\"";
-		return $cmd;
-	}
 
 
 	protected function createSubmitFile_SGE($cmd)
@@ -1592,7 +1497,42 @@ class Tooljob
 		return $bashFilename;
 	}
 
+	protected function createSubmitFile_Slurm($siteId, $cmd)
+	{
+		$workingDir = $this->working_dir;
+		$bashFilename = $this->submission_file;
+		$logFilename = $this->log_file;
+		
+		$siteDetails = $this->getLauncher_SlurmInfo($siteId);
 
+		try {
+			$fout = fopen($bashFilename, "w");
+			if (!$fout) {
+				throw new Exception('Failed to create SLURM submission file: ' . $bashFilename);
+			}
+		} catch (Exception $e) {
+			$_SESSION['errorData']['Error'][] = "Failed to create SLURM submission file. " . $e->getMessage();
+			return 0;
+		}
+
+		// Write SLURM headers
+		fwrite($fout, "#!/bin/bash\n");
+		fwrite($fout, "#SBATCH --job-name=" . $this->toolId . "_job\n");
+		fwrite($fout, "#SBATCH --chdir=.\n");
+		fwrite($fout, "#SBATCH --qos=" . $siteDetails['queue_name']);
+		fwrite($fout, "#SBATCH --account=" . $siteDetails['queue_p']);
+		fwrite($fout, "#SBATCH --cpus-per-task=" . $siteDetails['cpu']);
+		fwrite($fout, "#SBATCH --output=serial_%j.out\n");
+		fwrite($fout, "#SBATCH --error=serial_%j.err\n");
+		fwrite($fout, "#SBATCH --ntasks=1\n");
+		fwrite($fout, "#SBATCH --time=01:00:00\n"); // Adjust as needed
+		
+		fwrite($fout, "$cmd");
+
+		fclose($fout);
+
+		return $bashFilename;
+	}
 	protected function createSubmitFile_PMES($data)
 	{
 		$jsonFile   = $this->submission_file;
@@ -2081,7 +2021,6 @@ class Tooljob
 
 	function getLauncher_Info($siteId)
 	{
-
 		// Retrieve tool document from the tools collection
 		//      $filterfields=array();
 		$siteDocument = $GLOBALS['sitesCol']->findOne(['_id' => $siteId]);
@@ -2096,5 +2035,23 @@ class Tooljob
 			'launcher' => $siteDocument['launcher']
 		];
 		return $launcherInfo;
+	}
+
+	function  getLauncher_SlurmInfo($siteId)
+	{	
+		$siteDocument = $GLOBALS['sitesCol']->findOne(['_id' => $siteId]);
+		if (!$siteDocument) {
+			return null;
+		}
+
+		$launcherInfo = [
+			'site_id' => $siteDocument['_id'],
+			'queue_name' => $siteDocument['queue'][0]['queue_name'],
+			'queue_p' => $siteDocument['queue'][0]['partition'],
+			'cpu' =>  $siteDocument['queue'][0]['cpu_total']
+		];
+		return $launcherInfo;
+
+
 	}
 }
