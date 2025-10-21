@@ -133,6 +133,7 @@ $proj_name_active = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "name");
 				<div class="row">
 					<div class="col-md-12">
 						<?php
+						// TODO: check what is a premium user (code 100)
 						if ($_SESSION['User']['Type'] == 100) { ?>
 							<div class="alert alert-warning">
 								Your request for a premium user account is being processed. In the meantime, you can use the
@@ -140,7 +141,7 @@ $proj_name_active = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "name");
 							</div>
 						<?php }
 
-						if ($_SESSION['User']['Type'] == 3) {
+						if ($_SESSION['User']['Type'] == UserType::Guest->value) {
 
 							?>
 
@@ -196,9 +197,6 @@ $proj_name_active = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "name");
 						// show Error messages		
 						print printErrorDivision();
 
-						//var_dump($_SESSION['User']['JWT'],"<br/>");
-//								var_dump($_SESSION['User'],"<br/>");
-						
 						// fetch tool of lists
 						$toolsList = getTools_List();
 						sort($toolsList);

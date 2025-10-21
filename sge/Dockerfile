@@ -11,10 +11,24 @@ RUN apt-get update -y  \
         vim \
         parallel \
         g++ \
-        docker.io \
         wget \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Add Docker's official GPG key:
+RUN apt-get update
+RUN apt-get install -y ca-certificates curl
+RUN install -m 0755 -d /etc/apt/keyrings
+RUN curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+RUN chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+RUN echo \
+    "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian \
+    $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+    tee /etc/apt/sources.list.d/docker.list > /dev/null
+RUN apt-get update
+RUN apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 
 # Copy the local keys into the Docker image
 COPY keys /keys
@@ -58,5 +72,7 @@ ARG SUBMITTER_HOSTNAME
 RUN echo "$SUBMITTER_HOSTNAME" > /home/application/submit_hosts.list
 RUN cat /home/application/submit_hosts.list
 
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
 
-CMD /usr/local/bin/setup_gridengine.sh && /usr/local/bin/modify_config.sh && /usr/local/bin/modify_sched_config.sh && /usr/local/bin/setup_submitter.sh /home/application/submit_hosts.list && (/usr/local/bin/run_sched_logger.sh &) && tail -f /var/spool/gridengine/qmaster/messages /var/spool/gridengine/execd/sgecore/messages
+CMD ["/entrypoint.sh"]

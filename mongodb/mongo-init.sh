@@ -3,23 +3,8 @@ set -e
 
 echo ">>>>>>> Starting MongoDB initialization script"
 
-mongo <<EOF
-db = db.getSiblingDB('openVRE');
-
-// Check if the root user exists
-if (db.getUser("$MONGO_INITDB_ROOT_USERNAME") === null) {
-  db.createUser({
-    user: "$MONGO_INITDB_ROOT_USERNAME",
-    pwd: "$MONGO_INITDB_ROOT_PASSWORD",
-    roles: [{
-      role: "dbOwner",
-      db: "openVRE"
-    }]
-  });
-  print("Root user created.");
-} else {
-  print("Root user already exists.");
-}
+mongosh <<EOF
+db = db.getSiblingDB('$MONGO_DB');
 
 // Check if the application user exists
 if (db.getUser("$MONGO_INITDB_USERNAME") === null) {
@@ -28,7 +13,7 @@ if (db.getUser("$MONGO_INITDB_USERNAME") === null) {
     pwd: "$MONGO_INITDB_PASSWORD",
     roles: [{
       role: "readWrite",
-      db: "openVRE"
+      db: "$MONGO_DB"
     }]
   });
   print("Application user created.");
@@ -37,3 +22,12 @@ if (db.getUser("$MONGO_INITDB_USERNAME") === null) {
 }
 
 EOF
+
+for mongo_document in /init_documents/*.json; do
+    mongoimport --db ${MONGO_DB} \
+                --jsonArray \
+                --port ${MONGO_PORT} \
+                --username ${MONGO_INITDB_USERNAME} \
+                --password ${MONGO_INITDB_PASSWORD} \
+                --file $mongo_document
+done
