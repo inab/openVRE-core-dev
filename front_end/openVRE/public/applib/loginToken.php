@@ -29,6 +29,7 @@ if (!isset($_GET['code'])) {
 
     // Get an access token using the authorization code grant.
     try {
+        error_log("token: " . print_r($_GET, true));
         $accessTokenO = $provider->getAccessToken('authorization_code', ['code' => $_GET['code']]);
         $jwt          = json_encode($accessTokenO);
         $accessToken  = json_decode($jwt, true);

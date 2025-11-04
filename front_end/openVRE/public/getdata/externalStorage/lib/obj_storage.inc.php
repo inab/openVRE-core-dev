@@ -1,6 +1,4 @@
 <?php
-
-
 function getOpenstackUser($vaultUrl, $accessToken, $vaultRolename, $username)
 {
 
