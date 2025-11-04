@@ -4,14 +4,27 @@ header('Content-Type: application/json');
 require __DIR__."/../../config/bootstrap.php";
 
 function logError($errorMessage, $responseText = '') {
-    session_start();
-    if (!isset($_SESSION['errorData']['error'])) {
-        $_SESSION['errorData']['error'] = ['Info' => []];
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
     }
-    $_SESSION['errorData']['error'][] = $errorMessage;
+
+    if (!isset($_SESSION['errorData']['Error'])) {
+        $_SESSION['errorData']['Error'] = [];
+    }
+
+    $_SESSION['errorData']['Error'][] = $errorMessage;
+
     if (!empty($responseText)) {
-        $_SESSION['errorData']['error'][] = 'Response: ' . $responseText;
+        $_SESSION['errorData']['Error'][] = 'Response: ' . $responseText;
     }
+
+    // Also echo JSON so JS can see it instantly
+    echo json_encode([
+        'error' => true,
+        'message' => $errorMessage,
+        'response' => $responseText
+    ]);
+    exit;
 }
 
 function logSuccess($successMessage) {
@@ -41,7 +54,8 @@ if ($_REQUEST) {
     // Get user openstack credentials.
     if ($_REQUEST['action'] == "getOpenstackUser") {
         $vaultUrl = $GLOBALS['vaultUrl'];
-        $accessToken = $_SESSION['userToken']['access_token'];
+        #$accessToken = $_SESSION['userToken']['access_token'];
+        $accessToken = json_decode($_SESSION['userVaultInfo']['jwt'], true)["access_token"];
         $vaultRolename = $_SESSION['userVaultInfo']['vaultRolename'];
         $username = $_POST['username'];
 
@@ -59,12 +73,6 @@ if ($_REQUEST) {
         $containers = getContainers($swiftClient);
 
         echo json_encode($containers);
-        exit;
-    }
-
-    // Get user info
-    if (isset($_REQUEST['action']) && $_REQUEST['action'] == "getUser") {
-        echo getUser($_SESSION['User']['id']);
         exit;
     }
 

@@ -257,7 +257,7 @@ sort($visualizers);
 									</a>
 								</li>
 								<li class="nav-item <?php if ($currentSubSubSection == 'ps') { ?>active open<?php } ?>">
-									<a href="getdata/externalStorage/objStorage.php" class="nav-link">
+									<a href="getdata/objStorage.php" class="nav-link">
 										<span class="title">External Storage</span>
 									</a>
 								</li>

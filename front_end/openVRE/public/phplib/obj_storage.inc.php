@@ -2,22 +2,42 @@
 
 function getOpenstackUser($vaultUrl, $accessToken, $vaultRolename, $username)
 {
-
+	if (empty($_SESSION['userVaultInfo']['vaultKey'])) {
+        logError("Missing Vault key for user: $username.");
+    }
 	$vaultClient = new VaultClient($vaultUrl, $accessToken, $vaultRolename, $username);
 	$vaultKey = $_SESSION['userVaultInfo']['vaultKey'];
 
 	$credentials = $vaultClient->retrieveDatafromVault($vaultKey, $vaultUrl, $GLOBALS['secretPath'], $_SESSION['User']['secretsId'], 'Swift');
-	if ($credentials) {
-		$appId = $credentials['app_id'];
-		$appSecret = $credentials['app_secret'];
-		$projectName = $credentials['projectName'];
-		$userDomainName = $credentials['domainName'];
-		$projectDomainName = $credentials['projectId'];
+	
+	if (empty($credentials) ||
+        !isset($credentials['app_id'], $credentials['app_secret'], $credentials['projectName'])) {
+        logError("No valid OpenStack credentials found in the Vault for user: $username");
+    }
 
-		$swiftClient = new SwiftClient($appId, $appSecret, $projectName, $userDomainName, $projectDomainName, 'public', 'https://ncloud.bsc.es:5000/v3/');
-		var_dump($swiftClient);
-		$lista = $swiftClient->runList();
-	}
+    $appId             = $credentials['app_id'];
+    $appSecret         = $credentials['app_secret'];
+    $projectName       = $credentials['projectName'];
+    $userDomainName    = $credentials['domainName'] ?? 'default';
+    $projectDomainName = $credentials['projectId'] ?? 'default';
+
+    try {
+        $swiftClient = new SwiftClient(
+            $appId,
+            $appSecret,
+            $projectName,
+            $userDomainName,
+            $projectDomainName,
+            'public',
+            'https://ncloud.bsc.es:5000/v3/'
+        );
+
+        $lista = $swiftClient->runList();
+        exit;
+
+    } catch (Exception $e) {
+        logError('Error initializing Swift client: ' . $e->getMessage());
+    }
 }
 
 

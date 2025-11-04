@@ -1,15 +1,15 @@
 <?php
-require __DIR__ . "/../../../config/bootstrap.php";
+require __DIR__ . "/../../config/bootstrap.php";
 redirectOutside();
 ?>
 
-<?php require "../../htmlib/header.inc.php"; ?>
+<?php require "../htmlib/header.inc.php"; ?>
 
 <body class="page-header-fixed page-sidebar-closed-hide-logo page-content-white page-container-bg-solid page-sidebar-fixed">
   <div class="page-wrapper">
 
-    <?php require "../../htmlib/top.inc.php"; ?>
-    <?php require "../../htmlib/menu.inc.php"; ?>
+    <?php require "../htmlib/top.inc.php"; ?>
+    <?php require "../htmlib/menu.inc.php"; ?>
 
     <!-- BEGIN CONTENT -->
     <div class="page-content-wrapper">
@@ -74,20 +74,19 @@ redirectOutside();
 
         <h4>Granted Access to:</h4>
 
-        <div id="loading-datatable" class="loadingForm">
+        <div class="actions">
+                <a id="getCredentialsButton" class="btn green" >Get Credentials</a>
+                <a id="workflowsReload" class="btn grey" disabled>Reload</a>
+        </div>
+
+        <div id="loading-datatable" class="loadingForm" style="display:none;">
           <div id="loading-spinner">LOADING</div>
           <!-- <div id="loading-text">It could take a few minutes</div> -->
         </div>
 
-        <div class="portlet light portlet-fit bordered" id="general">
+        <div class="portlet light portlet-fit bordered" id="general" style="display:none;">
           <div id="workflows" class="portlet-body">
-            <div class="btn-group" style="float:right; margin-bottom: 20px;">
-              <div class="actions">
-                <a id="workflowsReload" class="btn green" disabled>Reload</a>
-                <a id="getCredentialsButton" class="btn green" disabled>Get Credentials</a>
-              </div>
-            </div>
-
+              
             <select id="containerDropdown" class="form-control" style="margin-bottom: 20px;"></select>
             <input type="hidden" id="base-url" value="<?php echo $GLOBALS['BASEURL']; ?>" />
 
@@ -166,10 +165,17 @@ redirectOutside();
       transform: translateX(-50%);
       font-size: 14px;
       color: #333;
-    }
+    } 
   </style>
 
+  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+  <script>
+  // Inject session variables from PHP into JS
+  window.currentUserId = "<?php echo $_SESSION['User']['id']; ?>";
+</script>
+<script src="/assets/pages/scripts/openstack.js"></script>
+
   <?php
-  require "../../htmlib/footer.inc.php";
+  require "../htmlib/footer.inc.php";
   require "../htmlib/js.inc.php";
   ?>
