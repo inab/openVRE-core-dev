@@ -36,8 +36,8 @@ redirectOutside();
 
         <!-- BEGIN PAGE TITLE -->
         <h1 class="page-title">
-          From OpenStack Object Storage
-          <small>List of containers available for xploration and downloading.</small>
+          From External Object Storage
+          <small>List of data repositories and containers available for exploration and downloading.</small>
         </h1>
         <!-- END PAGE TITLE -->
         <!-- END PAGE HEADER -->

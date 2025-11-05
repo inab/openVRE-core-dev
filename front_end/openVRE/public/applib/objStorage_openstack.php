@@ -55,6 +55,7 @@ if ($_REQUEST) {
     if ($_REQUEST['action'] == "getOpenstackUser") {
         $vaultUrl = $GLOBALS['vaultUrl'];
         #$accessToken = $_SESSION['userToken']['access_token'];
+    
         $accessToken = json_decode($_SESSION['userVaultInfo']['jwt'], true)["access_token"];
         $vaultRolename = $_SESSION['userVaultInfo']['vaultRolename'];
         $username = $_POST['username'];
