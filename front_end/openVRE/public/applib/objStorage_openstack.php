@@ -17,7 +17,7 @@ function logError($errorMessage, $responseText = '') {
     if (!empty($responseText)) {
         $_SESSION['errorData']['Error'][] = 'Response: ' . $responseText;
     }
-
+    header('Content-Type: application/json');
     // Also echo JSON so JS can see it instantly
     echo json_encode([
         'error' => true,

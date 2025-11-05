@@ -76,19 +76,25 @@ $(document).ready(function() {
 		showError('AJAX failed: ' + errorThrown);
 		
 
-		$.ajax({
-			type: 'POST',
-			url: 'applib/objStorage_openstack.php',
-			data: {
-				action: 'logError',
-				errorMessage: 'AJAX request failed: ' + textStatus + ' - ' + errorThrown,
-				responseText: jqXHR.responseText
-			}
-		}).done(function(response) {
-			console.log('Error logged successfully:', response);
-		}).fail(function(jqXHR, textStatus, errorThrown) {
-			console.error('Error logging failed:', textStatus, errorThrown);
-		});
+	$.ajax({
+		type: 'POST',
+		url: 'applib/objStorage_openstack.php',
+		data: {
+			action: 'logError',
+			errorMessage: 'AJAX request failed: ' + textStatus + ' - ' + errorThrown,
+			responseText: jqXHR.responseText
+		}
+	}).done(function(response) {
+		console.log('Error logged successfully:', response);
+		if (response && response.message) {
+			showError(response.message);
+		} else {
+			showError('An unknown error occurred.');
+		}
+	}).fail(function(jqXHR, textStatus, errorThrown) {
+		console.error('Error logging failed:', textStatus, errorThrown);
+		showError('Error logging failed: ' + errorThrown);
+	});
 
 
 	});
@@ -114,7 +120,7 @@ function fetchFiles(container) {
                                     console.log(response);                          
                                     try {   
                                             var files = JSON.parse(response);                       
-                                            console.log("Files:");                          
+                                            console.log("Files:");                            
                                             console.log(files);
                                             console.log(typeof files);
                     
@@ -144,7 +150,10 @@ function fetchFiles(container) {
 		const errorsTool = $('#errorsTool');
 		errorsTool
 			.html('<div class="alert alert-danger"><strong>Error:</strong> ' + message + '</div>')
-			.show();
+			.fadeIn();
+
+			$('#loading-datatable').hide();
+		  
 	}
 
 

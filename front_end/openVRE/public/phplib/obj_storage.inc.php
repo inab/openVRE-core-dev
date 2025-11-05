@@ -1,5 +1,6 @@
 <?php
 
+
 function getOpenstackUser($vaultUrl, $accessToken, $vaultRolename, $username)
 {
 	if (empty($_SESSION['userVaultInfo']['vaultKey'])) {
