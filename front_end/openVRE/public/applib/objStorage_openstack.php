@@ -59,13 +59,20 @@ if ($_REQUEST) {
         $accessToken = json_decode($_SESSION['userVaultInfo']['jwt'], true)["access_token"];
         $vaultRolename = $_SESSION['userVaultInfo']['vaultRolename'];
         $username = $_POST['username'];
-
-        // Obtain the SwiftClient directly:
-        $swiftClient = getSwiftClient($vaultUrl, $accessToken, $vaultRolename, $username);
-
-        if (!$swiftClient) {
-            logError('Failed to obtain Swift client.');
+        error_log('Before SwiftClient call');
+        try {
+            $swiftClient = getSwiftClient($vaultUrl, $accessToken, $vaultRolename, $username);
+        }
+        catch (Throwable $e) {
+            http_response_code(500);
             echo json_encode(array('error' => 'Failed to obtain Swift client.'));
+            exit;
+        }
+
+        error_log('After SwiftClient call');
+        if (!$swiftClient) {
+            $_SESSION['errorData']['error'] = 'Blablabala';
+            logError('Failed to obtain Swift client.');
             exit;
         }
 
