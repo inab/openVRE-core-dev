@@ -1,4 +1,13 @@
 <?php
+/**
+ * ================================================
+ * ⚠️ WORK IN PROGRESS (WIP) — DRAFT VERSION ⚠️
+ * -----------------------------------------------
+ * This file is currently under development.
+ * Code structure, logic, and output may change.
+ * Do NOT use this version in production environments.
+ * -----------------------------------------------
+ */
 
 // Define an interface for the stages
 interface StageInterface {

@@ -1,8 +1,15 @@
 <?php
 
 /**
- * Pipeline class for managing multi-stage job execution with PID tracking
+ * ================================================
+ * ⚠️ WORK IN PROGRESS (WIP) — DRAFT VERSION ⚠️
+ * -----------------------------------------------
+ * This file is currently under development.
+ * Code structure, logic, and output may change.
+ * Do NOT use this version in production environments.
+ * -----------------------------------------------
  */
+
 class Pipeline {
     private $working_dir;
     private $hasExecutionFolder = true;

@@ -915,15 +915,11 @@ class Tooljob
 					break;
 
 				case "Slurm":
-					//$_SESSION['errorData']['Internal Error'][]="Cannot set tool command line. Case still not implemented.";    
-
-					#$username = $_POST['username'];
 					$cmd = $this->setBashCmd_Singularity($tool);
 					if (!$cmd) {
 						return 0;
 					}
 					$_SESSION['errorData']['Info'][] = "CMD:" . $cmd;
-					//break
 					$submissionFilename = $this->createSubmitFile_Slurm($cloudName, $cmd); 
 					if (!is_file($submissionFilename)) {
 						return 0;
@@ -1453,13 +1449,13 @@ EOF;
 		$workingDir = $this->working_dir;
 		$bashFilename = $this->submission_file;
 		$logFilename = $this->log_file;
-		
 		$siteDetails = $this->getLauncher_SlurmInfo($siteId);
 
 		try {
 			$fout = fopen($bashFilename, "w");
-			if (!$fout) {
-				throw new Exception('Failed to create SLURM submission file: ' . $bashFilename);
+			if ($fout === false) {
+				$_SESSION['errorData']['Error'][] = "Failed to create SLURM submission file. " . $bashFilename;
+				return 0;
 			}
 		} catch (Exception $e) {
 			$_SESSION['errorData']['Error'][] = "Failed to create SLURM submission file. " . $e->getMessage();
@@ -1937,14 +1933,8 @@ EOF;
 				// Save the updated site document back to the collection
 				$updateResult = $GLOBALS['sitesCol']->updateOne(['_id' => $siteId], ['$set' => $siteDocument]);
 				$updatedSiteDocument = $GLOBALS['sitesCol']->findOne(['_id' => $siteId]);
-
+				
 				return true;
-
-                        // aNOTHER FUNCTION Initialize the SSH client with retrieved credentials and site details
-                        //$remoteSSH = new RemoteSSH($sshCredentials, $remote_dir, 22, $siteDocument['launcher']['http_server']);
-			//$SshCred = $remoteSSH->getCredentials();
-			
-			
                 } else {
                         return array('error' => 'Site document not found for site ID: ' . $siteId);
                 }
@@ -1968,21 +1958,17 @@ EOF;
 				$_SESSION['errorData']['Internal Error'][] = "Failed to retrieve SSH credentials: " . $remoteSSH['error'];
 				return 0;
 			}
-
 			//Retrieve the launcher details
 			$launcherInfo = $this->getLauncher_Info($cloudName);
 			if (!$launcherInfo || empty($launcherInfo)) {
 				$_SESSION['errorData']['Internal Error'][] = "Cannot set tool command line. Launcher details are not available.";
 				return 0;
 			}
-
 			//Set Bash command for Slurm
 			$cmd = $this->setBashCmd_Slurm($tool, $metadata, $launcherInfo);
 			if (!$cmd) {
 				return 0;
 			}
-
-
 			return $cmd; //Return the command if everything is fine for MN
 		} else {
 			//For future HPC environments
@@ -1999,7 +1985,6 @@ EOF;
 		if (!$siteDocument) {
 			return null;
 		}
-
 		$launcherInfo = [
 			'site_id' => $siteDocument['_id'],
 			'name' => $siteDocument['name'],
@@ -2022,7 +2007,5 @@ EOF;
 			'cpu' =>  $siteDocument['queue'][0]['cpu_total']
 		];
 		return $launcherInfo;
-
-
 	}
 }

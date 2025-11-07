@@ -199,7 +199,7 @@ function setUserWorkSpace_sampleData($sampleName, $dataDir, $verbose = true)
 	}
 
 	// validate sample Data integrity
-	$datafolders = scanDir(directory: $GLOBALS['sampleDataPath'] . "/" . $sampleData['sample_path']);
+	$datafolders = scanDir($GLOBALS['sampleDataPath'] . "/" . $sampleData['sample_path']);
 	if (!in_array("uploads", $datafolders)) {
 		$_SESSION['errorData']['Warning'][] = "Sample data '" . $sampleData['name'] . "' has no 'uploads' folder";
 		return 0;
