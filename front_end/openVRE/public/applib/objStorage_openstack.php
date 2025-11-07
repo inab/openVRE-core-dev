@@ -29,9 +29,6 @@ function logError($errorMessage, $responseText = '') {
 
 function logSuccess($successMessage) {
     session_start();
-    if (!isset($_SESSION['errorData']['Info'])) {
-        $_SESSION['errorData']['Info'][] = ['Info' => []];
-    }
     $_SESSION['errorData']['Info'][] = $successMessage;
 }
 
@@ -54,12 +51,9 @@ if ($_REQUEST) {
     // Get user openstack credentials.
     if ($_REQUEST['action'] == "getOpenstackUser") {
         $vaultUrl = $GLOBALS['vaultUrl'];
-        #$accessToken = $_SESSION['userToken']['access_token'];
-    
         $accessToken = json_decode($_SESSION['userVaultInfo']['jwt'], true)["access_token"];
         $vaultRolename = $_SESSION['userVaultInfo']['vaultRolename'];
         $username = $_POST['username'];
-        error_log('Before SwiftClient call');
         try {
             $swiftClient = getSwiftClient($vaultUrl, $accessToken, $vaultRolename, $username);
         }
@@ -68,18 +62,8 @@ if ($_REQUEST) {
             echo json_encode(array('error' => 'Failed to obtain Swift client.'));
             exit;
         }
-
-        error_log('After SwiftClient call');
-        if (!$swiftClient) {
-            $_SESSION['errorData']['error'] = 'Blablabala';
-            logError('Failed to obtain Swift client.');
-            exit;
-        }
-
         $_SESSION['swiftClient'] = $swiftClient;
-
         $containers = getContainers($swiftClient);
-
         echo json_encode($containers);
         exit;
     }
@@ -92,19 +76,35 @@ if ($_REQUEST) {
 	    $accessToken = $_SESSION['userToken']['access_token'];
 	    $vaultRolename = $_SESSION['userVaultInfo']['vaultRolename'];
 	    $username = $_POST['username'];
-    
-	    $swiftClient = getSwiftClient($vaultUrl, $accessToken, $vaultRolename, $username);
-    
-	    if (!$swiftClient) {
-		    logError('Failed to obtain Swift client.');
-		    echo json_encode(array('error' => 'Failed to obtain Swift client.'));
-		    exit;
-	    }
-	    $files = getContainerFiles($container, $swiftClient);
-	    error_log("Main script - files: " . print_r($files, true));
-
-	    echo json_encode($files);
-	    exit;
+        try {
+            $swiftClient = getSwiftClient($vaultUrl, $accessToken, $vaultRolename, $username);
+        }
+        catch (Throwable $e) {
+            http_response_code(500);
+            echo json_encode(array('error' => 'Failed to obtain Swift client.'));
+            exit;
+        }
+	    try {
+            $files = getContainerFiles($container, $swiftClient);
+            error_log("Main script - files: " . print_r($files, true));
+            if (!$files) {
+                throw new Exception('No files found or failed to fetch container files.');
+            }
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'Files retrieved successfully.',
+                'files' => $files
+            ]);
+            exit;
+        } catch (Throwable $e) {
+            http_response_code(500);
+            error_log("Error fetching container files: " . $e->getMessage());
+        
+            echo json_encode([
+                'error' => 'Failed to fetch container files: ' . $e->getMessage()
+            ]);
+            exit;
+        }  
     }
 
     // Download file
@@ -115,24 +115,31 @@ if ($_REQUEST) {
         $accessToken = $_SESSION['userToken']['access_token'];
         $vaultRolename = $_SESSION['userVaultInfo']['vaultRolename'];
         $username = $_POST['username'];
-
-        // Obtain the SwiftClient directly:
-        $swiftClient = getSwiftClient($vaultUrl, $accessToken, $vaultRolename, $username);
-
-        if (!$swiftClient) {
-            logError('Failed to obtain Swift client.');
+        try {
+            $swiftClient = getSwiftClient($vaultUrl, $accessToken, $vaultRolename, $username);
+        }
+        catch (Throwable $e) {
+            http_response_code(500);
             echo json_encode(array('error' => 'Failed to obtain Swift client.'));
             exit;
         }
-
-        $success = initiateFileDownload($swiftClient, $fileName, $container);
-        if (!$success) {
-            logError('File download failed.');
-            echo json_encode(array('error' => 'File download failed.'));
+        try {
+            $success = initiateFileDownload($swiftClient, $fileName, $container);
+            if (!$success) {
+                throw new Exception('File download failed.');
+            }
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'File downloaded successfully.',
+                'fileId' => $success['fileId'],
+                'fileName' => $success['fileName']
+            ]);
             exit;
-        } else {
-            logSuccess('File downloaded successfully. File ID: ' . $success['fileId'] . ' is present in the workspace.');
-            echo json_encode($success);
+        } catch (Throwable $e) {
+            http_response_code(500);
+            echo json_encode([
+                'error' => 'File download failed: ' . $e->getMessage()
+            ]);
             exit;
         }
     }
