@@ -68,8 +68,8 @@ class DataTransfer
         $this->launcher         = $tool['infrastructure']['clouds'][$this->cloudName]['launcher'];
         // will come out DTRCLONE
         switch ($this->launcher) {
-            case "SGE":
-            case "docker_SGE":
+            case Launcher::SGE:
+            case Launcher::docker_SGE:
                 $this->root_dir_virtual = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual'] . "/" . $_SESSION['User']['id'];
                 $this->root_dir_mug      = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual'];
                 $this->pub_dir_virtual  = $GLOBALS['clouds'][$this->cloudName]['pubDir_virtual'];

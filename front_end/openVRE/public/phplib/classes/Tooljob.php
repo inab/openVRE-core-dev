@@ -3,7 +3,6 @@
 namespace OpenVRE;
 
 use Monolog\Logger;
-use OpenVRE\VaultClientFactory;
 use UnexpectedValueException;
 
 
@@ -15,33 +14,18 @@ class Tooljob
 	public $execution;         // User defined. Correspond to the execution folder name
 	public $project;           // User defined. Correspond to the project
 	public $toolId;
-	public $pub_dir;           // Public dir mounted to VMs. Path as seen by VRE
-	public $root_dir;          // User dataDir. Path as seen by VRE
-	public $root_dir_virtual;  // User dataDir. Path as seen by VMs
-	public $pub_dir_virtual;   // Public dir mounted to VMs. Path as seen by VMs
 	public $cloudName;         // Cloud name where tool should be executed. Available clouds set in GLOBALS['clouds']
-	public $root_dir_host;
-	public $pub_dir_host;
-	public $scripts_dir_host;
-	public $root_dir_volumes;
-	public $pub_dir_volumes;
 	public $description;
 	public $working_dir;
 	public $output_dir;
-	public $launcher;
+	public Launcher $launcher;
 	public $imageType;
 	public $arguments_exec;
 	public $job_type;
-
-	public $root_dir_mug;
-
-	public $pub_dir_intern;
-
 	public $containerName;
 
 	// Paths to files genereted during ToolJob execution
 	public $config_file;
-	public $input_dir_virtual;
 	public $config_file_virtual;
 	public $stageout_file;
 	public $stageout_file_virtual;
@@ -65,74 +49,33 @@ class Tooljob
 	public $hasExecutionFolder = true;
 
 	private Logger $logger;
+	private JobDirectories $jobDirectories;
 
 
 	/**
 	 * Creates new toolExecutor instance
 	 * @param string $toolId Tool Id as appears in Mongo
 	 */
-	public function __construct($tool, $execution = "", $project = "", $descrip = "", $arguments_exec = "", $output_dir = "")
+	public function __construct($tool, $description, $project, $execution = "", $arguments_exec = [], $output_dir = "")
 	{
 		$this->logger = LoggerFactory::getLogger("Tool job");
 
-		// Setting Tooljob
 		$this->toolId    = $tool['_id'];
 		$this->title     = $tool['name'] . " job";
 		$this->execution = $execution;
 		$this->project   = $project;
 
-		// Set paths in VRE
-		$this->root_dir  = $GLOBALS['dataDir'] . "/" . $_SESSION['User']['id'];
-		$this->pub_dir   = $GLOBALS['pubDir'];
 		$this->arguments_exec = $arguments_exec;
+		$this->cloudName = $this->extractCloudName($tool);
+		$this->jobDirectories = JobDirectoriesFactory::create($this->cloudName);
 
-		// Set paths in the virtual machine
 		if (!empty($this->arguments_exec['site_list']) && count($this->arguments_exec['site_list']) >= 1) {
 			$site_list = $this->arguments_exec['site_list'];
-			// The first element in site_list is the cloudName
-			$this->cloudName = $site_list[0];
-
 			// The second element in site_list is the launcher
-			$this->launcher = str_replace($this->cloudName . "_", "", $site_list[1]);
+			$this->launcher = Launcher::from(str_replace($this->cloudName . "_", "", $site_list[1]));
 		} else {
-
 			// If not enough information is provided, fall back to default method
-			$this->set_cloudName($tool);
-			$this->launcher = $tool['infrastructure']['clouds'][$this->cloudName]['launcher'];
-		}
-		switch ($this->launcher) {
-			case "SGE":
-			case "docker_SGE":
-				$this->root_dir_virtual = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual'] . "/" . $_SESSION['User']['id'];
-				$this->root_dir_mug     = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual'];
-				$this->pub_dir_virtual  = $GLOBALS['clouds'][$this->cloudName]['pubDir_virtual'];
-				$this->pub_dir_volumes  = $GLOBALS['clouds'][$this->cloudName]['pubDir_host'];
-				$this->root_dir_volumes  = $GLOBALS['clouds'][$this->cloudName]['dataDir_host'] . "/" . $_SESSION['User']['id'];
-				$this->pub_dir_intern   = rtrim($this->pub_dir_virtual, "/") . "_tmp";
-				break;
-			case "ega_demo":
-				$this->root_dir_virtual = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual'] . "/" . $_SESSION['User']['id'];
-				$this->pub_dir_virtual  = $GLOBALS['clouds'][$this->cloudName]['pubDir_virtual'];
-				$this->root_dir_host    = $GLOBALS['clouds'][$this->cloudName]['dataDir_host'];
-				$this->pub_dir_host     = $GLOBALS['clouds'][$this->cloudName]['pubDir_host'];
-				$this->scripts_dir_host = $GLOBALS['clouds'][$this->cloudName]['scriptsDir_host'];
-				break;
-			case "DTRCLONE":
-				$this->root_dir_virtual = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual'];
-				$this->pub_dir_virtual  = $GLOBALS['clouds'][$this->cloudName]['pubDir_virtual'];
-				$this->root_dir_fs = $GLOBALS['clouds'][$this->cloudName]['dataDir_fs'];
-				$this->pub_dir_fs = $GLOBALS['clouds'][$this->cloudName]['pubDir_fs'];
-				$this->auth = $GLOBALS['clouds'][$this->cloudName]['auth'];
-				$this->http_host = $GLOBALS['clouds'][$this->cloudName]['http_host'];
-				break;
-			case "Slurm":
-				$this->root_dir_df = $GLOBALS['clouds'][$this->cloudName]['mn_dir'] .  "/" . substr($_SESSION['User']['linked_accounts']['MN']['username'], 0, 6) . "/" . $_SESSION['User']['linked_accounts']['MN']['username'] . "/" . $GLOBALS['clouds'][$this->cloudName]['dataDir_fs'];
-				$this->pub_dir_fs = $GLOBALS['clouds'][$this->cloudName]['mn_dir'] .  "/" . substr($_SESSION['User']['linked_accounts']['MN']['username'], 0, 6) . "/" . $_SESSION['User']['linked_accounts']['MN']['username'] . "/" . $GLOBALS['clouds'][$this->cloudName]['pubDir_fs'];
-				$this->auth = $GLOBALS['clouds'][$this->cloudName]['auth'];
-				$this->http_host = $GLOBALS['clouds'][$this->cloudName]['http_host'];
-				break;
-			default:
-				$_SESSION['errorData']['Error'][] = "Tool '$this->toolId' not properly registered. Launcher type is set to '" . $this->launcher . "'. Case not implemented.";
+			$this->launcher = Launcher::from($tool['infrastructure']['clouds'][$this->cloudName]['launcher']);
 		}
 
 		// Creating execution folder
@@ -148,41 +91,16 @@ class Tooljob
 			$this->output_dir = $this->working_dir;
 		}
 
-		// Set description
-		if (!empty($descrip)) {
-			$this->setDescription($descrip, $tool['name']);
+		$this->description = $description ?? "Execution directory for tool " . $tool['name'];
+
+		if (!isProject($project)) {
+			$this->logger->error("Project $project does not exist");
+			throw new UnexpectedValueException("Project $project does not exist");
 		}
 
-		// Set project
-		if (empty($project)) {
-			$this->project = $_SESSION['User']['activeProject'];
-		} else {
-			//TODO Check project exists
-			if (isProject($project)) {
-				$this->project = $project;
-			} else {
-				$_SESSION['errorData']['Warning'][] = "Given project code '$project' not valid. Setting job as part of last active project.";
-				$this->project = $_SESSION['User']['activeProject'];
-			}
-		}
-
-		return $this;
+		$this->project = $project;
 	}
 
-
-	/**
-	 * Set description
-	 * @param string $descrip Short execution description to annotate execution directory
-	 */
-	public function setDescription($descrip, $toolName = 0)
-	{
-		if (strlen($descrip))
-			$this->description = $descrip;
-		elseif ($toolName)
-			$this->description = "Execution directory for tool " . $toolName;
-		else
-			$this->description = "Execution directory";
-	}
 
 	public function setLog($filename = "")
 	{
@@ -233,7 +151,7 @@ class Tooljob
 		}
 
 		$this->execution = $execution;
-		$this->working_dir = "{$this->root_dir}/{$this->project}/{$this->execution}";
+		$this->working_dir = "{$this->jobDirectories->userDir}/{$this->project}/{$this->execution}";
 		$this->logName = $this->logName ?: $GLOBALS['tool_log_file'];
 
 		$this->config_file    = "{$this->working_dir}/{$GLOBALS['tool_config_file']}";
@@ -245,12 +163,10 @@ class Tooljob
 		$this->stderr_file    = $this->working_dir . "/job_error.log";
 
 		// for interactive visualizer
-		$this->input_dir_virtual = $this->root_dir_virtual . "/" . $this->project . "/" . $this->execution . "/uploads";
-
-		$this->config_file_virtual    = "{$this->root_dir_virtual}/{$this->project}/{$this->execution}/{$GLOBALS['tool_config_file']}";
-		$this->stageout_file_virtual  = "{$this->root_dir_virtual}/{$this->project}/{$this->execution}/{$GLOBALS['tool_stageout_file']}";
-		$this->metadata_file_virtual  = "{$this->root_dir_virtual}/{$this->project}/{$this->execution}/{$GLOBALS['tool_metadata_file']}";
-		$this->log_file_virtual       = "{$this->root_dir_virtual}/{$this->project}/{$this->execution}/{$this->logName}";
+		$this->config_file_virtual    = "{$this->jobDirectories->virtualUserDir}/{$this->project}/{$this->execution}/{$GLOBALS['tool_config_file']}";
+		$this->stageout_file_virtual  = "{$this->jobDirectories->virtualUserDir}/{$this->project}/{$this->execution}/{$GLOBALS['tool_stageout_file']}";
+		$this->metadata_file_virtual  = "{$this->jobDirectories->virtualUserDir}/{$this->project}/{$this->execution}/{$GLOBALS['tool_metadata_file']}";
+		$this->log_file_virtual       = "{$this->jobDirectories->virtualUserDir}/{$this->project}/{$this->execution}/{$this->logName}";
 	}
 
 
@@ -263,7 +179,7 @@ class Tooljob
 		$execution = $prefixDir . "_" . rand(10000, 99999);
 
 		$this->execution      = $execution;
-		$this->working_dir    = $this->root_dir . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution;
+		$this->working_dir    = $this->jobDirectories->userDir . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution;
 
 		if (!$this->logName) {
 			$this->logName = $GLOBALS['tool_log_file'];
@@ -276,10 +192,10 @@ class Tooljob
 		$this->metadata_file  = $this->working_dir . "/" . $GLOBALS['tool_metadata_file'];
 
 
-		$this->config_file_virtual    = $this->root_dir_virtual . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $GLOBALS['tool_config_file'];
-		$this->stageout_file_virtual  = $this->root_dir_virtual . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $GLOBALS['tool_stageout_file'];
-		$this->metadata_file_virtual  = $this->root_dir_virtual . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $GLOBALS['tool_metadata_file'];
-		$this->log_file_virtual       = $this->root_dir_virtual . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $this->logName;
+		$this->config_file_virtual    = $this->jobDirectories->virtualUserDir . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $GLOBALS['tool_config_file'];
+		$this->stageout_file_virtual  = $this->jobDirectories->virtualUserDir . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $GLOBALS['tool_stageout_file'];
+		$this->metadata_file_virtual  = $this->jobDirectories->virtualUserDir . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $GLOBALS['tool_metadata_file'];
+		$this->log_file_virtual       = $this->jobDirectories->virtualUserDir . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $this->logName;
 	}
 
 
@@ -366,8 +282,8 @@ class Tooljob
 		$data = [
 			'input_files' => [],
 			'arguments' => [
-				["name" => "execution", "value" => $this->root_dir_virtual . "/" . $this->project . "/" . $this->execution],
-				["name" => "project", "value" => $this->root_dir_virtual . "/" . $this->project . "/" . $this->execution],
+				["name" => "execution", "value" => $this->jobDirectories->virtualUserDir . "/" . $this->project . "/" . $this->execution],
+				["name" => "project", "value" => $this->jobDirectories->virtualUserDir . "/" . $this->project . "/" . $this->execution],
 				["name" => "description", "value" => $this->description],
 			],
 			'output_files' => []
@@ -408,7 +324,7 @@ class Tooljob
 		if ($tool['output_files']) {
 			foreach ($tool['output_files'] as $key => $value) {
 				if (isset($value['file']['path'])) {
-					$value['file']['file_path'] = $this->root_dir_virtual . "/" . $this->project . "/" . $this->execution . "/" . $value['file']['path'];
+					$value['file']['file_path'] = $this->jobDirectories->virtualUserDir . "/" . $this->project . "/" . $this->execution . "/" . $value['file']['path'];
 					$value['file']['file_type'] = $value['file']['format'];
 				}
 
@@ -691,13 +607,13 @@ class Tooljob
 			}
 
 			if ($fileMuG['file_path']) {
-				$fileMuG['file_path'] = $this->root_dir_virtual . "/" . $fileMuG['file_path'];
+				$fileMuG['file_path'] = $this->jobDirectories->virtualUserDir . "/" . $fileMuG['file_path'];
 			}
 
 			if ($fileMuG['parentDir']) {
 				$parent_path = getAttr_fromGSFileId($fileMuG['parentDir'], "path");
 				if (isset($parent_path)) {
-					$fileMuG['parentDir'] = $this->root_dir_virtual . "/" . $parent_path;
+					$fileMuG['parentDir'] = $this->jobDirectories->virtualUserDir . "/" . $parent_path;
 				}
 			}
 
@@ -707,11 +623,11 @@ class Tooljob
 		// add input_files public metadata
 		if (count($metadata_pub)) {
 			foreach ($metadata_pub as $fileMuG) {
-				$fileMuG['file_path'] ??= $this->pub_dir_virtual . "/" . $fileMuG['file_path'];
+				$fileMuG['file_path'] ??= $this->jobDirectories->virtualProjectDir . "/" . $fileMuG['file_path'];
 				if ($fileMuG['parentDir']) {
 					$parent_path = getAttr_fromGSFileId($fileMuG['parentDir'], "path");
 					if (isset($parent_path)) {
-						$fileMuG['parentDir'] = $this->root_dir_virtual . "/" . $parent_path;
+						$fileMuG['parentDir'] = $this->jobDirectories->virtualUserDir . "/" . $parent_path;
 					}
 				}
 
@@ -736,12 +652,12 @@ class Tooljob
 	public function prepareExecution($tool, $metadata, $metadata_pub = [])
 	{
 		if ($tool['external'] === false) {
-			if ($this->launcher == "SGE") {
+			if ($this->launcher == Launcher::SGE) {
 				$cmd = $this->setBashCmd_withoutApp($tool, $metadata);
 				$this->createSubmitFile_SGE($cmd);
 			} else {
-				$this->logger->error("Internal tool not properly registered. Launcher for '" . $this->toolId . "' is set to \"" . $this->launcher . "\". Case not implemented.");
-				throw new UnexpectedValueException("Internal tool not properly registered. Launcher for '" . $this->toolId . "' is set to \"" . $this->launcher . "\". Case not implemented.");
+				$this->logger->error("Internal tool not properly registered. Launcher for '" . $this->toolId . "' is set to \"" . $this->launcher->value . "\". Case not implemented.");
+				throw new UnexpectedValueException("Internal tool not properly registered. Launcher for '" . $this->toolId . "' is set to \"" . $this->launcher->value . "\". Case not implemented.");
 			}
 		} else {
 			$this->setConfiguration_file($tool);
@@ -752,32 +668,31 @@ class Tooljob
 			}
 
 			switch ($this->launcher) {
-				case "SGE":
+				case Launcher::SGE:
 					$cmd  = $this->setBashCmd_SGE($tool);
 					$this->createSubmitFile_SGE($cmd);
 
 					break;
-				case "docker_SGE":
+				case Launcher::docker_SGE:
 					$cmd  = $this->setBashCommandDockerSge($tool);
 					$this->createSubmitFile_SGE($cmd);
 
 					break;
-				case "ega_demo":
+				case Launcher::docker_SGE_EGA:
 					$cmd  = $this->setBashCmd_docker_EGA($tool);
 					$this->createSubmitFile_EGA($cmd);
 
 					break;
-				case "Slurm":
+				case Launcher::slurm:
 					$cmd = $this->setHPCRequest($this->cloudName, $tool);
 					if (!$cmd) {
 						return 0;
 					}
 
-
 					break;
 				default:
-					$this->logger->error("Tool '$this->toolId' not properly registered. Launcher for '$this->toolId' is set to \"$this->launcher\". Case not implemented.");
-					throw new UnexpectedValueException("Tool '$this->toolId' not properly registered. Launcher for '$this->toolId' is set to \"$this->launcher\". Case not implemented.");
+					$this->logger->error("Launcher '$this->launcher->value'  not implemented");
+					throw new UnexpectedValueException("Launcher '$this->launcher->value'  not implemented.");
 			}
 		}
 	}
@@ -859,6 +774,7 @@ class Tooljob
 			fi
 		EOF;
 
+
 		$runContainer = <<<EOF
 			CONTAINER_ID=\$(docker run \
 			--rm \
@@ -866,8 +782,8 @@ class Tooljob
 			-v /var/run/docker.sock:/var/run/docker.sock -d \
 			--net=\$NET_NAME --name $this->containerName \
 			$cmd_envs \
-			-v {$this->pub_dir_volumes}:{$GLOBALS['shared']}public_tmp/ \
-			-v {$this->root_dir_volumes}:{$GLOBALS['shared']}userdata_tmp/{$_SESSION['User']['id']} \
+			-v {$this->jobDirectories->projectDirHost}:{$GLOBALS['shared']}public_tmp/ \
+			-v {$this->jobDirectories->userDirHost}:{$GLOBALS['shared']}userdata_tmp/{$_SESSION['User']['id']} \
 			--hostname $this->containerName \
 			-p \$FREE_PORT:{$tool['infrastructure']['container_port']} {$tool['infrastructure']['container_image']});
 		EOF;
@@ -984,8 +900,8 @@ class Tooljob
 			$cmd =  "docker run --privileged -v /var/run/docker.sock:/var/run/docker.sock -d" .
 				" " . $cmd_envs .
 				"--memory=" . $tool['infrastructure']['memory'] . "g" .
-				" -v " . $this->pub_dir_volumes . ":" . $GLOBALS['shared'] . "public_tmp/ " .
-				" -v " . $this->root_dir_volumes . ":" . $GLOBALS['shared'] . "userdata_tmp/{$_SESSION['User']['id']}" .
+				" -v " . $this->jobDirectories->projectDirHost . ":" . $GLOBALS['shared'] . "public_tmp/ " .
+				" -v " . $this->jobDirectories->userDirHost . ":" . $GLOBALS['shared'] . "userdata_tmp/{$_SESSION['User']['id']}" .
 				" " . $tool['infrastructure']['container_image'] . " $cmd_vre";
 		}
 
@@ -1024,12 +940,12 @@ class Tooljob
 
 		$cmd = "docker run --device /dev/fuse --security-opt apparmor:unconfined --cap-add SYS_ADMIN -v /var/run/docker.sock:/var/run/docker.sock " .
 			" " . $cmd_envs .
-			" -v " . $this->pub_dir_host .                            ":" . $GLOBALS['shared'] . "public_tmp/ " .
-			" -v " . $this->root_dir_host . "/" . $_SESSION['User']['id'] . ":" . $GLOBALS['shared'] . "userdata_tmp/" . $_SESSION['User']['id'] .
+			" -v " . $this->jobDirectories->projectDirHost .                            ":" . $GLOBALS['shared'] . "public_tmp/ " .
+			" -v " . $this->jobDirectories->userDirHost . "/" . $_SESSION['User']['id'] . ":" . $GLOBALS['shared'] . "userdata_tmp/" . $_SESSION['User']['id'] .
 			" --tmpfs " . "/clean_files:rw,uid=1000,gid=1000" .
 			" --env-file " . $configFilePath .
 			" --network=new_vre_open-vre" .
-			" -v " . $this->scripts_dir_host . ":/shared_scripts_tmp" .
+			" -v " . $this->jobDirectories->scriptsDirHost . ":/shared_scripts_tmp" .
 			" " . $tool['infrastructure']['container_image'] . " $cmd_vre";
 
 		return $cmd;
@@ -1189,10 +1105,10 @@ class Tooljob
 	public function submit($tool)
 	{
 		$jobLauncher = $this->getLauncher_Info($this->cloudName)['launcher']['job_manager'] ?? $tool['infrastructure']['clouds'][$this->cloudName]['launcher'];
-		switch ($jobLauncher) {
-			case "SGE":
-			case "ega_demo":
-			case "docker_SGE":
+		switch (Launcher::from($jobLauncher)) {
+			case Launcher::SGE:
+			case Launcher::docker_SGE_EGA:
+			case Launcher::docker_SGE:
 				return $this->enqueue($tool);
 			default:
 				$this->logger->error("Tool '$this->toolId' not properly registered. Launcher for '$this->toolId' is set to: \"" . $tool['infrastructure']['clouds'][$this->cloudName]['launcher'] . "\". Case not implemented.");
@@ -1315,57 +1231,28 @@ class Tooljob
 	}
 
 
-	/**
-	 *  Set Cloudname to the default value, as specified in the tool definition
-	 *  TODO Choose cloud according where the data is.
-	 */
-	protected function set_cloudName($tool = array())
+	private function extractCloudName($tool)
 	{
+		if (!empty($this->arguments_exec['site_list']) && count($this->arguments_exec['site_list']) >= 1) {
+			return $this->arguments_exec['site_list'][0];
+		}
+
 		$available_clouds = array_keys($GLOBALS['clouds']);
-		if (!count($available_clouds)) {
-			$_SESSION['errorData']['Error'][] = "Internal Error: No cloud infrastructure available in the current VRE installation.";
-			return 0;
+		if (empty($available_clouds)) {
+			$this->logger->error("Internal Error: No cloud infrastructure available in the current VRE installation.");
+			throw new UnexpectedValueException("Internal Error: No cloud infrastructure available in the current VRE installation.");
 		}
 
 		if (isset($tool['infrastructure']['clouds'])) {
-			// 1, set cloudName from default cloud, as tool specifies
-			foreach ($tool['infrastructure']['clouds'] as $name => $toolInfo) {
-				if ($toolInfo['default_cloud'] === true) {
-					if (in_array($name, $available_clouds)) {
-						$this->cloudName = $name;
-						break;
-					}
+			foreach ($tool['infrastructure']['clouds'] as $cloudName => $cloudInfo) {
+				if ($cloudInfo['default_cloud'] && in_array($cloudName, $available_clouds)) {
+					return $cloudName;
 				}
 			}
+		}
 
-			// 2, set cloudName from current cloud, if it is in tool specification
-			if (!$this->cloudName && isset($GLOBALS['cloud'])) {
-				foreach ($tool['infrastructure']['clouds'] as $name => $toolInfo) {
-					if ($name == $GLOBALS['cloud']) {
-						if (in_array($name, $available_clouds)) {
-							$this->cloudName = $name;
-							break;
-						}
-					}
-				}
-			}
-			// 3, set cloudName from clouds list in tool specification, the first found available
-			if (! $this->cloudName) {
-				foreach ($tool['infrastructure']['clouds'] as $name => $cloudInfo) {
-					if (in_array($name, $available_clouds)) {
-						$this->cloudName = $name;
-						$_SESSION['errorData']['Warning'][] = "Tool has no the default cloud infrastructure set or available. Taking instead '$this->cloudName', but the tool execution may fail.";
-						break;
-					}
-				}
-			}
-		}
-		if (! $this->cloudName) {
-			// 4, set cloudName from the server available_clouds, the first
-			$this->cloudName = $available_clouds[0];
-			$_SESSION['errorData']['Warning'][] = "Tool has no the cloud infrastructure set. Taking '$this->cloudName', but the tool execution may fail.";
-		}
-		return 1;
+		$this->logger->error("Internal Error: No cloud infrastructure available in the current VRE installation.");
+		throw new UnexpectedValueException("Internal Error: No cloud infrastructure available in the current VRE installation.");
 	}
 
 
@@ -1421,7 +1308,7 @@ class Tooljob
 							redirect($GLOBALS['BASEURL'] . "workspace/");
 					}
 
-					$rfn_public = $this->pub_dir . "/$input_value";
+					$rfn_public = $this->jobDirectories->projectDir . "/$input_value";
 					if (!is_file($rfn_public) && !is_dir($rfn_public) && !preg_match('/\$\(.+\)/', $rfn_public)) {
 						$_SESSION['errorData']['Error'][] = "Input file public '$input_name' not found in public directory: $rfn_public";
 						$this->logger->error("Input file public '$input_name' not found in public directory: $rfn_public");

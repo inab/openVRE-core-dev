@@ -147,7 +147,6 @@ $GLOBALS['placeholder_textarea'] = "Click right button to select file(s)"; // te
 
 
 // Cloud infrastructures
-$GLOBALS['cloud']              = "my_on_premises_cloud"; // VRE central cloud. Options are any of $GLOBALS['clouds']
 $GLOBALS['clouds'] = Array(
                 'local' => array(
                         "http_host"         => "www.mydomain.com",           // used in getCurrentCloud

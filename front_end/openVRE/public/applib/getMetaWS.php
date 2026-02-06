@@ -341,8 +341,6 @@ if (isset($mt["arguments"])) {
 // cloudName, memory and cpus
 $mem = "";
 $cpus = "";
-if (is_null($mt['cloudName']) || strlen($mt["cloudName"]) == 0)
-	$mt['cloudName'] = $GLOBALS['cloud'];
 
 if (isset($mt['imageType'])) {
 	$mem  = $mt['imageType']['memory'];

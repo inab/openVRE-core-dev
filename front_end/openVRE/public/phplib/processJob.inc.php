@@ -1,5 +1,6 @@
 <?php
 
+use OpenVRE\Launcher;
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
 use OpenVRE\ProcessSGE;
@@ -66,10 +67,10 @@ function getRunningJobInfo($pid, $launcherType = null)
     }
 
     if (is_null($launcherType) && is_numeric($pid)) {
-        $launcherType = "SGE";
+        $launcherType = Launcher::SGE;
     }
 
-    if (!in_array($launcherType, array("SGE", "docker_SGE"))) {
+    if (Launcher::tryFrom($launcherType) === null) {
         getJobProcessLogger()->error("Cannot monitor job '$pid' of type '$launcherType'. Launcher not implemented.");
         throw new UnexpectedValueException("Cannot monitor job '$pid' of type '$launcherType'. Launcher not implemented.");
     }
@@ -174,12 +175,12 @@ function delJob($pid, $launcherType = null, $login = null)
 
     // guess launcher
     if (!$launcherType && is_numeric($pid)) {
-        $launcherType = "docker_SGE";
+        $launcherType = Launcher::docker_SGE;
     }
 
     // cancel job
     $r_sge = false;
-    if ($launcherType == "SGE" || $launcherType == "docker_SGE") {
+    if ($launcherType == Launcher::SGE || $launcherType == Launcher::docker_SGE) {
         $processSGE = new ProcessSGE();
         list($r_sge, $msg_sge) = $processSGE->stop($pid);
     } else {

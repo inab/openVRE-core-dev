@@ -122,8 +122,8 @@ function launchToolInternal($toolId, $args = [], $outs = [], $output_dir = "", $
 		throw new UnexpectedValueException("Tool is not internal");
 	}
 
-	$descrip = "Internal job execution of " . $tool['name'];
-	$jobMeta = new Tooljob($tool, descrip: $descrip, arguments_exec: $args, output_dir:  $output_dir);
+	$description = "Internal job execution of " . $tool['name'];
+	$jobMeta = new Tooljob($tool, description: $description, project: $_SESSION['User']['activeProject'], arguments_exec: $args, output_dir:  $output_dir);
 
 	if (strlen($logName)) {
 		$jobMeta->setLog($logName);

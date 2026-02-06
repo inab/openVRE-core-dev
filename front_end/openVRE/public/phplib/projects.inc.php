@@ -1,11 +1,10 @@
 <?php
 
-use League\OAuth2\Client\Token\AccessToken;
+use OpenVRE\Launcher;
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
 use OpenVRE\Oauth2Provider;
 use OpenVRE\UserType;
-use OpenVRE\VaultClient;
 
 
 function getProjectLogger()
@@ -1689,7 +1688,7 @@ function resolvePath_toLocalAbsolutePath($path, $job)
 	// path is an absolute path
 	if (preg_match('/^\//', $path)) {
 		if (preg_match('/^' . preg_quote($job['root_dir_virtual'], '/') . '/', $path)) {
-			if ($job['launcher'] == "SGE" || $job['launcher'] == "ega_demo" || $job['launcher'] == "docker_SGE") {
+			if ($job['launcher'] == Launcher::SGE || $job['launcher'] == Launcher::docker_SGE_EGA || $job['launcher'] == Launcher::docker_SGE) {
 				$rfn = str_replace($job['root_dir_mug'], $GLOBALS['dataDir'], $path);
 			}
 			// direct from path

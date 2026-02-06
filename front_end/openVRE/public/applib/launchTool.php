@@ -47,7 +47,8 @@ if (empty($tool['infrastructure']['interactive']) && empty($_REQUEST['input_file
 	internalErrorRedirect();
 }
 
-$jobMeta  = new Tooljob($tool, $_REQUEST['execution'], $_REQUEST['project'], $_REQUEST['description'], $_REQUEST['arguments_exec']);
+$project = $_REQUEST['project'] ?? $_SESSION['User']['activeProject'];
+$jobMeta  = new Tooljob($tool, $_REQUEST['description'], $project, $_REQUEST['execution'], $_REQUEST['arguments_exec']);
 
 $logger->debug("Tool job metadata: ", ['jobMeta' => $jobMeta]);
 
