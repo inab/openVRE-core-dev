@@ -125,9 +125,7 @@ $jobs_per_user = getAllUserJobs();
                                                             <a href="javascript:viewFileMeta('<?php echo $pid; ?>', '<?php echo $job['execution']; ?>', 2,'<?php echo $login; ?>');" style="margin-left:5px;"><i class="fa fa-info-circle"></i></a>
                                                         </td>
                                                         <td><?php echo $login; ?></td>
-                                                        <td><?php if ($job['start_time']) {
-                                                                echo date("F d Y H:i:s", $job['start_time']);
-                                                            } elseif (is_file($job['config_file'])) {
+                                                        <td><?php if (is_file($job['config_file'])) {
                                                                 echo date("F d Y H:i:s", filemtime($job['config_file']));
                                                             } else {
                                                                 echo "ND";

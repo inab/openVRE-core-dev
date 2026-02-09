@@ -342,10 +342,7 @@ if (isset($mt["arguments"])) {
 $mem = "";
 $cpus = "";
 
-if (isset($mt['imageType'])) {
-	$mem  = $mt['imageType']['memory'];
-	$cpus = $mt['imageType']['cpus'];
-} elseif (isset($tool['infrastructure']['memory'])) {
+if (isset($tool['infrastructure']['memory'])) {
 	$mem  = $tool['infrastructure']['memory'];
 	$cpus = $tool['infrastructure']['cpus'];
 }

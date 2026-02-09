@@ -16,10 +16,8 @@ class Tooljob
 	public $toolId;
 	public $cloudName;         // Cloud name where tool should be executed. Available clouds set in GLOBALS['clouds']
 	public $description;
-	public $working_dir;
 	public $output_dir;
 	public Launcher $launcher;
-	public $imageType;
 	public $arguments_exec;
 	public $job_type;
 	public $containerName;
@@ -45,11 +43,14 @@ class Tooljob
 	public $arguments       = [];
 	public $metadata        = [];
 	public $pid             = 0;
-	public $start_time      = 0;
 	public $hasExecutionFolder = true;
 
-	private Logger $logger;
-	private JobDirectories $jobDirectories;
+	public Logger $logger;
+	public JobDirectories $jobDirectories;
+	public ExecutionDirectories $executionDirectories;
+
+
+	public $working_dir; // to be deleted once DB parsed as object
 
 
 	/**
@@ -68,6 +69,7 @@ class Tooljob
 		$this->arguments_exec = $arguments_exec;
 		$this->cloudName = $this->extractCloudName($tool);
 		$this->jobDirectories = JobDirectoriesFactory::create($this->cloudName);
+		$this->working_dir = $this->jobDirectories->executionDir;
 
 		if (!empty($this->arguments_exec['site_list']) && count($this->arguments_exec['site_list']) >= 1) {
 			$site_list = $this->arguments_exec['site_list'];
@@ -82,14 +84,63 @@ class Tooljob
 		if (empty($execution)) {
 			//internalTool
 			$this->hasExecutionFolder = false;
-			$this->__setWorking_inTmp($tool['_id']);
 			$this->output_dir = $output_dir;
+
+
+			// old __setWorking_inTmp
+			$this->execution = $tool['_id'] . "_" . rand(10000, 99999);
+
+
+
+			$this->config_file_virtual    = $this->jobDirectories->virtualUserDir . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $GLOBALS['tool_config_file'];
+			$this->stageout_file_virtual  = $this->jobDirectories->virtualUserDir . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $GLOBALS['tool_stageout_file'];
+			$this->metadata_file_virtual  = $this->jobDirectories->virtualUserDir . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $GLOBALS['tool_metadata_file'];
+			$this->log_file_virtual       = $this->jobDirectories->virtualUserDir . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $this->logName;
 		} else {
 			//create Project Folder
 			$this->hasExecutionFolder = true;
-			$this->__setWorking_dir($execution);
-			$this->output_dir = $this->working_dir;
+
+
+			// old __setWorking_dir
+			$dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+			$localWorkingDir = "$dataDirPath/$execution";
+			$prevs = $GLOBALS['filesCol']->findOne(['path' => $localWorkingDir, 'owner' => $_SESSION['User']['id']]);
+			if ($prevs) {
+				for ($n = 1; $n < 99; $n++) {
+					$executionN = $execution . "_" . $n;
+					$localWorkingDir = "$dataDirPath/$executionN";
+					$prevs = $GLOBALS['filesCol']->findOne(['path' => $localWorkingDir, 'owner' => $_SESSION['User']['id']]);
+					if ($prevs) {
+						$execution = $executionN;
+						break;
+					}
+				}
+			}
+
+			$this->execution = $execution;
+			$this->output_dir = $this->jobDirectories->executionDir;
+
+			$this->stdout_file    = $this->jobDirectories->executionDir . "/job_output.log";
+			$this->stderr_file    = $this->jobDirectories->executionDir . "/job_error.log";
+
+
+			$this->config_file_virtual    = "{$this->jobDirectories->virtualUserDir}/{$this->project}/{$this->execution}/{$GLOBALS['tool_config_file']}";
+			$this->stageout_file_virtual  = "{$this->jobDirectories->virtualUserDir}/{$this->project}/{$this->execution}/{$GLOBALS['tool_stageout_file']}";
+			$this->metadata_file_virtual  = "{$this->jobDirectories->virtualUserDir}/{$this->project}/{$this->execution}/{$GLOBALS['tool_metadata_file']}";
+			$this->log_file_virtual       = "{$this->jobDirectories->virtualUserDir}/{$this->project}/{$this->execution}/{$this->logName}";
+
+
+			
 		}
+
+		$this->logName = $GLOBALS['tool_log_file'];
+		$this->config_file    = $this->jobDirectories->executionDir . "/" . $GLOBALS['tool_config_file'];
+		$this->stageout_file  = $this->jobDirectories->executionDir . "/" . $GLOBALS['tool_stageout_file'];
+		$this->submission_file = $this->jobDirectories->executionDir . "/" . $GLOBALS['tool_submission_file'];
+		$this->log_file       = $this->jobDirectories->executionDir . "/" . $this->logName;
+		$this->metadata_file  = $this->jobDirectories->executionDir . "/" . $GLOBALS['tool_metadata_file'];
+
+
 
 		$this->description = $description ?? "Execution directory for tool " . $tool['name'];
 
@@ -99,6 +150,8 @@ class Tooljob
 		}
 
 		$this->project = $project;
+
+		$this->config_file    = $this->jobDirectories->executionDir . "/" . $GLOBALS['tool_config_file'];
 	}
 
 
@@ -129,74 +182,10 @@ class Tooljob
 	 * @param boolean $overwrite If false, an alternative name $execution[_NN] for the working directory is set
 	 */
 
-	public function __setWorking_dir($execution, $overwrite = 0)
-	{
-		$this->logger->info("Setting working directory for execution '$execution'");
-		$dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
-		$localWorkingDir = "$dataDirPath/$execution";
-
-		if (!$overwrite) {
-			$prevs = $GLOBALS['filesCol']->findOne(['path' => $localWorkingDir, 'owner' => $_SESSION['User']['id']]);
-			if ($prevs) {
-				for ($n = 1; $n < 99; $n++) {
-					$executionN = $execution . "_" . $n;
-					$localWorkingDir = "$dataDirPath/$executionN";
-					$prevs = $GLOBALS['filesCol']->findOne(['path' => $localWorkingDir, 'owner' => $_SESSION['User']['id']]);
-					if ($prevs) {
-						$execution = $executionN;
-						break;
-					}
-				}
-			}
-		}
-
-		$this->execution = $execution;
-		$this->working_dir = "{$this->jobDirectories->userDir}/{$this->project}/{$this->execution}";
-		$this->logName = $this->logName ?: $GLOBALS['tool_log_file'];
-
-		$this->config_file    = "{$this->working_dir}/{$GLOBALS['tool_config_file']}";
-		$this->stageout_file  = "{$this->working_dir}/{$GLOBALS['tool_stageout_file']}";
-		$this->submission_file = "{$this->working_dir}/{$GLOBALS['tool_submission_file']}";
-		$this->log_file       = "{$this->working_dir}/{$this->logName}";
-		$this->metadata_file  = "{$this->working_dir}/{$GLOBALS['tool_metadata_file']}";
-		$this->stdout_file    = $this->working_dir . "/job_output.log";
-		$this->stderr_file    = $this->working_dir . "/job_error.log";
-
-		// for interactive visualizer
-		$this->config_file_virtual    = "{$this->jobDirectories->virtualUserDir}/{$this->project}/{$this->execution}/{$GLOBALS['tool_config_file']}";
-		$this->stageout_file_virtual  = "{$this->jobDirectories->virtualUserDir}/{$this->project}/{$this->execution}/{$GLOBALS['tool_stageout_file']}";
-		$this->metadata_file_virtual  = "{$this->jobDirectories->virtualUserDir}/{$this->project}/{$this->execution}/{$GLOBALS['tool_metadata_file']}";
-		$this->log_file_virtual       = "{$this->jobDirectories->virtualUserDir}/{$this->project}/{$this->execution}/{$this->logName}";
-	}
+	public function __setWorking_dir($execution, $overwrite = 0) {}
 
 
-	public function __setWorking_inTmp($prefixDir = 0)
-	{
-
-		if (!$prefixDir)
-			$prefixDir = "tool_";
-
-		$execution = $prefixDir . "_" . rand(10000, 99999);
-
-		$this->execution      = $execution;
-		$this->working_dir    = $this->jobDirectories->userDir . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution;
-
-		if (!$this->logName) {
-			$this->logName = $GLOBALS['tool_log_file'];
-		}
-
-		$this->config_file    = $this->working_dir . "/" . $GLOBALS['tool_config_file'];
-		$this->stageout_file  = $this->working_dir . "/" . $GLOBALS['tool_stageout_file'];
-		$this->submission_file = $this->working_dir . "/" . $GLOBALS['tool_submission_file'];
-		$this->log_file       = $this->working_dir . "/" . $this->logName;
-		$this->metadata_file  = $this->working_dir . "/" . $GLOBALS['tool_metadata_file'];
-
-
-		$this->config_file_virtual    = $this->jobDirectories->virtualUserDir . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $GLOBALS['tool_config_file'];
-		$this->stageout_file_virtual  = $this->jobDirectories->virtualUserDir . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $GLOBALS['tool_stageout_file'];
-		$this->metadata_file_virtual  = $this->jobDirectories->virtualUserDir . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $GLOBALS['tool_metadata_file'];
-		$this->log_file_virtual       = $this->jobDirectories->virtualUserDir . "/" . $this->project . "/" . $GLOBALS['tmpUser_dir'] . $this->execution . "/" . $this->logName;
-	}
+	public function __setWorking_inTmp($prefixDir = 0) {}
 
 
 	/**
@@ -204,29 +193,29 @@ class Tooljob
 	 */
 	public function createWorking_dir()
 	{
-		if (is_null($this->working_dir)) {
+		if (is_null($this->jobDirectories->executionDir)) {
 			$this->logger->error("Cannot create working_dir. Not set yet");
 			throw new UnexpectedValueException("Cannot create working_dir. Not set yet");
 		}
 
-		$dirPath = str_replace($GLOBALS['dataDir'] . "/", "", $this->working_dir);
-		if (!is_dir($this->working_dir)) {
+		$dirPath = str_replace($GLOBALS['dataDir'] . "/", "", $this->jobDirectories->executionDir);
+		if (!is_dir($this->jobDirectories->executionDir)) {
 			$this->_id = 1;
 			if ($this->hasExecutionFolder) {
 				try {
 					$this->_id = createGSDirBNS($dirPath);
 				} catch (UnexpectedValueException $e) {
-					$this->logger->error("Cannot create execution folder: '$this->working_dir'");
-					throw new UnexpectedValueException("Cannot create execution folder: '$this->working_dir'" . $e->getMessage());
+					$this->logger->error("Cannot create execution folder: '$this->jobDirectories->executionDir'");
+					throw new UnexpectedValueException("Cannot create execution folder: '$this->jobDirectories->executionDir'" . $e->getMessage());
 				}
 			}
 
-			if (!mkdir($this->working_dir, 0777, true)) {
-				$this->logger->error("Failed to create directory: '$this->working_dir'");
-				throw new UnexpectedValueException("Failed to create directory: '$this->working_dir'");
+			if (!mkdir($this->jobDirectories->executionDir, 0777, true)) {
+				$this->logger->error("Failed to create directory: '$this->jobDirectories->executionDir'");
+				throw new UnexpectedValueException("Failed to create directory: '$this->jobDirectories->executionDir'");
 			}
 
-			chmod($this->working_dir, 0777);
+			chmod($this->jobDirectories->executionDir, 0777);
 			// if exists, recover working dir id
 		} else {
 			if ($this->hasExecutionFolder) {
@@ -239,9 +228,9 @@ class Tooljob
 
 		// set dir metadata
 		if ($this->_id != 1) {
-			if (!is_dir($this->working_dir)) {
-				$this->logger->error("Cannot write and set new execution directory: '$this->working_dir' with id '$this->_id'");
-				throw new UnexpectedValueException("Cannot write and set new execution directory: '$this->working_dir' with id '$this->_id'");
+			if (!is_dir($this->jobDirectories->executionDir)) {
+				$this->logger->error("Cannot write and set new execution directory: '$this->jobDirectories->executionDir' with id '$this->_id'");
+				throw new UnexpectedValueException("Cannot write and set new execution directory: '$this->jobDirectories->executionDir' with id '$this->_id'");
 			}
 
 			$input_ids = [];
@@ -261,8 +250,8 @@ class Tooljob
 			try {
 				addMetadataToFile($this->_id, $projDirMeta);
 			} catch (UnexpectedValueException $e) {
-				$this->logger->error("Project folder created. But cannot set metadata for '$this->working_dir' with id '$this->_id'");
-				throw new UnexpectedValueException("Project folder created. But cannot set metadata for '$this->working_dir' with id '$this->_id'. " . $e->getMessage());
+				$this->logger->error("Project folder created. But cannot set metadata for '$this->jobDirectories->executionDir' with id '$this->_id'");
+				throw new UnexpectedValueException("Project folder created. But cannot set metadata for '$this->jobDirectories->executionDir' with id '$this->_id'. " . $e->getMessage());
 			}
 		}
 	}
@@ -274,7 +263,7 @@ class Tooljob
 	 */
 	public function setConfiguration_file($tool)
 	{
-		if (is_null($this->working_dir)) {
+		if (is_null($this->jobDirectories->executionDir)) {
 			$this->logger->error("Cannot create tool configuration file. No 'working_directory' set");
 			throw new UnexpectedValueException("Cannot create tool configuration file. No 'working_directory' set");
 		}
@@ -591,7 +580,7 @@ class Tooljob
 	 */
 	public function setMetadata_file($metadata, $metadata_pub = [])
 	{
-		if (is_null($this->working_dir)) {
+		if (is_null($this->jobDirectories->executionDir)) {
 			$this->logger->error("Cannot create metadata file. No 'working_dir' set");
 			throw new UnexpectedValueException("Cannot create metadata file. No 'working_dir' set");
 		}
@@ -1043,44 +1032,36 @@ class Tooljob
 
 	protected function createSubmitFile_SGE($cmd)
 	{
-		$workingDir = $this->working_dir;
-		$bashFilename = $this->submission_file;
-		$logFilename = $this->log_file;
-
-		$fout = fopen($bashFilename, "w");
+		$fout = fopen($this->submission_file, "w");
 		if ($fout === false) {
-			$this->logger->error('Failed to create tool configuration file: ' . $bashFilename);
-			throw new UnexpectedValueException('Failed to create queue submission file: ' . $bashFilename);
+			$this->logger->error('Failed to create tool configuration file: ' . $this->submission_file);
+			throw new UnexpectedValueException('Failed to create queue submission file: ' . $this->submission_file);
 		}
 
 		fwrite($fout, "#!/bin/bash\n");
 		fwrite($fout, "# Generated by MuG VRE\n");
-		fwrite($fout, "cd $workingDir\n");
+		fwrite($fout, "cd $this->jobDirectories->executionDir\n");
 
 		fwrite($fout, "\n# Running $this->toolId tool ...\n");
-		fwrite($fout, "\necho '# Start time:' \$(date) > $logFilename\n");
+		fwrite($fout, "\necho '# Start time:' \$(date) > $this->log_file\n");
 
-		fwrite($fout, "\n$cmd >> $logFilename 2>&1\n");
-		fwrite($fout, "\necho '# End time:' \$(date) >> $logFilename\n");
+		fwrite($fout, "\n$cmd >> $this->log_file 2>&1\n");
+		fwrite($fout, "\necho '# End time:' \$(date) >> $this->log_file\n");
 		fclose($fout);
 	}
 
 
 	protected function createSubmitFile_EGA($cmd)
 	{
-		$workingDir = $this->working_dir;
-		$bashFilename = $this->submission_file;
-		$logFilename = $this->log_file;
-
-		if (!is_file($bashFilename)) {
-			$this->logger->error("Failed to create queue submission file. " . "File '$bashFilename' does not exist");
-			throw new UnexpectedValueException("Failed to create queue submission file. " . "File '$bashFilename' does not exist");
+		if (!is_file($this->submission_file)) {
+			$this->logger->error("Failed to create queue submission file. " . "File '$this->submission_file' does not exist");
+			throw new UnexpectedValueException("Failed to create queue submission file. " . "File '$this->submission_file' does not exist");
 		}
 
-		$fout = fopen($bashFilename, "w");
+		$fout = fopen($this->submission_file, "w");
 		if ($fout === false) {
-			$this->logger->error('Failed to create tool configuration file: ' . $bashFilename);
-			throw new UnexpectedValueException('Failed to create tool configuration file: ' . $bashFilename);
+			$this->logger->error('Failed to create tool configuration file: ' . $this->submission_file);
+			throw new UnexpectedValueException('Failed to create tool configuration file: ' . $this->submission_file);
 		}
 
 		fwrite($fout, "#!/bin/bash\n");
@@ -1088,12 +1069,12 @@ class Tooljob
 
 		fwrite($fout, "\n# Running $this->toolId tool ...\n");
 
-		fwrite($fout, "cd $workingDir\n");
-		fwrite($fout, "\necho '# Start time:' \$(date) > $logFilename\n");
+		fwrite($fout, "cd $this->jobDirectories->executionDir\n");
+		fwrite($fout, "\necho '# Start time:' \$(date) > $this->log_file\n");
 
 
-		fwrite($fout, "\n$cmd >> $logFilename 2>&1\n");
-		fwrite($fout, "\necho '# End time:' \$(date) >> $logFilename\n");
+		fwrite($fout, "\n$cmd >> $this->log_file 2>&1\n");
+		fwrite($fout, "\necho '# End time:' \$(date) >> $this->log_file\n");
 
 		fclose($fout);
 	}
@@ -1130,7 +1111,7 @@ class Tooljob
 		$queue = $launcherInfo['queue'] ?? $tool['infrastructure']['clouds'][$this->cloudName]['queue'];
 		$this->logger->info("Resolved Parameters: Queue=$queue, CPUs=$cpus, Memory=$memory");
 
-		$pid = execJob($this->working_dir, $this->submission_file, $queue, $cpus, $memory,  $this->stdout_file, $this->stderr_file);
+		$pid = execJob($this->jobDirectories->executionDir, $this->submission_file, $queue, $cpus, $memory,  $this->stdout_file, $this->stderr_file);
 		$this->logger->info("Tool job submitted to SGE queue '$queue' (PID=$pid)");
 		$this->pid = $pid;
 

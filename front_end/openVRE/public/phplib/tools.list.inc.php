@@ -129,7 +129,7 @@ function launchToolInternal($toolId, $args = [], $outs = [], $output_dir = "", $
 		$jobMeta->setLog($logName);
 	}
 
-	$args['working_dir'] = $jobMeta->working_dir;
+	$args['working_dir'] = $jobMeta->jobDirectories->executionDir;
 	$jobMeta->setArguments($args, $tool);
 	$jobMeta->createWorking_dir();
 
