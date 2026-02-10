@@ -17,8 +17,8 @@ class ProcessSGE
 	private $queue = "srv.q";
 	private $cpu = 1;
 	private $mem = 0;
-	private $logFile = "job_output.log";
-	private $errFile = "job_error.log";
+	private $logFile;
+	private $errFile;
 
 	private $jobname;
 
@@ -41,7 +41,7 @@ class ProcessSGE
 
 	private Logger $logger;
 
-	public function __construct($cl = false, $workDir = "", $queue = "srv.q", $jobname = "", $cpu = 1, $mem = 0, $logFile = "job_output.log", $errFile = "job_error.log")
+	public function __construct($cl = false, $workDir = "", $queue = "srv.q", $jobname = "", $cpu = 1, $mem = 0)
 	{
 		$this->logger = LoggerFactory::getLogger("Process SGE interface");
 		$current_user = posix_getpwuid(posix_geteuid());
@@ -53,8 +53,8 @@ class ProcessSGE
 			$this->queue   = $queue;
 			$this->cpu     = $cpu;
 			$this->mem     = $mem;
-			$this->logFile = $logFile;
-			$this->errFile = $errFile;
+			$this->logFile = $workDir . "/job_output.log";
+			$this->errFile = $workDir . "/job_error.log";
 			$this->jobname = $jobname ?? basename($cl);
 			
 			$this->runCom();

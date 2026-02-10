@@ -24,9 +24,6 @@ class Tooljob
 
 	// Paths to files genereted during ToolJob execution
 
-	public $stdout_file;
-	public $stderr_file;
-
 	public $stageout_data 	= [];
 	public $input_files     = [];
 	public $input_files_pub = [];
@@ -100,9 +97,6 @@ class Tooljob
 
 			$this->execution = $execution;
 			$this->output_dir = $this->executionDirectories->executionDir;
-
-			$this->stdout_file    = $this->executionDirectories->executionDir . "/job_output.log";
-			$this->stderr_file    = $this->executionDirectories->executionDir . "/job_error.log";
 		}
 
 		$this->description = $description ?? "Execution directory for tool " . $tool['name'];
@@ -505,7 +499,6 @@ class Tooljob
 			return 0;
 		}
 
-		$this->executionDirectories->executionStageoutFile = "";
 		foreach ($out_files['output_files'] as $out_name => $info) {
 			//Add output file metadata
 			$this->stageout_data['output_files'][$out_name] = $info;
@@ -1051,7 +1044,7 @@ class Tooljob
 		$queue = $launcherInfo['queue'] ?? $tool['infrastructure']['clouds'][$this->cloudName]['queue'];
 		$this->logger->info("Resolved Parameters: Queue=$queue, CPUs=$cpus, Memory=$memory");
 
-		$pid = execJob($this->executionDirectories->executionDir, $this->executionDirectories->executionSubmissionFile, $queue, $cpus, $memory,  $this->stdout_file, $this->stderr_file);
+		$pid = execJob($this->executionDirectories->executionDir, $this->executionDirectories->executionSubmissionFile, $queue, $cpus, $memory);
 		$this->logger->info("Tool job submitted to SGE queue '$queue' (PID=$pid)");
 		$this->pid = $pid;
 

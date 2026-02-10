@@ -18,7 +18,7 @@ function getJobProcessLogger()
 }
 
 
-function execJob($workDir, $shFile, $queue, $cpus = 1, $mem = 0, $logFile = "job_output.log", $errFile = "job_error.log")
+function execJob($workDir, $shFile, $queue, $cpus = 1, $mem = 0)
 {
     getJobProcessLogger()->info("Start job submission via SGE");
 
@@ -44,7 +44,7 @@ function execJob($workDir, $shFile, $queue, $cpus = 1, $mem = 0, $logFile = "job
     }
 
     $jobname = $_SESSION['User']['id'] . "#" . basename($shFile);
-    $process = new ProcessSGE($shFile, $workDir, $queue, $jobname, $cpus, $mem, $logFile, $errFile);
+    $process = new ProcessSGE($shFile, $workDir, $queue, $jobname, $cpus, $mem);
 
     if (!$process->status()) {
         $errMesg = "Job submission failed. ErrorSGE: '" . $process->getErr() . "'";
