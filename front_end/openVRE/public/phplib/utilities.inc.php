@@ -409,24 +409,21 @@ function prepMetadataResult($meta, $fnPath = 0, $lastjob = array())
     }
 
     if (is_null($meta['submission_file']) && isset($lastjob['submission_file'])) {
-        $meta['submission_file'] = $lastjob['submission_file'];
+        $meta['submission_file'] = $lastjob['executionDirectories']['executionSubmissionFile'];
     }
 
     if (is_null($meta['submission_file']) && isset($lastjob['shPath'])) {
         $meta['submission_file'] = $lastjob['shPath'];
     }
 
-    if (is_null($meta['log_file']) && isset($lastjob['log_file'])) {
-        $meta['log_file'] = $lastjob['log_file'];
-    }
-
-    if (is_null($meta['log_file']) && isset($lastjob['log_file'])) {
-        $meta['log_file'] = $lastjob['log_file'];
+    if (is_null($meta['log_file']) && isset($lastjob['executionDirectories']['executionLogFile'])) {
+        $meta['log_file'] = $lastjob['executionDirectories']['executionLogFile'];
     }
 
     if (is_null($meta['tool']) && isset($lastjob['tool'])) {
         $meta['tool'] = $lastjob['tool'];
     }
+
     if (is_null($meta['tool']) && isset($lastjob['toolId'])) {
         $meta['tool'] = $lastjob['toolId'];
     }

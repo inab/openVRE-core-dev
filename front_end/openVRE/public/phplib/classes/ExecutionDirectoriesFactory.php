@@ -2,20 +2,33 @@
 
 namespace OpenVRE;
 
-use OpenVRE\ExecutionDirectories;
-use OpenVRE\JobDirectories;
 
-
-class JobDirectoriesFactory
+class ExecutionDirectoriesFactory
 {
-    public static function create(JobDirectories $jobDirectories, $project, $execution)
+    public static function create(JobDirectories $jobDirectories, $project, $execution, $logFilename)
     {
-        $executionDir = empty($execution)
-            ? $jobDirectories->userDir . "/" . $project . "/" . $GLOBALS['tmpUser_dir'] . $execution
-            : $jobDirectories->userDir . "/" . $project . "/" . $execution;
+        if (empty($execution)) {
+            $execution = $GLOBALS['tmpUser_dir'];
+        }
+
+        if (empty($logFilename)) {
+            $logFilename = $GLOBALS['tool_log_file'];
+        }
+
+        $executionDir = $jobDirectories->userDir . "/" . $project . "/" . $execution;
+        $executionConfigFile = $jobDirectories->userDir . "/" . $project . "/" . $execution . "/" . $GLOBALS['tool_config_file'];
+        $executionStageoutFile = $jobDirectories->userDir . "/" . $project . "/" . $execution . "/" . $GLOBALS['tool_stageout_file'];
+        $executionMetadataFile = $jobDirectories->userDir . "/" . $project . "/" . $execution . "/" . $GLOBALS['tool_metadata_file'];
+        $executionLogFile = $jobDirectories->userDir . "/" . $project . "/" . $execution . "/" . $logFilename;
+        $executionSubmissionFile = $jobDirectories->userDir . "/" . $project . "/" . $execution . "/" . $GLOBALS['tool_submission_file'];
 
         return new ExecutionDirectories(
-            $executionDir
+            $executionDir,
+            $executionConfigFile,
+            $executionStageoutFile,
+            $executionMetadataFile,
+            $executionLogFile,
+            $executionSubmissionFile
         );
     }
 }

@@ -130,7 +130,7 @@ try {
 	redirect($GLOBALS['BASEURL'] . "workspace/");
 }
 
-$logger->debug("Working directory created at: " . $jobMeta->jobDirectories->executionDir);
+$logger->debug("Working directory created at: " . $jobMeta->executionDirectories->executionDir);
 
 try {
 	$jobMeta->prepareExecution($tool, $files, $files_pub);

@@ -949,7 +949,7 @@ function updatePendingFiles($sessionId)
 			$pid = $job['pid'];
 
 			//get qstat info
-			getProjectLogger()->info("Start processPendingFiles -> getRunningJobInfo $pid. Log= " . $job['log_file']);
+			getProjectLogger()->info("Start processPendingFiles -> getRunningJobInfo $pid. Log= " . $job['executionDirectories']['executionLogFile']);
 			$jobProcess = getRunningJobInfo($pid, $job['launcher']);
 
 			//job keeps running: maintain original job data
@@ -983,7 +983,7 @@ function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$file
 	//get dummy parentDir
 	if ($job['hasExecutionFolder']) {
 		// show job in execution dir
-		$parentDir = fromAbsPath_toPath($job['working_dir']);
+		$parentDir = fromAbsPath_toPath($job['executionDirectories']['executionDir']);
 	} else {
 		// show job in output_dir (infered from stageout_data)
 		$parentDir = 0;
@@ -1012,8 +1012,8 @@ function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$file
 		'parentDir' => getGSFileId_fromPath($parentDir),
 		'description' => $descrip,
 		'pending' => $jobProcess['state'],
-		'submission_file'  => fromAbsPath_toPath($job['submission_file']),
-		'log_file'    => fromAbsPath_toPath($job['log_file']),
+		'submission_file'  => fromAbsPath_toPath($job['executionDirectories']['executionSubmissionFile']),
+		'log_file'    => fromAbsPath_toPath($job['executionDirectories']['executionLogFile']),
 		'stdout_file' => fromAbsPath_toPath($job['stdout_file']),
 		'stderr_file' => fromAbsPath_toPath($job['stderr_file']),
 		'job_type'    => $job['job_type']
@@ -1046,7 +1046,7 @@ function processFinishedJobInfo($job, $pid, $title, &$filesPending)
 	$tool = getTool_fromId($job['toolId'], 1);
 	if (is_null($tool)) {
 		getProjectLogger()->error("Tool '" . $job['toolId'] . "' received from JobTool not registered");
-		getProjectLogger()->error("Cannot obtain results from '$title' in folder '" . basename($job['working_dir']) . "'. Job metadata is not valid.");
+		getProjectLogger()->error("Cannot obtain results from '$title' in folder '" . basename($job['executionDirectories']['executionDir']) . "'. Job metadata is not valid.");
 		getProjectLogger()->error("Failed to register $pid job outfiles. Job metadata has toolId '" . $job['toolId'] . "'");
 		$job_in_err = 1;
 		return;
@@ -1055,7 +1055,7 @@ function processFinishedJobInfo($job, $pid, $title, &$filesPending)
 	getProjectLogger()->debug("Building output from toolINFO + stageout_file + stageout_data.");
 
 	// build output list merging: stageout_file + stageout_data + tool defintion data
-	$outs_files = build_outputs_list($tool, $job['stageout_data'], $job['stageout_file']);
+	$outs_files = build_outputs_list($tool, $job['stageout_data'], $job['executionDirectories']['executionStageoutFile']);
 	getProjectLogger()->debug("Finished building output from toolINFO + stageout_file + stageout_data: " . json_encode($outs_files));
 	if (empty($outs_files)) {
 		getProjectLogger()->warning("Failed to register $pid job outfiles. Output file list empty.");
@@ -1193,8 +1193,8 @@ function processFinishedJobInfo($job, $pid, $title, &$filesPending)
 		getProjectLogger()->error("Failed to register all job outfiles");
 		getProjectLogger()->error("JOB $pid FINISHED but with errors");
 
-		$logFileP = $job['log_file'];
-		$logFile  = fromAbsPath_toPath($job['log_file']);
+		$logFileP = $job['executionDirectories']['executionLogFile'];
+		$logFile  = fromAbsPath_toPath($job['executionDirectories']['executionLogFile']);
 
 		// force flash disk status
 		scandir($GLOBALS['dataDir'] . $_SESSION['User']['id'] . "/" . $job['project']);
@@ -1241,7 +1241,7 @@ function processPendingFiles($sessionId)
 		$pid = $job['pid'];
 
 		//get qstat info
-		getProjectLogger()->info("Start processPendingFiles -> getRunningJobInfo $pid. Log= " . $job['log_file']);
+		getProjectLogger()->info("Start processPendingFiles -> getRunningJobInfo $pid. Log= " . $job['executionDirectories']['executionLogFile']);
 		$jobProcess = getRunningJobInfo($pid, $job['launcher'], $job['cloudName']);
 		$title   = $job['title'] ?? "Job " . $job['execution'];
 		$descrip = getJobDescription($job['description'], $jobProcess, $lastjobs);
@@ -1708,11 +1708,11 @@ function resolvePath_toLocalAbsolutePath($path, $job)
 			$rfn = $GLOBALS['dataDir'] . "/" . $path;
 			// path contains $(working_dir) tag
 		} elseif (preg_match('/(working_dir)/', $path)) {
-			$rfn = str_replace("$(working_dir)", $job['working_dir'] . "/", $path);
+			$rfn = str_replace("$(working_dir)", $job['executionDirectories']['executionDir'] . "/", $path);
 
 			// path is relative to app working directory (userid/prj/run/file)
 		} else {
-			$rfn = $job['working_dir'] . "/" . $path;
+			$rfn = $job['executionDirectories']['executionDir'] . "/" . $path;
 		}
 	}
 	//clean slashes

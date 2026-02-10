@@ -22,10 +22,9 @@ $mt = $job[$_REQUEST["pid"]];
 
 
 
-if(file_exists($mt['log_file'])) {
-        //$log = nl2br(file_get_contents($mt['log_file']));
+if(file_exists($mt['executionDirectories']['executionLogFile'])) {
         // RAW LOG
-        $log = preg_replace( "/\r|\n/", "<br>", file_get_contents($mt['log_file']) );
+        $log = preg_replace( "/\r|\n/", "<br>", file_get_contents($mt['executionDirectories']['executionLogFile']) );
         $log = preg_replace('/\s+/', ' ', $log);
 
         $rmv[] = "'";
@@ -34,7 +33,7 @@ if(file_exists($mt['log_file'])) {
         $rmv[] = "’";
         $log = str_replace( $rmv, "", $log );
         // PROGRESS
-        $currentLog = trim(shell_exec("egrep -E '\| DEBUG|\| INFO|\| WARNING|\| ERROR|\| FATAL|\| PROGRESS' ".$mt['log_file']));
+        $currentLog = trim(shell_exec("egrep -E '\| DEBUG|\| INFO|\| WARNING|\| ERROR|\| FATAL|\| PROGRESS' ".$mt['executionDirectories']['executionLogFile']));
         $arraylog = explode("\n", $currentLog);
 
         if(sizeof($arraylog) == 1 && $arraylog[0] == "") {

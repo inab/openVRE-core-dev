@@ -92,7 +92,7 @@ function createUserFromToken($login, $token, $userinfo = array(), $anonID = fals
 
     $objUser = new User($userAttributes['Email'], $userAttributes['secretsId'], $userAttributes['Surname'], $userAttributes['Name'], "", $userAttributes['Type'], "", "", $userAttributes['AuthProvider'], "");
 
-    $userArray = (array) $objUser;
+    $userArray = $objUser->toDocument();
     //load user in current session
     $_SESSION['userId'] = $userArray['id']; //OBSOLETE
     $_SESSION['User'] = $userArray;
@@ -144,7 +144,7 @@ function createUserAnonymous($sampleData)
         return false;
     }
 
-    $userArray = (array) $objUser;
+    $userArray = $objUser->toDocument();
     $_SESSION['userId'] = $userArray['id'];
     $_SESSION['User']   = $userArray;
     $_SESSION['anonID'] = $userArray['Email'];
