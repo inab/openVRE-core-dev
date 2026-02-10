@@ -1687,14 +1687,7 @@ function resolvePath_toLocalAbsolutePath($path, $job)
 	$rfn = "";
 	// path is an absolute path
 	if (preg_match('/^\//', $path)) {
-		if (preg_match('/^' . preg_quote($job['root_dir_virtual'], '/') . '/', $path)) {
-			if ($job['launcher'] == Launcher::SGE || $job['launcher'] == Launcher::docker_SGE_EGA || $job['launcher'] == Launcher::docker_SGE) {
-				$rfn = str_replace($job['root_dir_mug'], $GLOBALS['dataDir'], $path);
-			}
-			// direct from path
-		} else {
-			$rfn = $path;
-		}
+		$rfn = $path;
 		// path is relative
 	} else {
 		// path is only a file name (file)
