@@ -115,8 +115,8 @@ function getData_fromLocal()
 function getData_fromUrl($url, $meta = null)
 {
     getDataLogger()->info("Uploading file from URL $url");
-    [$toolArgs, $toolOuts, $output_dir] = prepare_getData_fromURL($url, "uploads", $GLOBALS['BASEURL'] . "/getdata/uploadForm.php#load_from_url", $meta);
-    getData_wget_asyncron($toolArgs, $toolOuts, $output_dir);
+    [$toolArgs, $toolOuts, $outputDir] = prepare_getData_fromURL($url, "uploads", $GLOBALS['BASEURL'] . "/getdata/uploadForm.php#load_from_url", $meta);
+    getData_wget_asyncron($toolArgs, $toolOuts, $outputDir);
 }
 
 // prepare target directory and file metadata
@@ -267,15 +267,15 @@ function prepare_getData_fromURL($url, $outdir, $referer, $meta = [])
 }
 
 
-function  getData_wget_asyncron($toolArgs, $toolOuts, $output_dir)
+function  getData_wget_asyncron($toolArgs, $toolOuts, $outputDir)
 {
     $toolId = "wget";
     $filePath = $toolOuts['output_files'][0]["path"];
     $logName = basename($filePath) . ".log";
 
     //TODO: FIXME START - This is a temporal fix. In future, files should not be downloaded, only registered
-    launchToolInternal($toolId, $toolArgs, $toolOuts, $output_dir, $logName);
-    $outdir = basename($output_dir);
+    launchToolInternal($toolId, $toolArgs, $toolOuts, $outputDir, $logName);
+    $outdir = basename($outputDir);
 
     getDataLogger()->info("File from URL '" . basename($filePath) . "' is being imported into the '$outdir' folder below. Please, edit its metadata once the import has finished");
     redirect($GLOBALS['BASEURL'] . "workspace/");

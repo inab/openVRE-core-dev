@@ -43,9 +43,9 @@ class RemoteSSH {
     //protected $ssh_session;
 
 
-    //public function __construct($tool,$input_files,$execution="",$project="",$descrip="",$output_dir="")
+    //public function __construct($tool,$input_files,$execution="",$project="",$descrip="",$outputDir="")
     //public function __construct($host, $port, $username, $privateKey, $fileList)
-    public function __construct($credentials, $remote_dir, $port = 22, $http_server = null, $execution="",$project="",$descrip="",$output_dir="")
+    public function __construct($credentials, $remote_dir, $port = 22, $http_server = null, $execution="",$project="",$descrip="",$outputDir="")
     {
 	    
 	//$this->root_dir_fs = $GLOBALS['clouds'][$this->cloudName]['mn_dir']. "/".$_SESSION['User']['linked_accounts']['MN']['username']. "/".$GLOBALS['clouds'][$this->cloudName]['dataDir_fs'];

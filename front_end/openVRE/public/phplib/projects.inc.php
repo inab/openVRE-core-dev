@@ -985,7 +985,7 @@ function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$file
 		// show job in execution dir
 		$parentDir = fromAbsPath_toPath($job['executionDirectories']['executionDir']);
 	} else {
-		// show job in output_dir (infered from stageout_data)
+		// show job in outputDir (infered from stageout_data)
 		$parentDir = 0;
 		if ($job['stageout_data']) {
 			$output_file_1 = $job['stageout_data']['output_files'][0];
@@ -1289,7 +1289,7 @@ function saveResults($filePath, $metaData = array(), $job = array(), $rfn = 0, $
 	$parentPath = dirname($filePath);
 	$parentId = getGSFileId_fromPath($parentPath, $asRoot);
 	if (is_null($parentId) && isset($job['hasExecutionFolder']) &&  $job['hasExecutionFolder'] === false) {
-		$parentPath = fromAbsPath_toPath($job['output_dir']);
+		$parentPath = fromAbsPath_toPath($job['outputDir']);
 		$parentId = getGSFileId_fromPath($parentPath, $asRoot);
 		if (is_null($parentId)) {
 			getProjectLogger()->error("Cannot save result '" . basename($filePath) . "' at '$parentPath'. This parent directory does not exist or is unaccessible");
@@ -1692,10 +1692,10 @@ function resolvePath_toLocalAbsolutePath($path, $job)
 	} else {
 		// path is only a file name (file)
 		if (!preg_match('/\//', $path)) {
-			$rfn = $job["output_dir"] . "/" . $path;
+			$rfn = $job["outputDir"] . "/" . $path;
 			// path is relative to user data directory (run/file)
 		} elseif (preg_match('/^' . $job['execution'] . '/', $path)) {
-			$rfn = dirname($job["output_dir"]) . "/" . $path;
+			$rfn = dirname($job["outputDir"]) . "/" . $path;
 			// path is relative to root directory (userid/prj/run/file)
 		} elseif (preg_match('/^' . $_SESSION['User']['id'] . '/', $path)) {
 			$rfn = $GLOBALS['dataDir'] . "/" . $path;

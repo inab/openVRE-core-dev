@@ -273,7 +273,7 @@ if (isset($_REQUEST['op'])) {
 
 			if (count($jobData)) {
 				foreach ($jobData as $jobId => $data) {
-					if ($data['output_dir'] == $rfn) {
+					if ($data['outputDir'] == $rfn) {
 						delJob($jobId);
 					}
 				}

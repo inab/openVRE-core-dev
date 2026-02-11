@@ -21,7 +21,7 @@ class DataTransfer
     public $cloudName;         // Cloud name where tool should be executed. Available clouds set in GLOBALS['clouds']
     public $description;
     public $working_dir;
-    public $output_dir;
+    public $outputDir;
     public $launcher;
 
     // Paths to files genereted during ToolJob execution
@@ -46,7 +46,7 @@ class DataTransfer
     public $hasExecutionFolder = true;
 
 
-    public function __construct($tool, $input_files, $execution = "", $project = "", $descrip = "", $output_dir = "")
+    public function __construct($tool, $input_files, $execution = "", $project = "", $descrip = "", $outputDir = "")
     {
 
 
@@ -99,12 +99,12 @@ class DataTransfer
             //create Project Folder
             $this->hasExecutionFolder = true;
             $this->__setWorking_dir($execution);
-            $this->output_dir = $this->working_dir;
+            $this->outputDir = $this->working_dir;
         } else {
             //internalTool
             $this->hasExecutionFolder = false;
             $this->__setWorking_inTmp($tool['_id']);
-            $this->output_dir = $output_dir;
+            $this->outputDir = $outputDir;
         }
         if ($project == "0" || $project == "") {
             $this->project = $_SESSION['User']['activeProject'];

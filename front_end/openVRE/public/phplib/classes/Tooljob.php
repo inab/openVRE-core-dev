@@ -8,7 +8,6 @@ use UnexpectedValueException;
 
 class Tooljob
 {
-
 	public $_id;
 	public $title;
 	public $execution;         // User defined. Correspond to the execution folder name
@@ -16,9 +15,8 @@ class Tooljob
 	public $toolId;
 	public $cloudName;         // Cloud name where tool should be executed. Available clouds set in GLOBALS['clouds']
 	public $description;
-	public $output_dir;
+	public $outputDir;
 	public Launcher $launcher;
-	public $arguments_exec;
 	public $job_type;
 	public $containerName;
 
@@ -42,24 +40,28 @@ class Tooljob
 	 * Creates new toolExecutor instance
 	 * @param string $toolId Tool Id as appears in Mongo
 	 */
-	public function __construct($tool, $description, $project, $execution = "", $arguments_exec = [], $output_dir = "", $logFilename = null)
+	public function __construct($tool, $description, $project, $execution = "", $sites = [], $outputDir = "", $logFilename = null)
 	{
 		$this->logger = LoggerFactory::getLogger("Tool job");
 
 		$this->toolId    = $tool['_id'];
 		$this->title     = $tool['name'] . " job";
 		$this->execution = $execution;
-		$this->project   = $project;
+		$this->description = $description ?? "Execution directory for tool " . $tool['name'];
+		if (!isProject($project)) {
+			$this->logger->error("Project $project does not exist");
+			throw new UnexpectedValueException("Project $project does not exist");
+		}
 
-		$this->arguments_exec = $arguments_exec;
-		$this->cloudName = $this->extractCloudName($tool);
+		$this->project = $project;
+
+		$this->cloudName = $this->extractCloudName($tool, $sites);
 		$this->jobDirectories = JobDirectoriesFactory::create($this->cloudName);
 		$this->executionDirectories = ExecutionDirectoriesFactory::create($this->jobDirectories, $project, $execution, $logFilename);
 
-		if (!empty($this->arguments_exec['site_list']) && count($this->arguments_exec['site_list']) >= 1) {
-			$site_list = $this->arguments_exec['site_list'];
+		if (!empty($sites)) {
 			// The second element in site_list is the launcher
-			$this->launcher = Launcher::from(str_replace($this->cloudName . "_", "", $site_list[1]));
+			$this->launcher = Launcher::from(str_replace($this->cloudName . "_", "", $sites[1]));
 		} else {
 			// If not enough information is provided, fall back to default method
 			$this->launcher = Launcher::from($tool['infrastructure']['clouds'][$this->cloudName]['launcher']);
@@ -69,17 +71,11 @@ class Tooljob
 		if (empty($execution)) {
 			//internalTool
 			$this->hasExecutionFolder = false;
-			$this->output_dir = $output_dir;
-
-
-			// old __setWorking_inTmp
+			$this->outputDir = $outputDir;
 			$this->execution = $tool['_id'] . "_" . rand(10000, 99999);
 		} else {
 			//create Project Folder
 			$this->hasExecutionFolder = true;
-
-
-			// old __setWorking_dir
 			$dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
 			$localWorkingDir = "$dataDirPath/$execution";
 			$prevs = $GLOBALS['filesCol']->findOne(['path' => $localWorkingDir, 'owner' => $_SESSION['User']['id']]);
@@ -96,30 +92,9 @@ class Tooljob
 			}
 
 			$this->execution = $execution;
-			$this->output_dir = $this->executionDirectories->executionDir;
+			$this->outputDir = $this->executionDirectories->executionDir;
 		}
-
-		$this->description = $description ?? "Execution directory for tool " . $tool['name'];
-
-		if (!isProject($project)) {
-			$this->logger->error("Project $project does not exist");
-			throw new UnexpectedValueException("Project $project does not exist");
-		}
-
-		$this->project = $project;
 	}
-
-
-	/**
-	 * Set working directory where log_file, submission_file and control_file will be located
-	 * @param string $execution Execution name used to set the working directory name
-	 * @param boolean $overwrite If false, an alternative name $execution[_NN] for the working directory is set
-	 */
-
-	public function __setWorking_dir($execution, $overwrite = 0) {}
-
-
-	public function __setWorking_inTmp($prefixDir = 0) {}
 
 
 	/**
@@ -381,8 +356,6 @@ class Tooljob
 
 			$this->arguments[$arg_name] = $arg_value;
 		}
-
-		return 1;
 	}
 
 
@@ -486,12 +459,10 @@ class Tooljob
 
 	/**
 	 * Store its metadata in Tooljob for recovering it latter, while stageout register
-	 * Needed when tool has not APP (internal), and no out_metadata is generated. 
+	 * Needed when tool has not APP (internal), and no out_metadata is generated.
 	 * @param array $outs Array of outputfiles
-	 * @param array $tool Tool array containing input_files type and requirements TODO
-	 * @param array $metadata Files metadata extracted from DB TODO
 	 */
-	public function setStageout_data($out_files, $tool = [], $metadata = [])
+	public function setStageout_data($out_files)
 	{
 		$this->logger->debug("Stageout data: ", $out_files);
 		if (!isset($out_files['output_files'])) {
@@ -503,8 +474,6 @@ class Tooljob
 			//Add output file metadata
 			$this->stageout_data['output_files'][$out_name] = $info;
 		}
-
-		return 1;
 	}
 
 
@@ -899,70 +868,6 @@ class Tooljob
 	}
 
 
-	protected function setBashCmd_Slurm($tool, $metadata, $launcherInfo)
-	{
-
-		// Ensure that the tool has a registered module to be loaded
-		if (is_null($tool['infrastructure']['module'])) {
-			$_SESSION['errorData']['Internal Error'][] = "Tool '$this->toolId' not properly registered. Missing 'module' property.";
-			return 0;
-		}
-
-		//Module name
-		$module = $tool['infrastructure']['module'];
-
-
-		// First cmd
-		$cmd = "module load $module && sbatch ";
-
-		//Setting the header of the SLURM script
-		$cmd .= "--job-name=" . escapeshellarg($this->toolId) . " ";  // Job name
-		if (isset($launcherInfo['launcher']['access_credentials']['username'])) {
-			$username = $launcherInfo['launcher']['access_credentials']['username'];
-			$remoteOutputDir = "/home/bsc/" . substr($username, 0, 6) . "/$username/MN4/$username";
-			$cmd .= "--output=" . escapeshellarg($remoteOutputDir . "/%x_%j.out") . " ";
-		} else {
-			$_SESSION['errorData']['Internal Error'][] = "Launcher info missing username details.";
-		}
-
-		// Check and add the partition (queue)
-		if (isset($launcherInfo['launcher']['partition']) && !empty($launcherInfo['launcher']['partition'])) {
-			$partition = $launcherInfo['launcher']['partition'];
-			$cmd .= "--partition=" . escapeshellarg($partition) . " ";
-		} else {
-			$_SESSION['errorData']['Internal Error'][] = "Launcher info missing partition/queue details.";
-		}
-
-		// Constructing the command 
-		$executable = $tool['infrastructure']['executable'];
-		$cmd .= "--wrap=\"" . $executable;
-
-
-		// Adding the inputs
-		foreach ($this->input_files as $input_name => $fnIds) {
-			$_SESSION['errorData']['Debug'][] = "Processing input:" . $input_name;
-			$_SESSION['errorData']['Debug'][] = "File IDs: " . print_r($fnIds, true);
-			foreach ($fnIds as $fnId) {
-
-				$_SESSION['errorData']['Debug'][] = "File: " . $fnId;
-				$fn = $metadata[$fnId]['path'];
-				// $rfn = $GLOBALS['dataDir'] . "/$fn";
-				$cmd .= " " . escapeshellarg($fnId);
-			}
-		}
-
-		// Arguments??
-		foreach ($this->arguments as $k => $v) {
-			$cmd .= " --$k " . escapeshellarg($v);
-		}
-
-
-
-		$cmd .= "\"";
-		return $cmd;
-	}
-
-
 	protected function createSubmitFile_SGE($cmd)
 	{
 		$fout = fopen($this->executionDirectories->executionSubmissionFile, "w");
@@ -1052,15 +957,6 @@ class Tooljob
 	}
 
 
-	protected function getPathRelativeToRoot($path)
-	{
-		if (preg_match('/^\//', $path)) {
-			return preg_replace('/^\//', "", str_replace($GLOBALS['dataDir'] . "/" . $_SESSION['User']['id'] . "/", "", $path));
-		} else {
-			return preg_replace('/^\//', "", str_replace($_SESSION['User']['id'] . "/", "", $path));
-		}
-	}
-
 	/**
 	 * Convert internal VRE file format into DM MuG file
 	 * @file  VRE file object, resulting from merging MuGVRE Mongo collections Files + FilesMetadata
@@ -1126,29 +1022,10 @@ class Tooljob
 	}
 
 
-	/**
-	 *
-	 */
-	protected function array_to_object($array)
+	private function extractCloudName($tool, $sites)
 	{
-		$obj = new stdClass;
-		foreach ($array as $k => $v) {
-			if (strlen($k)) {
-				if (is_array($v)) {
-					$obj->{$k} = $this->array_to_object($v); //RECURSION
-				} else {
-					$obj->{$k} = $v;
-				}
-			}
-		}
-		return $obj;
-	}
-
-
-	private function extractCloudName($tool)
-	{
-		if (!empty($this->arguments_exec['site_list']) && count($this->arguments_exec['site_list']) >= 1) {
-			return $this->arguments_exec['site_list'][0];
+		if (!empty($sites)) {
+			return $sites[0];
 		}
 
 		$available_clouds = array_keys($GLOBALS['clouds']);
@@ -1178,7 +1055,6 @@ class Tooljob
 	 */
 	public function createMetadata_from_Input_files_public($input_files_public, $tool)
 	{
-
 		$metadata_public = array();
 
 		foreach ($input_files_public as $input_name => $input_value) {
@@ -1260,136 +1136,11 @@ class Tooljob
 		return $metadata_public;
 	}
 
-	/**
-	 * Assign tool VM size (image type) according the demanded CPUS and RAM 
-	 * @cpus integer requested VM cores
-	 * @mem  integer requested VM RAM memory
-	 */
-	protected function setImageType($cpus_requested, $mem_requested)
-	{
-		$cpus = 0;
-		$mem = 0;
-		// if not flavors list defined, complain and try default flavor
-		if (count($GLOBALS['clouds'][$this->cloudName]['imageTypes']) === 0) {
-			$cpus = 4;
-			$mem = 8;
-			$flavor_name = "large";
-			$_SESSION['errorData']['Internal'][] = "Cannot set job virtual machine size for cloud '" . $this->cloudName . "'. Trying with '$flavor_name' ($cpus cores and $mem GB RAM). If job fails, report us please";
-			$flavor = ["id" => $flavor_name, "name" => $flavor_name, "disk" => null];
-			$flavor['cpus']   = $cpus;
-			$flavor['memory'] = $mem;
-
-			return $flavor;
-		}
-
-		// navigate flavors list to find the flavor better fits requested mem and cpus
-		// first find flavor with the minimal RAM
-		foreach ($GLOBALS['clouds'][$this->cloudName]['imageTypes'] as $mem_flavor => $flavors_list_mem) {
-			if ($mem_requested > $mem_flavor) {
-				continue;
-			}
-
-			$mem = $mem_flavor;
-			break;
-		}
-
-		if (!$mem) {
-			$_SESSION['errorData']['Warning'][] = "Cannot set job virtual machine with $cpus_requested cores and $mem_requested GB RAM for cloud '" . $this->cloudName . "'. Assigning maximum RAM = $mem_flavor GB";
-			$mem = $mem_flavor;
-		}
-
-		// second  find flavor with the minimal cores
-		foreach ($GLOBALS['clouds'][$this->cloudName]['imageTypes'][$mem] as $cpus_flavor => $flavor_list_cpu) {
-			if ($cpus_requested > $cpus_flavor) {
-				continue;
-			}
-
-			$cpus = $cpus_flavor;
-			break;
-		}
-
-		if (!$cpus) {
-			$_SESSION['errorData']['Warning'][] = "Cannot set job virtual machine with $cpus_requested cores and $mem_requested GB RAM for cloud '" . $this->cloudName . "'. Assigning maximum cores = $cpus_flavor";
-			$cpus = $cpus_flavor;
-		}
-
-		$flavor = $GLOBALS['clouds'][$this->cloudName]['imageTypes'][$mem][$cpus];
-		$flavor['cpus'] = $cpus;
-		$flavor['memory'] = $mem;
-
-		return $flavor;
-	}
-
-
-	public function getSSHCred($remote_dir, $siteId)
-	{
-		#retrieve the credential and update the site collection with it
-		$vaultClient = VaultClientFactory::create();
-		$credentials = $vaultClient->retrieveDatafromVault('SSH');
-		if ($credentials) {
-			$sshPrivateKey = $credentials['private_key'];
-			$sshPublicKey = $credentials['public_key'];
-			$sshUsername = $credentials['username'];
-			$sshId = $credentials['_id'];
-
-			// Set up the credentials array for the RemoteSSH class
-			$sshCredentials = [
-				'private_key' => $sshPrivateKey,
-				'public_key' => $sshPublicKey,
-				'username' => $sshUsername
-			];
-
-			// Retrieve site info from the sites collection
-			$siteDocument = $GLOBALS['sitesCol']->findOne(['_id' => $siteId]);
-			// Assuming the site document exists, update the launcher section with SSH credentials
-			if ($siteDocument) {
-				$siteDocument['launcher']['access_credentials']['username'] = $sshUsername;
-				$siteDocument['launcher']['access_credentials']['private_key'] = $sshPrivateKey;
-				$siteDocument['launcher']['access_credentials']['public_key'] = $sshPublicKey;
-				// Save the updated site document back to the collection
-				$updateResult = $GLOBALS['sitesCol']->updateOne(['_id' => $siteId], ['$set' => $siteDocument]);
-				$updatedSiteDocument = $GLOBALS['sitesCol']->findOne(['_id' => $siteId]);
-
-				return true;
-			} else {
-				return array('error' => 'Site document not found for site ID: ' . $siteId);
-			}
-		} else {
-			return array('error' => 'Failed to retrieve SSH credentials from Vault, not present.');
-		}
-	}
-
 
 	protected function setHPCRequest($cloudName, $tool)
 	{
-		if ($cloudName == 'marenostrum') {
-			//Get the credentials
-			$remoteSSH = $this->getSSHCred(null, $cloudName);
-			if (isset($remoteSSH['error'])) {
-				$_SESSION['errorData']['Internal Error'][] = "Failed to retrieve SSH credentials: " . $remoteSSH['error'];
-				return 0;
-			}
-
-			//Retrieve the launcher details
-			$launcherInfo = $this->getLauncher_Info($cloudName);
-			if (!$launcherInfo || empty($launcherInfo)) {
-				$_SESSION['errorData']['Internal Error'][] = "Cannot set tool command line. Launcher details are not available.";
-				return 0;
-			}
-
-			//Set Bash command for Slurm
-			$cmd = $this->setBashCmd_Slurm($tool, $metadata, $launcherInfo);
-			if (!$cmd) {
-				return 0;
-			}
-
-
-			return $cmd; //Return the command if everything is fine for MN
-		} else {
-			//For future HPC environments
-			$_SESSION['errorData']['Internal Error'][] = "Cloud environment '$cloudName' is not supported yet.";
-			return 0;
-		}
+		// To be implemented
+		return null;
 	}
 
 
