@@ -101,7 +101,7 @@ function createUserFromToken($login, $token, $userinfo = array(), $anonID = fals
     if (!$userArray['dataDir']) {
         getUsersLogger()->debug("Creating workspace for user: " . $userArray['id']);
         // create new workspace
-        $dataDirId =  prepUserWorkSpace($userArray['id'], $userArray['activeProject']);
+        $dataDirId =  prepUserWorkSpace($userArray['activeProject']);
         $userArray['dataDir'] = $dataDirId;
         $_SESSION['User']['dataDir'] = $dataDirId;
         getUsersLogger()->info("Workspace created for user: " . $userArray['id']);
@@ -149,7 +149,7 @@ function createUserAnonymous($sampleData)
     $_SESSION['User']   = $userArray;
     $_SESSION['anonID'] = $userArray['Email'];
 
-    $dataDirId = prepUserWorkSpace($userArray['id'], $userArray['activeProject'], $sampleData);
+    $dataDirId = prepUserWorkSpace($userArray['activeProject'], $sampleData);
     $userArray['dataDir'] = $dataDirId;
     $userArray['terms']  =  "1";
     $_SESSION['User']['dataDir'] = $dataDirId;
@@ -189,7 +189,6 @@ function setUser($f, $lastLogin = false)
 {
     $aux = (array)$f;
     $_SESSION['User']   = $aux;
-    $_SESSION['curDir'] = $_SESSION['User']['id'];
 
     if (!isset($_SESSION['lastUserLogin']) && $lastLogin) $_SESSION['lastUserLogin'] = $lastLogin;
 }

@@ -18,19 +18,16 @@ function getProjectLogger()
 	return $logger;
 }
 
-function prepUserWorkSpace($homeDir, $projectDir, $sampleData = "", $projectData = array(), $verbose = false, $asRoot = 0)
+function prepUserWorkSpace($projectDir, $sampleData = "", $projectData = array(), $verbose = false, $asRoot = 0)
 {
-	// set current directory
-	$_SESSION['curDir'] = $homeDir;
-
 	// set sampleData default
 	if (empty($sampleData)) {
 		$sampleData = $GLOBALS['sampleData_default'];
 	}
 
 	if (empty($projectDir)) {
-		getProjectLogger()->error("Cannot create user workspace $homeDir. No project directory name given.");
-		throw new UnexpectedValueException("Cannot create user workspace $homeDir. No project directory name given.");
+		getProjectLogger()->error("Cannot create user workspace" . $_SESSION['User']['id'] . ". No project directory name given.");
+		throw new UnexpectedValueException("Cannot create user workspace"  . $_SESSION['User']['id'] . ". No project directory name given.");
 	}
 
 	if (empty($projectData)) {
@@ -42,14 +39,14 @@ function prepUserWorkSpace($homeDir, $projectDir, $sampleData = "", $projectData
 	}
 
 	// create worskspace data
-	$dataDirId = setUserWorkSpace($homeDir, $projectDir, $projectData, $sampleData, $verbose, $asRoot);
+	$dataDirId = setUserWorkSpace($projectDir, $projectData, $sampleData, $verbose, $asRoot);
 
 	return $dataDirId;
 }
 
-function setUserWorkSpace($homeDir, $projectDir, $projectData, $sampleData, $verbose = false, $asRoot = 0)
+function setUserWorkSpace($projectDir, $projectData, $sampleData, $verbose = false, $asRoot = 0)
 {
-	getProjectLogger()->info("Preparing user workspace named '$homeDir' with sample data '$sampleData'");
+	getProjectLogger()->info("Preparing user workspace named" . $_SESSION['User']['id'] . " with sample data '$sampleData'");
 
 	//creating user home directory
 	if (!is_dir($GLOBALS['userDataDir']) || !is_writable($GLOBALS['userDataDir'])) {
@@ -57,10 +54,10 @@ function setUserWorkSpace($homeDir, $projectDir, $projectData, $sampleData, $ver
 		throw new UnexpectedValueException("Cannot access VRE data. Make sure data device is accessible and writable.");
 	}
 
-	$homeDirP  = $GLOBALS['userDataDir'] . "/$homeDir";
-	$homeDirId = getGSFileId_fromPath($homeDir, $asRoot);
+	$homeDirP  = $GLOBALS['userDataDir'] . "/" . $_SESSION['User']['id'];
+	$homeDirId = getGSFileId_fromPath($_SESSION['User']['id'], $asRoot);
 	if (! isGSDirBNS($GLOBALS['filesCol'], $homeDirId) || ! is_dir($homeDirP)) {
-		$homeDirId  = createGSDirBNS($homeDir, 1);
+		$homeDirId  = createGSDirBNS($_SESSION['User']['id'], 1);
 		getProjectLogger()->info("Creating main user directory: $homeDirP ($homeDirId)");
 		addMetadataToFile($homeDirId, array(
 			"expiration" => -1,
@@ -82,7 +79,7 @@ function setUserWorkSpace($homeDir, $projectDir, $projectData, $sampleData, $ver
 	);
 
 	// creating user workspace for given project
-	$dataDir   = "$homeDir/$projectDir";
+	$dataDir   =  $_SESSION['User']['id'] . "/$projectDir";
 	$dataDirP  = $GLOBALS['userDataDir'] . "/$dataDir";
 	$dataDirId = getGSFileId_fromPath($dataDir, $asRoot);
 
@@ -1426,29 +1423,6 @@ function  build_outputs_list($tool, $stageout_job, $stageout_file)
 	return $outs_meta;
 }
 
-
-function topDir()
-{
-	return ($_SESSION['curDir'] == $_SESSION['userId']);
-}
-
-function upDir()
-{
-	if (!topDir())
-		$_SESSION['curDir'] = dirname($_SESSION['curDir']);
-}
-
-function downDir($fn)
-{
-	$fnData = $GLOBALS['filesCol']->findOne(array('_id' => $fn));
-	if (! empty($fnData)) {
-		if (isset($fnData['type']) && $fnData['type'] == "dir") {
-			$_SESSION['curDir'] = $fn;
-		} else {
-			$_SESSION['errorData'][error][] = "Cannot change directory. $fn is not a directory ";
-		}
-	}
-}
 
 // return sum of FS or Mongo directory (in bytes)
 

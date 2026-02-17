@@ -51,7 +51,7 @@ if ($_REQUEST['op'] == "new") {
     $proj_code = createLabel_proj();
     $proj_sd   = $GLOBALS['sampleData_default'];
 
-    $proj_id   = prepUserWorkSpace($_SESSION['User']['id'], $proj_code, $proj_sd, $projData);
+    $proj_id   = prepUserWorkSpace($proj_code, $proj_sd, $projData);
 
     if (!$proj_id) {
         // return error

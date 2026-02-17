@@ -36,14 +36,14 @@ function getGSFilesFromDir($dataSelection = array(), $onlyVisible = 0)
 
 	// set directory query
 	if (empty($dataSelection)) {
-		if (!isset($_SESSION['curDir'])) {
+		if (!isset($_SESSION['User']['id'])) {
 			getMongoLogger()->error("Cannot retrieve files from the database. Given query is not valid.");
 			throw new UnexpectedValueException("Cannot retrieve files from the database. Given query is not valid.");
 		}
 
 		$dataSelection = array(
 			'owner' => $_SESSION['User']['id'],
-			'path'  => $_SESSION['curDir']
+			'path'  => $_SESSION['User']['id']
 		);
 	}
 
@@ -512,13 +512,13 @@ function absolutePathGSDir($dirPath, $asRoot = 0)
 	}
 
 	$root = $_SESSION['User']['id'];
-	if ($root != $_SESSION['curDir'] && !preg_match('/^(\/)*' . $root . '(\/|$)/', $_SESSION['curDir'])) {
-		getMongoLogger()->error("Current directory " . $_SESSION['curDir'] . " is not under the home directory $root.");
-		throw new UnexpectedValueException("Current directory " . $_SESSION['curDir'] . " is not under the home directory $root.");
+	if ($root != $_SESSION['User']['id'] && !preg_match('/^(\/)*' . $root . '(\/|$)/', $_SESSION['User']['id'])) {
+		getMongoLogger()->error("Current directory " . $_SESSION['User']['id'] . " is not under the home directory $root.");
+		throw new UnexpectedValueException("Current directory " . $_SESSION['User']['id'] . " is not under the home directory $root.");
 	}
 
 	if (!preg_match('/^(\/)*' . $root . '(\/|$)/', $dirPath)) {
-		return $_SESSION['curDir'] . "/" . $dirPath;
+		return $_SESSION['User']['id'] . "/" . $dirPath;
 	}
 
 	return $dirPath;
@@ -537,13 +537,13 @@ function absolutePathGSFile($filePath, $asRoot)
 		return $filePath;
 	} else {
 		$userId = $_SESSION['User']['id'];
-		if ($userId != $_SESSION['curDir'] && !preg_match('/^(\/)*' . $userId . '(\/|$)/', $_SESSION['curDir'])) {
-			$_SESSION['errorData']['mongoDB'][] = "Current directory " . $_SESSION['curDir'] . " is not under the home directory $userId. Restart login, please";
+		if ($userId != $_SESSION['User']['id'] && !preg_match('/^(\/)*' . $userId . '(\/|$)/', $_SESSION['User']['id'])) {
+			$_SESSION['errorData']['mongoDB'][] = "Current directory " . $_SESSION['User']['id'] . " is not under the home directory $userId. Restart login, please";
 			return null;
 		}
 
 		if (!preg_match('/^(\/)*' . $userId . '\//', $filePath)) {
-			return $_SESSION['curDir'] . "/" . $filePath;
+			return $_SESSION['User']['id'] . "/" . $filePath;
 		}
 
 		return $filePath;
@@ -657,8 +657,8 @@ function uploadGSFileBNS($localFilePath, $filePath, $attributes = [], $meta = []
 	$mongoFilesCollection = $GLOBALS['filesCol'];
 	$absoluteFilePath = absolutePathGSFile($localFilePath, $asRoot);
 	if (is_null($absoluteFilePath)) {
-		getMongoLogger()->error("Cannot upload $localFilePath to current directory " . $_SESSION['curDir']);
-		throw new UnexpectedValueException("Cannot upload $localFilePath to current directory " . $_SESSION['curDir']);
+		getMongoLogger()->error("Cannot upload $localFilePath to current directory " . $_SESSION['User']['id']);
+		throw new UnexpectedValueException("Cannot upload $localFilePath to current directory " . $_SESSION['User']['id']);
 	}
 
 	$fileId = getGSFileId_fromPath($absoluteFilePath);
