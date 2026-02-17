@@ -493,7 +493,7 @@ function moveGSDirBNS($fn, $fnNew, $asRoot = 0, $owner = "")
 function fromAbsPath_toPath($absPath)
 {
 	getMongoLogger()->debug("fromAbsPath_toPath($absPath)");
-	$path = str_replace($GLOBALS['dataDir'], "", $absPath);
+	$path = str_replace($GLOBALS['userDataDir'], "", $absPath);
 	return preg_replace('/^\//', "", $path);
 }
 
@@ -503,7 +503,7 @@ function absolutePathGSDir($dirPath, $asRoot = 0)
 	if ($asRoot) {
 		$startingSlashRegex = '/^\//';
 		if (preg_match($startingSlashRegex, $dirPath)) {
-			$cleanDirPath = str_replace($GLOBALS['dataDir'], "", $dirPath);
+			$cleanDirPath = str_replace($GLOBALS['userDataDir'], "", $dirPath);
 			$cleanDirPath = preg_replace($startingSlashRegex, "", $cleanDirPath);
 			return $cleanDirPath;
 		}
@@ -529,7 +529,7 @@ function absolutePathGSFile($filePath, $asRoot)
 	if ($asRoot) {
 		$startingSlashRegex = '/^\//';
 		if (preg_match($startingSlashRegex, $filePath)) {
-			$cleanPath = str_replace($GLOBALS['dataDir'], "", $filePath);
+			$cleanPath = str_replace($GLOBALS['userDataDir'], "", $filePath);
 			$cleanPath = preg_replace($startingSlashRegex, "", $cleanPath);
 			return $cleanPath;
 		}
@@ -591,7 +591,7 @@ function createGSDirBNS($dirPath, $asRoot = 0)
 
 	$isRootLevelDir = ($absoluteDirPath == $_SESSION['User']['id'])
 		|| ($asRoot && (
-			preg_match('/^' . preg_quote($GLOBALS['dataDir'], '/') . '(\/)*[^\/.]+$/', $absoluteDirPath)
+			preg_match('/^' . preg_quote($GLOBALS['userDataDir'], '/') . '(\/)*[^\/.]+$/', $absoluteDirPath)
 			|| preg_match('/^[^\/.]+$/', $absoluteDirPath)));
 	if ($isRootLevelDir) {
 		$parentDirId = null;
@@ -613,7 +613,7 @@ function createGSDirBNS($dirPath, $asRoot = 0)
 
 	$owner = $_SESSION['User']['id'];
 	if ($asRoot) {
-		if (preg_match('/^' . preg_quote($GLOBALS['dataDir'], '/') . '(\/)*([^\/.]+)/', $absoluteDirPath, $matches)) {
+		if (preg_match('/^' . preg_quote($GLOBALS['userDataDir'], '/') . '(\/)*([^\/.]+)/', $absoluteDirPath, $matches)) {
 			$owner = $matches[2];
 		} elseif (preg_match('/^([^\/.]+)/', $absoluteDirPath, $matches)) {
 			$owner = $matches[1];

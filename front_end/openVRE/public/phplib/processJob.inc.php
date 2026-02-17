@@ -141,7 +141,7 @@ function delJobFromOutfiles($outfiles)
                 }
 
                 foreach ($files as $fn) {
-                    $rfn = $GLOBALS['dataDir'] . "/$fn";
+                    $rfn = $GLOBALS['userDataDir'] . "/$fn";
                     $ofn = $GLOBALS['filesCol']->findOne(array('_id' => $fn));
                     if (!empty($ofn)) {
                         try {

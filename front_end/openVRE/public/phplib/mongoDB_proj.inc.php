@@ -159,7 +159,7 @@ function printProjectContent($project_id, $onlyFolders = false, $asRoot = 0, $ow
 function deleteProject($project_id)
 {
     $dir = getGSFile_fromId($project_id);
-    $rfn_dir = $GLOBALS['dataDir'] . "/" . $dir['path'];
+    $rfn_dir = $GLOBALS['userDataDir'] . "/" . $dir['path'];
     deleteGSDirBNS($project_id);
 
     // delete dir from disk

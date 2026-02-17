@@ -58,7 +58,7 @@ class DataTransfer
         $this->input_files = $input_files;
 
         // Set paths in VRE
-        $this->root_dir  = $GLOBALS['dataDir'] . "/" . $_SESSION['User']['id'];
+        $this->root_dir  = $GLOBALS['userDataDir'] . "/" . $_SESSION['User']['id'];
         $this->pub_dir   = $GLOBALS['pubDir'];
 
         // Set paths in the virtual machine
@@ -149,7 +149,7 @@ class DataTransfer
                     $prevs     =  $GLOBALS['filesCol']->findOne(array('path' => $wdFN, 'owner' => $_SESSION['User']['id']));
                     if ($prevs) {
                         $execution = $executionN;
-                        $wd     = $GLOBALS['dataDir'] . "/$wdFN";
+                        $wd     = $GLOBALS['userDataDir'] . "/$wdFN";
                         break;
                     }
                 }

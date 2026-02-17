@@ -140,7 +140,7 @@ function initiateFileDownload($swiftClient, $fileUrl, $container)
 	// Set destination working directory/uploads
 	$dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
 	$wd = $dataDirPath . "/uploads";
-	$wdP = $GLOBALS['dataDir'] . "/" . $wd;
+	$wdP = $GLOBALS['userDataDir'] . "/" . $wd;
 
 	// Log paths for debugging
 	getObjectStorageLogger()->debug("Data directory: $dataDirPath");

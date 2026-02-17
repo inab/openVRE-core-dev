@@ -22,7 +22,7 @@ function getData_fromLocal()
     getDataLogger()->info("Uploading local file");
     $dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
     $localWorkingDir = "$dataDirPath/uploads";
-    $workingDir = $GLOBALS['dataDir'] . "/" . $localWorkingDir;
+    $workingDir = $GLOBALS['userDataDir'] . "/" . $localWorkingDir;
     if (!is_dir($workingDir)) {
         getDataLogger()->error("Target server directory '" . basename($localWorkingDir) . "' does not exist");
         throw new UnexpectedValueException("Target server directory '" . basename($localWorkingDir) . "' does not exist.");
@@ -197,7 +197,7 @@ function prepare_getData_fromURL($url, $outdir, $referer, $meta = [])
 
     $dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
     $localWorkingDir = "{$dataDirPath}/{$outdir}";
-    $workingDir = $GLOBALS['dataDir'] . "/" . $localWorkingDir;
+    $workingDir = $GLOBALS['userDataDir'] . "/" . $localWorkingDir;
     $workingDirId = getGSFileId_fromPath($localWorkingDir);
 
     if (is_null($workingDirId)) {
@@ -234,7 +234,7 @@ function prepare_getData_fromURL($url, $outdir, $referer, $meta = [])
 
     // working_dir will be set in user temporal dir. Checking it
     // TODO Or NO! maybe we decide to run directly on uploads/
-    $dirTmp = $GLOBALS['dataDir'] . "/" . $dataDirPath . "/" . $GLOBALS['tmpUser_dir'];
+    $dirTmp = $GLOBALS['userDataDir'] . "/" . $dataDirPath . "/" . $GLOBALS['tmpUser_dir'];
     if (!is_dir($dirTmp) && !mkdir($dirTmp, 0775, true)) {
         getDataLogger()->error("Cannot create temporal file '$dirTmp'.Please, try it later.");
     }
@@ -293,7 +293,7 @@ function getData_fromTXT()
     $dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
     $localWorkingDir = $dataDirPath . "/uploads";
 
-    $workingDir  = $GLOBALS['dataDir'] . "/" . $localWorkingDir;
+    $workingDir  = $GLOBALS['userDataDir'] . "/" . $localWorkingDir;
     $workingDirId = getGSFileId_fromPath($localWorkingDir);
 
     if (is_null($workingDirId) || !is_dir($workingDir)) {
@@ -432,7 +432,7 @@ function getData_fromRepository($url, $datatype, $filetype, $description)
     // setting repository directory
     $dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
     $localWorkingDir = "$dataDirPath/repository";
-    $workingDir = $GLOBALS['dataDir'] . "/" . $localWorkingDir;
+    $workingDir = $GLOBALS['userDataDir'] . "/" . $localWorkingDir;
     $workingDirId = getGSFileId_fromPath($localWorkingDir);
 
     if (is_null($workingDirId)) {
@@ -469,7 +469,7 @@ function getData_fromRepository($url, $datatype, $filetype, $description)
 
     // working_dir will be set in user temporal dir. Checking it
     // TODO Or NO! maybe we decide to run directly on uploads/
-    $dirTmp = $GLOBALS['dataDir'] . "/" . $dataDirPath . "/" . $GLOBALS['tmpUser_dir'];
+    $dirTmp = $GLOBALS['userDataDir'] . "/" . $dataDirPath . "/" . $GLOBALS['tmpUser_dir'];
     if (!is_dir($dirTmp) && !mkdir($dirTmp, 0775, true)) {
         getDataLogger()->error("Cannot create temporal file '$dirTmp'.Please, try it later.");
     }

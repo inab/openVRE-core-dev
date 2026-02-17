@@ -30,7 +30,7 @@ if (is_null($_REQUEST['fn']) && is_null($_REQUEST['fnPath']) && !preg_match('/ca
 }
 
 $filePath = getAttr_fromGSFileId($_REQUEST['fn'], 'path');
-$rfn      = $GLOBALS['dataDir'] . "/$filePath";
+$rfn      = $GLOBALS['userDataDir'] . "/$filePath";
 
 // Process operation
 if (isset($_REQUEST['op'])) {

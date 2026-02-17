@@ -106,7 +106,7 @@ foreach ($user_data as $v) {
     $_SESSION['User'] = $v;
 
     // check dataDir exists in disk
-    $rdir =  $GLOBALS['dataDir'] . $v['id'];
+    $rdir =  $GLOBALS['userDataDir'] . $v['id'];
     if (! is_dir($rdir)) {
 
         if ($v['Type'] == UserType::Guest->value) {
@@ -223,7 +223,7 @@ foreach ($user_data as $v) {
 
                 // ignore files that have expiration -1
                 if (!is_object($f['expiration']) &&  $f['expiration'] == -1) {
-                    if (is_file($GLOBALS['dataDir'] . "/" . $f['path'])) {
+                    if (is_file($GLOBALS['userDataDir'] . "/" . $f['path'])) {
                         if ($verbose) {
                             print $msg_fn;
                             print "----- File in vigor | Expiration = -1. Doing nothing\n";
@@ -248,7 +248,7 @@ foreach ($user_data as $v) {
 
                     // file is expired    
                     if ($days2expire < 0) {
-                        if (is_file($GLOBALS['dataDir'] . "/" . $f['path'])) {
+                        if (is_file($GLOBALS['userDataDir'] . "/" . $f['path'])) {
                             print $msg_fn;
                             print "----- File expirated | Mtime = $time_mtime | Exp date = $time_exp | Days overpassed = $days2expire\n";
                             $tobedeleted = true;
@@ -275,8 +275,8 @@ foreach ($user_data as $v) {
             // delete file if required
             if (($tobedeleted === true && $soft_mode === false) || $tobedeleted_evenSoftMode === true) {
 
-                if (is_file($GLOBALS['dataDir'] . "/" . $f['path']) && !is_writable($GLOBALS['dataDir'] . "/" . $f['path'])) {
-                    print "FATAL: Cannot delete file. '" . $GLOBALS['dataDir'] . "/" . $f['path'] . "' is not writable: permission denied\n";
+                if (is_file($GLOBALS['userDataDir'] . "/" . $f['path']) && !is_writable($GLOBALS['userDataDir'] . "/" . $f['path'])) {
+                    print "FATAL: Cannot delete file. '" . $GLOBALS['userDataDir'] . "/" . $f['path'] . "' is not writable: permission denied\n";
                     exit(0);
                 }
                 if ($dry_run === true) {
@@ -350,12 +350,12 @@ print "EXITTTTTTTT --- TODO";
 exit(0);
 // clean temporary files
 if ($rm_temporary === true) {
-    $tmp_users = $GLOBALS['dataDir'] . "/*/*/" . $GLOBALS['tmpUser_dir'];
+    $tmp_users = $GLOBALS['userDataDir'] . "/*/*/" . $GLOBALS['tmpUser_dir'];
     print "\n\nLooking for temporary data ($tmp_users)\n";
 
     // find and delete files in .tmp older than 'caduca_strict'
-    //$cmd="find ".$GLOBALS['dataDir']."/*/*/".$GLOBALS['tmpUser_dir']."  -maxdepth 1  -mtime +".$caduca_strict." -type f -exec rm -fv {} \\;";
-    $cmd = "find " . $GLOBALS['dataDir'] . "/*/*/" . $GLOBALS['tmpUser_dir'] . "  -maxdepth 1  -mtime +" . $caduca_strict . " -type f ";
+    //$cmd="find ".$GLOBALS['userDataDir']."/*/*/".$GLOBALS['tmpUser_dir']."  -maxdepth 1  -mtime +".$caduca_strict." -type f -exec rm -fv {} \\;";
+    $cmd = "find " . $GLOBALS['userDataDir'] . "/*/*/" . $GLOBALS['tmpUser_dir'] . "  -maxdepth 1  -mtime +" . $caduca_strict . " -type f ";
     if ($dry_run === false) {
         $cmd .= " -exec rm -fv {} \\;";
     }
@@ -363,8 +363,8 @@ if ($rm_temporary === true) {
     system($cmd);
 
     // find and delete directories in .tmp named like '?*_[0-9]*' and older than 'caduca_strict'
-    //$cmd="find ".$GLOBALS['dataDir']."/*/*/".$GLOBALS['tmpUser_dir']."  -maxdepth 1  -mtime +".$caduca_strict." -type d -name '?*_[0-9]*' -exec rm -Rfv {} \\;";
-    $cmd = "find " . $GLOBALS['dataDir'] . "/*/*/" . $GLOBALS['tmpUser_dir'] . "  -maxdepth 1  -mtime +" . $caduca_strict . " -type d -name '?*_[0-9]*' ";
+    //$cmd="find ".$GLOBALS['userDataDir']."/*/*/".$GLOBALS['tmpUser_dir']."  -maxdepth 1  -mtime +".$caduca_strict." -type d -name '?*_[0-9]*' -exec rm -Rfv {} \\;";
+    $cmd = "find " . $GLOBALS['userDataDir'] . "/*/*/" . $GLOBALS['tmpUser_dir'] . "  -maxdepth 1  -mtime +" . $caduca_strict . " -type d -name '?*_[0-9]*' ";
     if ($dry_run === false) {
         $cmd .= " -exec rm -Rfv {} \\;";
     }
@@ -372,8 +372,8 @@ if ($rm_temporary === true) {
     system($cmd);
 
     // find and delete TAR files in .tmp bigger than 2GB  // TODO: no need of it when issue with 'massive TARs' is solved
-    //$cmd="find ".$GLOBALS['dataDir']."/*/*/".$GLOBALS['tmpUser_dir']."  -maxdepth 1  -size +2G -mtime -".$caduca_strict." -type f -name '*tar.gz' -exec rm -fv {} \\;";
-    $cmd = "find " . $GLOBALS['dataDir'] . "/*/*/" . $GLOBALS['tmpUser_dir'] . "  -maxdepth 1  -size +2G -mtime -" . $caduca_strict . " -type f -name '*tar.gz' ";
+    //$cmd="find ".$GLOBALS['userDataDir']."/*/*/".$GLOBALS['tmpUser_dir']."  -maxdepth 1  -size +2G -mtime -".$caduca_strict." -type f -name '*tar.gz' -exec rm -fv {} \\;";
+    $cmd = "find " . $GLOBALS['userDataDir'] . "/*/*/" . $GLOBALS['tmpUser_dir'] . "  -maxdepth 1  -size +2G -mtime -" . $caduca_strict . " -type f -name '*tar.gz' ";
     if ($dry_run === false) {
         $cmd .= " -exec rm -fv {} \\;";
     }

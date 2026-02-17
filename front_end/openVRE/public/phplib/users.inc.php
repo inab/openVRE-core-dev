@@ -207,7 +207,7 @@ function delUser($id)
 
     deleteGSDirBNS($homeId, 1);
 
-    $rfn =  $GLOBALS['dataDir'] . "/" . $homePath;
+    $rfn =  $GLOBALS['userDataDir'] . "/" . $homePath;
     if (is_dir($rfn)) {
         exec("rm -r \"$rfn\" 2>&1", $output);
     }

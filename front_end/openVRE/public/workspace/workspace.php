@@ -34,7 +34,7 @@ if (is_array($_REQUEST['fn']) && $_REQUEST['op'] != 'moveFiles')
 $fileData = $GLOBALS['filesCol']->findOne(array('_id' => $_REQUEST['fn'], 'owner' => $_SESSION['User']['id']));
 $fileMeta = $GLOBALS['filesMetaCol']->findOne(array('_id' => $_REQUEST['fn']));
 $filePath = getAttr_fromGSFileId($_REQUEST['fn'], 'path');
-$rfn      = $GLOBALS['dataDir'] . "/$filePath";
+$rfn      = $GLOBALS['userDataDir'] . "/$filePath";
 
 // user project directory
 $userPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
@@ -66,7 +66,7 @@ if (isset($_REQUEST['op'])) {
 		case 'downloadAll':
 
 			$newName = "files.tar.gz";
-			$tmpZip = $GLOBALS['dataDir'] . "/" . $userPath . "/" . $GLOBALS['tmpUser_dir'] . "/" . basename($newName);
+			$tmpZip = $GLOBALS['userDataDir'] . "/" . $userPath . "/" . $GLOBALS['tmpUser_dir'] . "/" . basename($newName);
 
 			$fls = "";
 
@@ -75,7 +75,7 @@ if (isset($_REQUEST['op'])) {
 					$filePath2 = getAttr_fromGSFileId($v, 'path');
 					$relpath = implode("/", array_slice(explode('/', $filePath2), 0, -1));
 					$filnam = end(explode('/', $filePath2));
-					$rfn2      = $GLOBALS['dataDir'] . "/$relpath";
+					$rfn2      = $GLOBALS['userDataDir'] . "/$relpath";
 					$fls .= "-C $rfn2 $filnam ";
 				}
 			}
@@ -99,12 +99,12 @@ if (isset($_REQUEST['op'])) {
 				$_SESSION['errorData']['Error'][] = "Cannot tar " . $_REQUEST['fn'] . " File is not a directory";
 				break;
 			}
-			if (trim($rfn, "/") == trim($GLOBALS['dataDir'], "/")) {
+			if (trim($rfn, "/") == trim($GLOBALS['userDataDir'], "/")) {
 				$_SESSION['errorData']['Error'][] = "Cannot tar " . $_REQUEST['fn'] . " . Make sure your user session is active.";
 				break;
 			}
 			$newName = $_REQUEST['fn'] . ".tar.gz";
-			$tmpZip = $GLOBALS['dataDir'] . "/" . $userPath . "/" . $GLOBALS['tmpUser_dir'] . "/" . basename($newName);
+			$tmpZip = $GLOBALS['userDataDir'] . "/" . $userPath . "/" . $GLOBALS['tmpUser_dir'] . "/" . basename($newName);
 
 			$cmd = "/bin/tar -czf $tmpZip -C $rfn . 2>&1";
 			logger("workspace/workspace.php:103 -- TAR CMD: " . $cmd);
@@ -167,7 +167,7 @@ if (isset($_REQUEST['op'])) {
 
 			$rfn = (preg_match('/^\//', $_REQUEST['fnPath'])
 				? $_REQUEST['fnPath']
-				: $GLOBALS['dataDir'] . "/" . $_REQUEST['fnPath']);
+				: $GLOBALS['userDataDir'] . "/" . $_REQUEST['fnPath']);
 
 			$fileInfo = pathinfo($rfn);
 			$contentType = "text/plain";
@@ -444,7 +444,7 @@ if (isset($_REQUEST['op'])) {
 				die();
 				break;
 			}
-			$rfn_target = $GLOBALS['dataDir'] . "/" . $_REQUEST['target'];
+			$rfn_target = $GLOBALS['userDataDir'] . "/" . $_REQUEST['target'];
 
 			// Move file in mongo
 			moveGSDirBNS($filePath, $_REQUEST['target']);

@@ -56,7 +56,7 @@ foreach (array_values(iterator_to_array($fu)) as $u) {
 
     // ckeck if user exists in disk
 
-    $homeDir = $GLOBALS['dataDir'] . "/$id";
+    $homeDir = $GLOBALS['userDataDir'] . "/$id";
     print "- homeDir = $homeDir<br/>\n";
     if (!is_dir($homeDir)) {
         print "Id $id has no home dir: $homeDir";
@@ -213,8 +213,8 @@ foreach (array_values(iterator_to_array($fu)) as $u) {
             $dir = getGSFile_fromId($dirId, "", 1);
             $dir_pathOld = $dir['path'];
             $dir_pathNew = "$id/$proj_code/" . basename($dir['path']);
-            $rfn_pathOld = $GLOBALS['dataDir'] . "/" . $dir_pathOld;
-            $rfn_pathNew = $GLOBALS['dataDir'] . "/" . $dir_pathNew;
+            $rfn_pathOld = $GLOBALS['userDataDir'] . "/" . $dir_pathOld;
+            $rfn_pathNew = $GLOBALS['userDataDir'] . "/" . $dir_pathNew;
 
             print "    - Moving orphan dir $dir_pathOld -> $dir_pathNew<br/>\n";
 
@@ -250,8 +250,8 @@ foreach (array_values(iterator_to_array($fu)) as $u) {
 
     if (count($orphanPaths)) {
         foreach ($orphanPaths as $f_path) {
-            $rfn_pathOld = $GLOBALS['dataDir'] . "/$f_path";
-            $rfn_pathNew = $GLOBALS['dataDir'] . "/$id/$proj_code/" . basename($f_path);
+            $rfn_pathOld = $GLOBALS['userDataDir'] . "/$f_path";
+            $rfn_pathNew = $GLOBALS['userDataDir'] . "/$id/$proj_code/" . basename($f_path);
             print "MOVE IN DISK $rfn_pathOld $rfn_pathNew<br/>\n";
             rename($rfn_pathOld, $rfn_pathNew);
         }

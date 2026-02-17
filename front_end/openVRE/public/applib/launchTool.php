@@ -100,7 +100,7 @@ $logger->debug("Processed input files: ", ['input_files' => $jobMeta->input_file
 
 foreach ($files as $fnId => $file) {
 	$fn = getAttr_fromGSFileId($fnId, 'path');
-	$rfn  = $GLOBALS['dataDir'] . "/$fn";
+	$rfn  = $GLOBALS['userDataDir'] . "/$fn";
 
 	$fileType = getAttr_fromGSFileId($fnId, 'type');
 	if ($fileType === 'dir') {

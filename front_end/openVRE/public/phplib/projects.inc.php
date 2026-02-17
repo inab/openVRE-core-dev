@@ -52,12 +52,12 @@ function setUserWorkSpace($homeDir, $projectDir, $projectData, $sampleData, $ver
 	getProjectLogger()->info("Preparing user workspace named '$homeDir' with sample data '$sampleData'");
 
 	//creating user home directory
-	if (!is_dir($GLOBALS['dataDir']) || !is_writable($GLOBALS['dataDir'])) {
+	if (!is_dir($GLOBALS['userDataDir']) || !is_writable($GLOBALS['userDataDir'])) {
 		getProjectLogger()->error("Cannot access VRE data. Make sure data device is accessible and writable.");
 		throw new UnexpectedValueException("Cannot access VRE data. Make sure data device is accessible and writable.");
 	}
 
-	$homeDirP  = $GLOBALS['dataDir'] . "/$homeDir";
+	$homeDirP  = $GLOBALS['userDataDir'] . "/$homeDir";
 	$homeDirId = getGSFileId_fromPath($homeDir, $asRoot);
 	if (! isGSDirBNS($GLOBALS['filesCol'], $homeDirId) || ! is_dir($homeDirP)) {
 		$homeDirId  = createGSDirBNS($homeDir, 1);
@@ -83,7 +83,7 @@ function setUserWorkSpace($homeDir, $projectDir, $projectData, $sampleData, $ver
 
 	// creating user workspace for given project
 	$dataDir   = "$homeDir/$projectDir";
-	$dataDirP  = $GLOBALS['dataDir'] . "/$dataDir";
+	$dataDirP  = $GLOBALS['userDataDir'] . "/$dataDir";
 	$dataDirId = getGSFileId_fromPath($dataDir, $asRoot);
 
 	if (! isGSDirBNS($GLOBALS['filesCol'], $dataDirId) || ! is_dir($dataDirP)) {
@@ -203,7 +203,7 @@ function save_fromSampleDataMetadata($metadata, $dataDir, $sampleName, $type)
 
 	$sampleData = getSampleData($sampleName);
 	$sampleDataPath = $GLOBALS['sampleDataPath'] . "/" . $sampleData['sample_path'] . "/" . $metadata['path'];
-	$dataDirPath = $GLOBALS['dataDir'] . "/$dataDir";
+	$dataDirPath = $GLOBALS['userDataDir'] . "/$dataDir";
 	$userDataPath = $dataDirPath . "/" . $metadata['path'];
 
 	// Saving to disk
@@ -700,7 +700,7 @@ function formatData($data)
 	}
 
 	if ($data['filename'] && !is_url($data['path'])) {
-		$rfn      = $GLOBALS['dataDir'] . "/" . $data['path'];
+		$rfn      = $GLOBALS['userDataDir'] . "/" . $data['path'];
 		if (!is_file($rfn) && !is_dir($rfn)) {
 			$data['filename'] = "ERROR-" . $data['filename'];
 		}
@@ -714,11 +714,11 @@ function formatData($data)
 
 	if (isset($data['log_file'])) {
 		if (preg_match('/^\//', $data['log_file'])) {
-			$data['log_file'] = str_replace($GLOBALS['dataDir'] . "/", "", $data['log_file']);
+			$data['log_file'] = str_replace($GLOBALS['userDataDir'] . "/", "", $data['log_file']);
 		}
 
 		$viewLog_state = "enabled";
-		if ((isset($data['pending']) && ($data['pending'] == "HOLD" || $data['pending'] == "PENDING")) || (!is_file($GLOBALS['dataDir'] . "/" . $data['log_file']) && !is_link($GLOBALS['dataDir'] . "/" . $data['log_file']))) {
+		if ((isset($data['pending']) && ($data['pending'] == "HOLD" || $data['pending'] == "PENDING")) || (!is_file($GLOBALS['userDataDir'] . "/" . $data['log_file']) && !is_link($GLOBALS['userDataDir'] . "/" . $data['log_file']))) {
 			$viewLog_state = 'disabled';
 		}
 
@@ -1197,7 +1197,7 @@ function processFinishedJobInfo($job, $pid, $title, &$filesPending)
 		$logFile  = fromAbsPath_toPath($job['executionDirectories']['executionLogFile']);
 
 		// force flash disk status
-		scandir($GLOBALS['dataDir'] . $_SESSION['User']['id'] . "/" . $job['project']);
+		scandir($GLOBALS['userDataDir'] . $_SESSION['User']['id'] . "/" . $job['project']);
 
 		// job has log
 		if (is_file($logFileP)) {
@@ -1266,12 +1266,12 @@ function saveResults($filePath, $metaData = array(), $job = array(), $rfn = 0, $
 	getProjectLogger()->debug("saveResults(" . $filePath . ", " . json_encode($metaData) . ", " . json_encode($job) . ", " . $rfn . ", " . $asRoot . ")");
 	// check given filePath
 	if ($rfn == 0) {
-		$rfn  = $GLOBALS['dataDir'] . "/" . $filePath;
+		$rfn  = $GLOBALS['userDataDir'] . "/" . $filePath;
 	}
 
 	if (preg_match('/^\//', $filePath)) {
 		$rfn      = $filePath;
-		$filePath = str_replace($GLOBALS['dataDir'] . "/", "", $rfn);
+		$filePath = str_replace($GLOBALS['userDataDir'] . "/", "", $rfn);
 		getProjectLogger()->debug("File path replaced to " . $filePath);
 	}
 
@@ -1460,7 +1460,7 @@ function getUsedDiskSpace($userId = '', $source = "fs")
 
 	if ($source != "fs") {
 		if (!preg_match('/^\//', $userId)) {
-			$userId = $GLOBALS['dataDir'] . "/" . $userId;
+			$userId = $GLOBALS['userDataDir'] . "/" . $userId;
 		}
 
 		$data = explode("\t", exec("du -sb $userId"));
@@ -1479,7 +1479,7 @@ function getDirectorySize($fn)
 	}
 
 	if (!preg_match('/^\//', $fn)) {
-		$fn = $GLOBALS['dataDir'] . "/" . $fn;
+		$fn = $GLOBALS['userDataDir'] . "/" . $fn;
 	}
 
 	$data = explode("\t", exec("du -sb $fn"));
@@ -1698,7 +1698,7 @@ function resolvePath_toLocalAbsolutePath($path, $job)
 			$rfn = dirname($job["outputDir"]) . "/" . $path;
 			// path is relative to root directory (userid/prj/run/file)
 		} elseif (preg_match('/^' . $_SESSION['User']['id'] . '/', $path)) {
-			$rfn = $GLOBALS['dataDir'] . "/" . $path;
+			$rfn = $GLOBALS['userDataDir'] . "/" . $path;
 			// path contains $(working_dir) tag
 		} elseif (preg_match('/(working_dir)/', $path)) {
 			$rfn = str_replace("$(working_dir)", $job['executionDirectories']['executionDir'] . "/", $path);
@@ -1735,7 +1735,7 @@ function deleteFiles($fileIds, $force = false)
 
 		// check file exists
 		$fileLocalPath = $file['path'];
-		$filePath = $GLOBALS['dataDir'] . "/$fileLocalPath";
+		$filePath = $GLOBALS['userDataDir'] . "/$fileLocalPath";
 		if (!file_exists($filePath) && !$force && $file['data_source'] != "EGA") {
 			getProjectLogger()->error("Cannot delete file with id '" . basename($fileLocalPath) . "'. File not found.");
 			$result = false;
@@ -1799,7 +1799,7 @@ function moveFiles($fns, $target_fn)
 
 	if (is_array($fns)) { // is array of fn given, target must be a directory
 		$multipleFiles  = true;
-		if (is_null($targetId) || !is_dir($GLOBALS['dataDir'] . "/$target_fn")) {
+		if (is_null($targetId) || !is_dir($GLOBALS['userDataDir'] . "/$target_fn")) {
 			getProjectLogger()->error("Cannot move multiple files into target directory '$target_fn'. Target must be un existing directory");
 			throw new UnexpectedValueException("Cannot move multiple files into target directory '$target_fn'. Target must be un existing directory");
 		}
@@ -1827,7 +1827,7 @@ function moveFiles($fns, $target_fn)
 		}
 
 		$file_fn  = $file['path'];
-		$file_rfn = $GLOBALS['dataDir'] . "/$file_fn";
+		$file_rfn = $GLOBALS['userDataDir'] . "/$file_fn";
 		if (!file_exists($file_rfn)) {
 			getProjectLogger()->error("Cannot move file named '" . basename($file_fn) . "'. File not found.");
 			throw new NotFoundException("Cannot move file named '" . basename($file_fn) . "'. File not found.");
@@ -1836,7 +1836,7 @@ function moveFiles($fns, $target_fn)
 		if ($multipleFiles) {
 			$target_filename = basename($file_fn);
 		}
-		$target_dir_rfn  = $GLOBALS['dataDir'] . "/$target_dir";
+		$target_dir_rfn  = $GLOBALS['userDataDir'] . "/$target_dir";
 
 		moveGSFileBNS($file_fn, "$target_dir/$target_filename");
 

@@ -40,7 +40,7 @@ if (!$_REQUEST['fn']) {
 $fn     = $_REQUEST['fn'];
 $fnFile = getGSFile_fromId($fn);
 $fnPath = $fnFile['path'];
-$rfn    = $GLOBALS['dataDir'] . "/" . $fnPath;
+$rfn    = $GLOBALS['userDataDir'] . "/" . $fnPath;
 
 
 $resp['fileId']   = $fn;

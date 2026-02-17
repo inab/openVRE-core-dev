@@ -32,9 +32,9 @@ $dtlist = ((isset($_REQUEST["tool"]) && $_REQUEST["tool"] != "") ? getAvailableD
 $projects = getProjects_byOwner();
 
 //update files workspace content (job and files)
-$allFiles = getFilesToDisplay(array('_id' => $_SESSION['User']['dataDir']));
+$userFiles = getFilesToDisplay(array('_id' => $_SESSION['User']['dataDir']));
 
-$files = (isset($dtlist['list']) ? filterFiles_by_dataType($allFiles, $dtlist["list"]) : $allFiles);
+$files = (isset($dtlist['list']) ? filterFiles_by_dataType($userFiles, $dtlist["list"]) : $userFiles);
 $files = addTreeTableNodesToFiles($files);
 
 ?>
@@ -568,7 +568,7 @@ $files = addTreeTableNodesToFiles($files);
 								<div class="scroller" style="height: 204px;" data-always-visible="1"
 									data-rail-visible="0">
 									<?php
-									print printLastJobs($allFiles);
+									print printLastJobs($userFiles);
 									?>
 								</div>
 							</div>

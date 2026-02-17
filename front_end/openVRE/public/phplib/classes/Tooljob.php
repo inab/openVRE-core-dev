@@ -107,7 +107,8 @@ class Tooljob
 			throw new UnexpectedValueException("Cannot create working directory. Not set yet");
 		}
 
-		$dirPath = str_replace($GLOBALS['dataDir'] . "/", "", $this->executionDirectories->executionDir);
+		$dirPath = str_replace($GLOBALS['userDataDir'] . "/", "", $this->executionDirectories->executionDir);
+		$this->logger->info("Creating execution folder from replacing '" . $GLOBALS['userDataDir'] . "' in ''" . $this->executionDirectories->executionDir . "' and getting '" . $dirPath . "'");
 		if (!is_dir($this->executionDirectories->executionDir)) {
 			$this->_id = 1;
 			if ($this->hasExecutionFolder) {
@@ -854,7 +855,7 @@ class Tooljob
 		foreach ($this->input_files as $input_name => $fileIds) {
 			foreach ($fileIds as $fnId) {
 				$filePath  = $metadata[$fnId]['path'];
-				$filename = $GLOBALS['dataDir'] . "/$filePath";
+				$filename = $GLOBALS['userDataDir'] . "/$filePath";
 				$cmd .= " --$input_name $filename";
 			}
 		}
