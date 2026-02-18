@@ -100,10 +100,31 @@ if (!isset($_GET['code'])) {
     // If new user, create or import from anon
     if (is_null($user)) {
         try {
-            $user = createUserFromToken($userInfo['email'], $accessToken, $userInfo, false);
+            $user = createUserFromToken($accessToken, $userInfo);
             getLoginLogger()->info("Created new user from user access token.");
         } catch (\Exception $e) {
             exit('Login error: failed to create local VRE user: ' . $e->getMessage());
+        }
+
+        getLoginLogger()->debug("Creating workspace for user: " . $user['id']);
+        $dataDirId =  prepUserWorkSpace($user['activeProject']);
+        $user['dataDir'] = $dataDirId;
+        $_SESSION['User']['dataDir'] = $dataDirId;
+        getLoginLogger()->info("Workspace created for user: " . $user['id']);
+
+        try {
+            getUsersLogger()->debug("Saving new user into Mongo database");
+            saveNewUser($user);
+        } catch (Exception $e) {
+            getUsersLogger()->error("Error saving new user into Mongo database");
+            unset($_SESSION['User']);
+            throw $e;
+        }
+
+        if (!$user['Name'] || !$user['Surname'] || !$user['Inst']) {
+            getUsersLogger()->info("User metadata incomplete, redirecting to profile page");
+            redirect($GLOBALS['BASEURL'] . 'user/usrProfile.php');
+            exit(0);
         }
     }
 

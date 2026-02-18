@@ -48,80 +48,39 @@ function checkToolDev()
 }
 
 // create user - after being authentified by the Auth Server
-function createUserFromToken($login, $token, $userinfo = array(), $anonID = false)
+function createUserFromToken($token, $userInfo = array())
 {
-    if (!$anonID) {
-        $userAttributes = array(
-            "Email"        => $login,
-            "Type"         => UserType::Registered->value
-        );
-    } else {
-        $userAttributes = getUserById($anonID);
-        // overwrite currently logged anon user
-        if ($userAttributes) {
-            $userAttributes["Email"] = $login;
-            $userAttributes["Type"]  = UserType::Registered->value;
-        } else {
-            $userAttributes = array(
-                "Email"        => $login,
-                "Type"         => UserType::Registered->value
-            );
-        }
-    }
+    $userAttributes = array(
+        "Email"        => $userInfo['email'],
+        "Type"         => UserType::Registered->value
+    );
 
     $_SESSION['userToken'] = $token;
-    if (isset($userinfo) && $userinfo) {
-        if (isset($userinfo['family_name'])) {
-            $userAttributes['Surname'] = $userinfo['family_name'];
+    if (isset($userInfo) && $userInfo) {
+        if (isset($userInfo['family_name'])) {
+            $userAttributes['Surname'] = $userInfo['family_name'];
         }
 
-        if (isset($userinfo['given_name'])) {
-            $userAttributes['Name'] = $userinfo['given_name'];
+        if (isset($userInfo['given_name'])) {
+            $userAttributes['Name'] = $userInfo['given_name'];
         }
 
-        if (isset($userinfo['provider'])) {
-            $userAttributes['AuthProvider'] = $userinfo['provider'];
+        if (isset($userInfo['provider'])) {
+            $userAttributes['AuthProvider'] = $userInfo['provider'];
         }
 
-        if (isset($userinfo['sub'])) {
-            $userAttributes['secretsId'] = $userinfo['sub'];
+        if (isset($userInfo['sub'])) {
+            $userAttributes['secretsId'] = $userInfo['sub'];
         }
 
-        $_SESSION['tokenInfo'] = $userinfo;
+        $_SESSION['tokenInfo'] = $userInfo;
     }
 
     $objUser = new User($userAttributes['Email'], $userAttributes['secretsId'], $userAttributes['Surname'], $userAttributes['Name'], "", $userAttributes['Type'], "", "", $userAttributes['AuthProvider'], "");
+    //load user in current session
 
     $userArray = $objUser->toDocument();
-    //load user in current session
     $_SESSION['User'] = $userArray;
-
-    // create user directory
-    if (!$userArray['dataDir']) {
-        getUsersLogger()->debug("Creating workspace for user: " . $userArray['id']);
-        // create new workspace
-        $dataDirId =  prepUserWorkSpace($userArray['activeProject']);
-        $userArray['dataDir'] = $dataDirId;
-        $_SESSION['User']['dataDir'] = $dataDirId;
-        getUsersLogger()->info("Workspace created for user: " . $userArray['id']);
-    }
-
-    // register user in mongo. NOT in ldap, as user exists for a oauth2 provider
-    try {
-        getUsersLogger()->debug("Saving new user into Mongo database");
-        saveNewUser($userArray);
-    } catch (Exception $e) {
-        getUsersLogger()->error("Error saving new user into Mongo database");
-        unset($_SESSION['User']);
-        throw $e;
-    }
-
-    // if not all user metadata mapped from oauth2 provider, ask the user
-    if (!$userArray['Name'] || !$userArray['Surname'] || !$userArray['Inst']) {
-        getUsersLogger()->info("User metadata incomplete, redirecting to profile page");
-        redirect($GLOBALS['BASEURL'] . 'user/usrProfile.php');
-        exit(0);
-    }
 
     return $userArray;
 }
@@ -288,7 +247,7 @@ function loadUser($login, $pass)
     return $user;
 }
 
-function loadUserWithToken($user, $userinfo, $token)
+function loadUserWithToken($user, $userInfo, $token)
 {
     if ($user['Status'] == UserStatus::Inactive->value) {
         getUsersLogger()->error("Requested user is inactive. Cannot load user.");
@@ -297,10 +256,10 @@ function loadUserWithToken($user, $userinfo, $token)
 
     $auxlastlog = $user['lastLogin'];
     $user['lastLogin'] = moment();
-    $user['secretsId'] = $userinfo['sub'];
+    $user['secretsId'] = $userInfo['sub'];
     $_SESSION['userToken'] = $token;
-    $_SESSION['tokenInfo'] = $userinfo;
-    
+    $_SESSION['tokenInfo'] = $userInfo;
+
     updateUser($user);
     setUser($user, $auxlastlog);
 
