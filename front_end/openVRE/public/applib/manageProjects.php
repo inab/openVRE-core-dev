@@ -26,7 +26,9 @@ if (is_null($_REQUEST['op'])) {
     redirect($GLOBALS['BASEURL'] . "workspace/");
 }
 
-$dataDir_ant      = $_SESSION['User']['dataDir'];
+$user = getUserById($_SESSION['UserId']);
+
+$dataDir_ant      = $user->getDataDir();
 $dataDir_ant_name = getAttr_fromGSFileId($dataDir_ant, "name");
 
 
@@ -51,7 +53,7 @@ if ($_REQUEST['op'] == "new") {
     $proj_code = createLabel_proj();
     $proj_sd   = $GLOBALS['sampleData_default'];
 
-    $proj_id   = prepUserWorkSpace($proj_code, $proj_sd, $projData);
+    $proj_id   = prepUserWorkSpace($proj_code, $user->getInternalId(), $proj_sd, $projData);
 
     if (!$proj_id) {
         // return error
@@ -107,17 +109,17 @@ if ($_REQUEST['pr_id']) {
         $_REQUEST['pr_code'] = basename($proj_fn);
     }
     // update session
-    $_SESSION['User']['activeProject'] = $_REQUEST['pr_code'];
-    $_SESSION['User']['dataDir']      = $_REQUEST['pr_id'];
+    $user->setActiveProject($_REQUEST['pr_code']);
+    $user->setDataDir($_REQUEST['pr_id']);
 
     // update User in mongo
-    modifyUser($_SESSION['User']['_id'], "activeProject", $_SESSION['User']['activeProject']);
-    modifyUser($_SESSION['User']['_id'], "dataDir", $_SESSION['User']['dataDir']);
+    modifyUser($_SESSION['UserId'], "activeProject", $_REQUEST['pr_code']);
+    modifyUser($_SESSION['UserId'], "dataDir", $_REQUEST['pr_id']);
 
     // print info message
-    if ($_SESSION['User']['dataDir'] != $dataDir_ant) {
+    if ($user->getDataDir() != $dataDir_ant) {
         if (is_null($_REQUEST['pr_name'])) {
-            $_REQUEST['pr_name'] = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "name");
+            $_REQUEST['pr_name'] = getAttr_fromGSFileId($user->getDataDir(), "name");
         }
         $_SESSION['errorData']['Info'][] = "Moving displayed workspace from project <b>'$dataDir_ant_name'</b> to project <b>'" . $_REQUEST['pr_name'] . "'</b>";
     }

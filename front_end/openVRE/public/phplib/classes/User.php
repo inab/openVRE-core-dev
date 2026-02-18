@@ -2,28 +2,33 @@
 
 namespace OpenVRE;
 
+use MongoDB\BSON\Document;
+use MongoDB\BSON\PackedArray;
+use MongoDB\BSON\Persistable;
 use Monolog\Logger;
+use stdClass;
 use UnexpectedValueException;
 
 
-class User
+class User implements Persistable
 {
-    public $_id;
-    public $Email;
-    public $secretsId;
-    public $Surname;
-    public $Name;
-    public $Inst;
-    public $lastLogin;
-    public $registrationDate;
-    public $Type;
-    public $Status;
-    public $diskQuota;
-    public $dataDir;
-    public $AuthProvider;
-    public $id; // TODO: diff with _id?
-    public $activeProject;
-    public Logger $logger;
+    private $_id;
+    private $email;
+    private $secretsId;
+    private $Surname;
+    private $Name;
+    private $Inst;
+    private $lastLogin;
+    private $registrationDate;
+    private $Type;
+    private $Status;
+    private $diskQuota;
+    private $dataDir;
+    private $AuthProvider;
+    private $internalId;
+    private $activeProject;
+    private $terms;
+    private Logger $logger;
 
     public function __construct(string $email, string $secretsId, string $surname, string $name, string $inst, int $type, string $diskQuota, string $dataDir, ?string $authProvider, string $activeProject)
     {
@@ -39,7 +44,7 @@ class User
         }
 
         $this->Type = $type ?? UserType::Registered->value; // TODO: check if this is ok
-        $this->Email = sanitizeString($email);
+        $this->email = sanitizeString($email);
         $this->secretsId = sanitizeString($secretsId);
         $this->_id = sanitizeString($email);
         $this->Surname = ucfirst(sanitizeString($surname));
@@ -81,12 +86,12 @@ class User
 
     public function getEmail(): string
     {
-        return $this->Email;
+        return $this->email;
     }
 
     public function setEmail(string $email): void
     {
-        $this->Email = $email;
+        $this->email = $email;
     }
 
     public function getSecretsId(): string
@@ -107,6 +112,16 @@ class User
     public function set_id(string $id): void
     {
         $this->_id = $id;
+    }
+
+    public function getInternalId(): string
+    {
+        return $this->internalId;
+    }
+
+    public function setInternalId(string $internalId): void
+    {
+        $this->internalId = $internalId;
     }
 
     public function getSurname(): string
@@ -219,10 +234,51 @@ class User
         $this->registrationDate = $registrationDate;
     }
 
+    public function getTerms()
+    {
+        return $this->terms;
+    }
+
+    public function setTerms($terms)
+    {
+        $this->terms = $terms;
+    }
+
+    public function getLogger(): Logger
+    {
+        return $this->logger ??= LoggerFactory::getLogger('User');
+    }
+
     public function toDocument(): array
     {
         $data = get_object_vars($this);
         unset($data['logger']);
         return $data;
+    }
+
+    public function bsonSerialize(): array
+    {
+        $data = get_object_vars($this);
+        unset($data['logger']);
+        return $data;
+    }
+
+    public function bsonUnserialize(array $data): void
+    {
+        $this->_id = $data['_id'];
+        $this->email = $data['email'];
+        $this->secretsId = $data['secretsId'];
+        $this->Surname = $data['Surname'];
+        $this->Name = $data['Name'];
+        $this->Inst = $data['Inst'];
+        $this->Type = $data['Type'];
+        $this->diskQuota = $data['diskQuota'];
+        $this->dataDir = $data['dataDir'];
+        $this->AuthProvider = $data['AuthProvider'];
+        $this->activeProject = $data['activeProject'];
+        $this->Status = $data['Status'];
+        $this->lastLogin = $data['lastLogin'];
+        $this->registrationDate = $data['registrationDate'];
+        $this->id = $data['id'];
     }
 }

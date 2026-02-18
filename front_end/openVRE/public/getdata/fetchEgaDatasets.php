@@ -12,7 +12,7 @@ $logger = LoggerFactory::getLogger('Fetch EGA datasets interface');
 $currentPage = isset($_GET['page']) ? (int) $_GET['page'] : 1;
 $offset = ($currentPage - 1) * 10;
 
-$userEmail = $_SESSION['User']['Email'];
+$userEmail = $_SESSION['User']->getEmail();
 $vaultToken = $_SESSION['userVaultInfo']['vaultKey'];
 $vaultAddress = $GLOBALS['vaultUrl'] . "/" . $GLOBALS['secretPath'] . $_SESSION['User']['secretsId'] . '/EGA';
 

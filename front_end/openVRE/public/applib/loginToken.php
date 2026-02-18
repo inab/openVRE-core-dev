@@ -106,18 +106,16 @@ if (!isset($_GET['code'])) {
             exit('Login error: failed to create local VRE user: ' . $e->getMessage());
         }
 
-        getLoginLogger()->debug("Creating workspace for user: " . $user['id']);
-        $dataDirId =  prepUserWorkSpace($user['activeProject']);
-        $user['dataDir'] = $dataDirId;
-        $_SESSION['User']['dataDir'] = $dataDirId;
-        getLoginLogger()->info("Workspace created for user: " . $user['id']);
+        getLoginLogger()->debug("Creating workspace for internal user id: " . $user->getInternalId());
+        $dataDirId =  prepUserWorkSpace($user->getActiveProject(), $user->getInternalId());
+        $user->setDataDir($dataDirId);
+        getLoginLogger()->info("Workspace created for internal user id: " . $user->getInternalId());
 
         try {
             getUsersLogger()->debug("Saving new user into Mongo database");
             saveNewUser($user);
         } catch (Exception $e) {
             getUsersLogger()->error("Error saving new user into Mongo database");
-            unset($_SESSION['User']);
             throw $e;
         }
 

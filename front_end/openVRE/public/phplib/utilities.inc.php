@@ -339,7 +339,7 @@ function getVREfile_fromFile($mugfile)
         $file['owner'] = $mugfile['user_id'];
         unset($mugfile['user_id']);
     } else {
-        $file['owner'] = $_SESSION['User']['id'];
+        $file['owner'] = $_SESSION['User']['internalId'];
     }
 
     if (isset($mugfile['meta_data']['expiration'])) {
@@ -452,7 +452,7 @@ function prepMetadataResult($meta, $fnPath = 0, $lastjob = array())
                 $fnCore = preg_replace("/.$ext/i", "", basename($fnPath));
                 $fnCore = preg_replace("/^.*_/", "", $fnCore);
             }
-            $reObj = new MongoDB\BSON\Regex("/" . $_SESSION['User']['id'] . ".*" . $fnCore . "/i");
+            $reObj = new MongoDB\BSON\Regex("/" . $_SESSION['User']['internalId'] . ".*" . $fnCore . "/i");
             $relatedBAMS = $GLOBALS['filesMetaCol']->find(array('path'  => $reObj))->toArray();
             if (!empty($relatedBAMS)) {
                 foreach ($relatedBAMS as $BAM) {

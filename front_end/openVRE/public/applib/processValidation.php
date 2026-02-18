@@ -52,7 +52,7 @@ if (!is_file($rfn) && !$fnFile['uri']) {
 	die();
 }
 
-$fileData = $GLOBALS['filesCol']->findOne(array('_id' => $fn, 'owner' => $_SESSION['User']['id']));
+$fileData = $GLOBALS['filesCol']->findOne(array('_id' => $fn, 'owner' => $_SESSION['User']['internalId']));
 $fileMeta = $GLOBALS['filesMetaCol']->findOne(array('_id' => $file));
 
 if (empty($fileData)) {

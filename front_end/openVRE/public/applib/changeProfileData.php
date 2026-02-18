@@ -3,8 +3,7 @@
 require __DIR__ . "/../../config/bootstrap.php";
 
 if ($_POST) {
-	$login = $_SESSION['User']['Email'];
-	$user = getUserById($login);
+	$user = getUserById($_SESSION['UserId']);
 
 	if ($user['_id']) {
 		$newdata = array('$set' => array(
@@ -14,13 +13,14 @@ if ($_POST) {
 			'terms'    => $_POST['terms']
 		));
 
-		$GLOBALS['usersCol']->updateOne(array('_id' => $login), $newdata);
+		$GLOBALS['usersCol']->updateOne(array('_id' => $_SESSION['UserId']), $newdata);
 		
-		$_SESSION['User']['Name'] = ucfirst($_POST['Name']);
-		$_SESSION['User']['Surname'] = ucfirst($_POST['Surname']);
-		$_SESSION['User']['Inst'] = $_POST['Inst'];
-		$_SESSION['User']['terms'] = $_POST['terms'];
-		$_SESSION['lastUserLogin'] = $user['lastLogin'];
+		$user->setName(ucfirst($_POST['Name']));
+		$user->setSurname(ucfirst($_POST['Surname']));
+		$user->setInst($_POST['Inst']);
+		$user->setTerms($_POST['terms']);
+
+		$_SESSION['lastUserLogin'] = $user->getLastLogin();
 
 		echo '1';
 	} else {

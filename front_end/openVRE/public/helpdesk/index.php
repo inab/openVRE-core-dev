@@ -86,7 +86,7 @@ $tools = getTools_List();
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Your email</label>
-                                                <input type="text" name="Email" id="Email" value="<?php echo $_SESSION["User"]["Email"]; ?>" class="form-control" readonly>
+                                                <input type="text" name="Email" id="Email" value="<?php echo $_SESSION["User"]->getEmail(); ?>" class="form-control" readonly>
                                             </div>
                                         </div>
                                     </div>

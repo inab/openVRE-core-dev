@@ -166,7 +166,7 @@ $files = addTreeTableNodesToFiles($files);
 													<div class="tab-pane active" id="tab_1_1">
 														<div class="input-group">
 															<input id="mt-target-1" type="text" class="form-control"
-																value="<?php echo $GLOBALS['URL'] . "?id=" . $_SESSION['User']['_id']; ?>"
+																value="<?php echo $GLOBALS['URL'] . "?id=" . $_SESSION['UserId']; ?>"
 																readonly style="background:#fff;">
 															<span class="input-group-btn">
 																<button class="btn green mt-clipboard"
@@ -244,7 +244,7 @@ $files = addTreeTableNodesToFiles($files);
 												value="<?php echo $GLOBALS['BASEURL']; ?>" />
 											<?php
 											if (isset($_REQUEST["userId"])) {
-												print "input type=\"hidden\" id=\"userId\" value=\"" . $_SESSION['User']['id'] . "\"";
+												print "input type=\"hidden\" id=\"userId\" value=\"" . $_SESSION['User']['internalId'] . "\"";
 											}
 											if (isset($_REQUEST["tool"])) {
 												print "input type=\"hidden\" id=\"toolSelected\" value=\"" . $_REQUEST['tool'] . "\"";

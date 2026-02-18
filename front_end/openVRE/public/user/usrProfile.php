@@ -165,7 +165,7 @@ redirectOutside();
                                                         <div class="form-group">
                                                             <label class="control-label">Email</label>
                                                             <input type="text"
-                                                                value="<?php echo $_SESSION['User']['Email']; ?>"
+                                                                value="<?php echo $_SESSION['User']->getEmail(); ?>"
                                                                 class="form-control" readonly />
                                                         </div>
                                                         <div class="form-group">

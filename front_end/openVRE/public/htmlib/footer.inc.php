@@ -26,7 +26,7 @@ use OpenVRE\UserType;
                     <a class="btn green" href="<?php echo $GLOBALS['URL_login']; ?>">Log in</a>
                     <a class="btn green" href="<?php echo $GLOBALS['URL']; ?>">Non-registered</a>
                 <?php } else { ?>
-                    <a class="btn green" href="<?php echo $GLOBALS['URL'] . "?id=" . $_SESSION['User']['_id']; ?>">Continue</a>
+                    <a class="btn green" href="<?php echo $GLOBALS['URL'] . "?id=" . $_SESSION['UserId']; ?>">Continue</a>
                     <a class="btn green" href="<?php echo $GLOBALS['URL']; ?>">Start again</a>
                 <?php }  ?>
 

@@ -167,7 +167,7 @@ function initiateFileDownload($swiftClient, $fileUrl, $container)
 
 	chmod($fullPath, 0666);
 	$insertData = array(
-		'owner' => $_SESSION['User']['id'],
+		'owner' => $_SESSION['User']['internalId'],
 		'size' => filesize($fullPath),
 		'mtime' => new MongoDB\BSON\UTCDateTime(filemtime($fullPath) * 1000)
 	);

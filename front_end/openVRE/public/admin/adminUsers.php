@@ -7,7 +7,7 @@ use OpenVRE\UserType;
 
 redirectAdminOutside();
 
-$userAttributesProjection = ['projection' => ['Email' => 1, 'Surname' => 1, 'Name' => 1, 'Inst' => 1, 'diskQuota' => 1, 'lastLogin' => 1, 'Type' => 1, 'Status' => 1, 'id' => 1, 'lastReload' => 1]];
+$userAttributesProjection = ['projection' => ['email' => 1, 'Surname' => 1, 'Name' => 1, 'Inst' => 1, 'diskQuota' => 1, 'lastLogin' => 1, 'Type' => 1, 'Status' => 1, 'id' => 1, 'lastReload' => 1]];
 $filterNamedUsers = array("Type" => array('$ne' => UserType::Guest->value));
 $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
 
@@ -120,7 +120,7 @@ $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
                                                 }
                                             ?>
                                                 <tr>
-                                                    <td><a href="mailto:<?php echo $userAttributes["Email"]; ?>"><?php echo $userAttributes["Email"]; ?></a><br /><?php echo $userAttributes["lastReload"]; ?></td>
+                                                    <td><a href="mailto:<?php echo $userAttributes["email"]; ?>"><?php echo $userAttributes["email"]; ?></a><br /><?php echo $userAttributes["lastReload"]; ?></td>
                                                     <td><?php echo $userAttributes["Surname"]; ?></td>
                                                     <td><?php echo $userAttributes["Name"]; ?></td>
                                                     <td><?php echo $userAttributes["Inst"]; ?></td>

@@ -3,13 +3,13 @@ require __DIR__."/../../config/bootstrap.php";
 redirectOutside();
 
 // jobs before update
-$jobs_ori = getUserJobs($_SESSION['User']['_id']);
+$jobs_ori = getUserJobs($_SESSION['UserId']);
 
 // updating jobs
-updatePendingFiles($_SESSION['User']['_id']);
+updatePendingFiles($_SESSION['UserId']);
 
 // jobs after update
-$jobs_last = getUserJobs($_SESSION['User']['_id']);
+$jobs_last = getUserJobs($_SESSION['UserId']);
 
 $diff = strcmp(json_encode($jobs_ori), json_encode($jobs_last));
 

@@ -112,7 +112,7 @@ sort($tlsvlzrs);
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Email</label>
-                                                <input type="text" name="Email" id="Email" class="form-control" value="<?php echo $user["Email"]; ?>" readonly>
+                                                <input type="text" name="Email" id="Email" class="form-control" value="<?php echo $user["email"]; ?>" readonly>
                                             </div>
                                         </div>
                                         <div class="col-md-6">

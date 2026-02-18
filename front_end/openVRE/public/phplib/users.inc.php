@@ -21,8 +21,8 @@ function getUsersLogger()
 
 function checkLoggedIn()
 {
-    if (isset($_SESSION['User']) && isset($_SESSION['User']['_id'])) {
-        $user = getUserById($_SESSION['User']['_id']);
+    if (isset($_SESSION['User']) && isset($_SESSION['UserId'])) {
+        $user = getUserById($_SESSION['UserId']);
     }
 
     return isset($_SESSION['User']) && ($user['Status'] == UserStatus::Active->value);
@@ -35,14 +35,14 @@ function checkTermsOfUse()
 
 function checkAdmin()
 {
-    $user = getUserById($_SESSION['User']['_id']);
+    $user = getUserById($_SESSION['UserId']);
 
     return isset($_SESSION['User']) && ($user['Status'] == UserStatus::Active->value) && (in_array($user['Type'], $GLOBALS['ADMIN']));
 }
 
 function checkToolDev()
 {
-    $user = getUserById($_SESSION['User']['_id']);
+    $user = getUserById($_SESSION['UserId']);
 
     return isset($_SESSION['User']) && ($user['Status'] == UserStatus::Active->value) && (in_array($user['Type'], $GLOBALS['TOOLDEV']) || in_array($user['Type'], $GLOBALS['ADMIN']));
 }
@@ -51,7 +51,7 @@ function checkToolDev()
 function createUserFromToken($token, $userInfo = array())
 {
     $userAttributes = array(
-        "Email"        => $userInfo['email'],
+        "email"        => $userInfo['email'],
         "Type"         => UserType::Registered->value
     );
 
@@ -76,13 +76,11 @@ function createUserFromToken($token, $userInfo = array())
         $_SESSION['tokenInfo'] = $userInfo;
     }
 
-    $objUser = new User($userAttributes['Email'], $userAttributes['secretsId'], $userAttributes['Surname'], $userAttributes['Name'], "", $userAttributes['Type'], "", "", $userAttributes['AuthProvider'], "");
-    //load user in current session
+    $user = new User($userAttributes['email'], $userAttributes['secretsId'], $userAttributes['Surname'], $userAttributes['Name'], "", $userAttributes['Type'], "", "", $userAttributes['AuthProvider'], "");
 
-    $userArray = $objUser->toDocument();
-    $_SESSION['User'] = $userArray;
+    $_SESSION['UserId'] = $userAttributes['email']; // TODO: rename if email will not replace internalId attribute in User class (currently it is the same as _id but no as internalId)
 
-    return $userArray;
+    return $user;
 }
 
 
@@ -90,23 +88,24 @@ function createUserFromToken($token, $userInfo = array())
 function createUserAnonymous($sampleData)
 {
     $userAttributes = array(
-        "Email"        => substr(md5(rand()), 0, 25) . "",
+        "email"        => substr(md5(rand()), 0, 25) . "",
         "Type"         => UserType::Guest->value,
         "Name"         => "Guest",
         "Surname"      => "",
         "AuthProvider" => "VRE"
     );
 
-    $objUser = new User($userAttributes['Email'], "", $userAttributes['Surname'], $userAttributes['Name'], "", $userAttributes['Type'], "", "", $userAttributes['AuthProvider'], "", "");
+    $objUser = new User($userAttributes['email'], "", $userAttributes['Surname'], $userAttributes['Name'], "", $userAttributes['Type'], "", "", $userAttributes['AuthProvider'], "", "");
     if (!$objUser) {
         return false;
     }
 
     $userArray = $objUser->toDocument();
     $_SESSION['User']   = $userArray;
-    $_SESSION['anonID'] = $userArray['Email'];
+    $_SESSION['UserId'] = $userAttributes['email']; // TODO: rename if email will not replace id attribute in User class
+    $_SESSION['anonID'] = $userArray['email'];
 
-    $dataDirId = prepUserWorkSpace($userArray['activeProject'], $sampleData);
+    $dataDirId = prepUserWorkSpace($userArray['activeProject'], $objUser->getInternalId(), $sampleData);
     $userArray['dataDir'] = $dataDirId;
     $userArray['terms']  =  "1";
     $_SESSION['User']['dataDir'] = $dataDirId;
@@ -123,7 +122,7 @@ function createUserAnonymous($sampleData)
 }
 
 
-function getUserById($id, $options = array())
+function getUserById($id, $options = array()) : User
 {
     return $GLOBALS['usersCol']->findOne(["_id" => $id], $options);
 }
@@ -176,7 +175,7 @@ function delUser($id)
 
 function logoutUser()
 {
-    getUsersLogger()->info("User " . $_SESSION['User']['id'] . " logging out");
+    getUsersLogger()->info("User " . $_SESSION['User']['internalId'] . " logging out");
     session_unset();
 }
 

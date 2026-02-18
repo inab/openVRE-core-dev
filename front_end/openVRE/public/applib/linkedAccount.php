@@ -14,6 +14,6 @@ if(!$_REQUEST){
 
 $siteId = $_REQUEST['site_id'] ?? null;
 
-addUserLinkedAccount($_POST['account'], $_POST['action'], $_SESSION['User']['_id'], $siteId, $_POST);
+addUserLinkedAccount($_POST['account'], $_POST['action'], $_SESSION['UserId'], $siteId, $_POST);
 
 ?>

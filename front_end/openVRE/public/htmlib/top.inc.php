@@ -6,7 +6,7 @@ $firstLetterSurname =  substr($_SESSION['User']['Surname'], 0, 1);
 $avatarColors = array('#0f7e8c', '#a3d86d', '#9113ff', '#edc642', '#2ac5a3', '#ffb858', '#955216');
 $bgColorAvatar = array_rand($avatarColors, 1);
 
-$filename = glob('../assets/avatars/' . $_SESSION['User']['id'] . '.*');
+$filename = glob('../assets/avatars/' . $_SESSION['User']['internalId'] . '.*');
 $avatarImg = (isset($filename[0])?$filename[0]:false);
 if (file_exists($avatarImg)) {
     $avatarExists = 1;

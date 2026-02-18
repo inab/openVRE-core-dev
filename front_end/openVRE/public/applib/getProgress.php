@@ -3,7 +3,7 @@ require __DIR__."/../../config/bootstrap.php";
 
 redirectOutside();
 
-$job = getUserJobPid($_SESSION['User']['_id'],$_REQUEST["pid"]);
+$job = getUserJobPid($_SESSION['UserId'],$_REQUEST["pid"]);
 $mt = $job[$_REQUEST["pid"]];
 
 

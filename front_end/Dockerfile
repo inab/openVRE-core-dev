@@ -39,9 +39,11 @@ WORKDIR /var/www/html
 ADD openVRE /var/www/html/openVRE
 RUN cd openVRE
 WORKDIR /var/www/html/openVRE
+COPY --from=ghcr.io/php/pie:1.3.8-bin /pie /usr/bin/pie
+RUN pie install mongodb/mongodb-extension
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 RUN composer self-update
-RUN composer update --ignore-platform-req=ext-mongodb --ignore-platform-req=ext-mongodb
+RUN composer update
 RUN mkdir logs
 RUN touch logs/application.log
 RUN chmod -R 777 logs/application.log

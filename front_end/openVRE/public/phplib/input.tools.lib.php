@@ -122,7 +122,7 @@ function InputTool_getDefExName()
 	$dirNum = "000";
 	$dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
 	$reObj = new \MongoDB\BSON\Regex("^" . $dataDirPath . "\\/run\d\d\d$");
-	$prevs  = $GLOBALS['filesCol']->find(array('path' => $reObj, 'owner' => $_SESSION['User']['id']), array('sort' => array('path' => -1)))->toArray();
+	$prevs  = $GLOBALS['filesCol']->find(array('path' => $reObj, 'owner' => $_SESSION['User']['internalId']), array('sort' => array('path' => -1)))->toArray();
 	if ($prevs) {
 		foreach ($prevs as $p) {
 			$previous = $p;
@@ -133,7 +133,7 @@ function InputTool_getDefExName()
 		}
 	}
 	$dirName = "run" . $dirNum;
-	$prevs  = $GLOBALS['filesCol']->find(array('path' => $dataDirPath . "/$dirName", 'owner' => $_SESSION['User']['id']))->toArray();
+	$prevs  = $GLOBALS['filesCol']->find(array('path' => $dataDirPath . "/$dirName", 'owner' => $_SESSION['User']['internalId']))->toArray();
 	if ($prevs) {
 		$dirName = "run" . rand(100, 999);
 	}

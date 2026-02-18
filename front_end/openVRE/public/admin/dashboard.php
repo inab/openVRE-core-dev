@@ -8,7 +8,7 @@ use OpenVRE\UserType;
 redirectAdminOutside();
 
 
-$userAttributesProjection = ['projection' => ['Email' => 1, 'Surname' => 1, 'Name' => 1, 'Inst' => 1, 'diskQuota' => 1,  'Type' => 1, 'Status' => 1, 'registrationDate' => 1]];
+$userAttributesProjection = ['projection' => ['email' => 1, 'Surname' => 1, 'Name' => 1, 'Inst' => 1, 'diskQuota' => 1,  'Type' => 1, 'Status' => 1, 'registrationDate' => 1]];
 $filterNamedUsers = array("Type" => array('$ne' => UserType::Guest->value));
 $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
 
@@ -256,7 +256,7 @@ $months_list = array_reverse($months_list);
                                             foreach ($namedUsers as $userAttributes):
                                             ?>
 												<tr>
-													<td><a href="mailto:<?php echo $userAttributes["Email"]; ?>"><?php echo $userAttributes["Email"]; ?></a></td>
+													<td><a href="mailto:<?php echo $userAttributes["email"]; ?>"><?php echo $userAttributes["email"]; ?></a></td>
 													<td><?php echo $userAttributes["SurName"]; ?></td>
 													<td><?php echo $userAttributes["Name"]; ?></td>
 													<td><?php echo $userAttributes["Inst"]; ?></td>

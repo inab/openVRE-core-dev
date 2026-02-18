@@ -20,7 +20,7 @@ $tool = $_REQUEST['tool'];
 
 
 // fetch user
-$user = getUserById($_SESSION['User']['_id']);
+$user = getUserById($_SESSION['UserId']);
 if (isset($user["ToolsDev"])) $tdev = $user["ToolsDev"];
 else $tdev = array();
 

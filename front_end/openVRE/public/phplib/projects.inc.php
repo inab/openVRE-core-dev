@@ -18,7 +18,7 @@ function getProjectLogger()
 	return $logger;
 }
 
-function prepUserWorkSpace($projectDir, $sampleData = "", $projectData = array(), $verbose = false, $asRoot = 0)
+function prepUserWorkSpace($projectDir, $userInternalId, $sampleData = "", $projectData = array())
 {
 	// set sampleData default
 	if (empty($sampleData)) {
@@ -26,8 +26,8 @@ function prepUserWorkSpace($projectDir, $sampleData = "", $projectData = array()
 	}
 
 	if (empty($projectDir)) {
-		getProjectLogger()->error("Cannot create user workspace" . $_SESSION['User']['id'] . ". No project directory name given.");
-		throw new UnexpectedValueException("Cannot create user workspace"  . $_SESSION['User']['id'] . ". No project directory name given.");
+		getProjectLogger()->error("Cannot create user workspace. No project directory name given.");
+		throw new UnexpectedValueException("Cannot create user workspace. No project directory name given.");
 	}
 
 	if (empty($projectData)) {
@@ -39,25 +39,23 @@ function prepUserWorkSpace($projectDir, $sampleData = "", $projectData = array()
 	}
 
 	// create worskspace data
-	$dataDirId = setUserWorkSpace($projectDir, $projectData, $sampleData, $verbose, $asRoot);
+	$dataDirId = setUserWorkSpace($projectDir, $userInternalId, $projectData, $sampleData);
 
 	return $dataDirId;
 }
 
-function setUserWorkSpace($projectDir, $projectData, $sampleData, $verbose = false, $asRoot = 0)
+function setUserWorkSpace($projectDir, $userInternalId, $projectData, $sampleData)
 {
-	getProjectLogger()->info("Preparing user workspace named" . $_SESSION['User']['id'] . " with sample data '$sampleData'");
-
 	//creating user home directory
 	if (!is_dir($GLOBALS['userDataDir']) || !is_writable($GLOBALS['userDataDir'])) {
 		getProjectLogger()->error("Cannot access VRE data. Make sure data device is accessible and writable.");
 		throw new UnexpectedValueException("Cannot access VRE data. Make sure data device is accessible and writable.");
 	}
 
-	$homeDirP  = $GLOBALS['userDataDir'] . "/" . $_SESSION['User']['id'];
-	$homeDirId = getGSFileId_fromPath($_SESSION['User']['id'], $asRoot);
+	$homeDirP  = $GLOBALS['userDataDir'] . "/" . $userInternalId;
+	$homeDirId = getGSFileId_fromPath($userInternalId);
 	if (! isGSDirBNS($GLOBALS['filesCol'], $homeDirId) || ! is_dir($homeDirP)) {
-		$homeDirId  = createGSDirBNS($_SESSION['User']['id'], 1);
+		$homeDirId  = createGSDirBNS($userInternalId, 1);
 		getProjectLogger()->info("Creating main user directory: $homeDirP ($homeDirId)");
 		addMetadataToFile($homeDirId, array(
 			"expiration" => -1,
@@ -79,13 +77,13 @@ function setUserWorkSpace($projectDir, $projectData, $sampleData, $verbose = fal
 	);
 
 	// creating user workspace for given project
-	$dataDir   =  $_SESSION['User']['id'] . "/$projectDir";
+	$dataDir   =  $userInternalId . "/$projectDir";
 	$dataDirP  = $GLOBALS['userDataDir'] . "/$dataDir";
-	$dataDirId = getGSFileId_fromPath($dataDir, $asRoot);
+	$dataDirId = getGSFileId_fromPath($dataDir);
 
 	if (! isGSDirBNS($GLOBALS['filesCol'], $dataDirId) || ! is_dir($dataDirP)) {
 		//creating project directory
-		$dataDirId = createProjectDir($dataDir, $dataDirP, $projectData, $asRoot);
+		$dataDirId = createProjectDir($dataDir, $dataDirP, $projectData);
 		getProjectLogger()->info("Creating project directory: $dataDirP ($dataDirId)");
 
 		if (!empty($sampleData)) {
@@ -114,7 +112,7 @@ function setUserWorkSpace($projectDir, $projectData, $sampleData, $verbose = fal
 			}
 
 			// injecting sample data
-			setUserWorkSpace_sampleData($sampleData, $dataDir, $verbose);
+			setUserWorkSpace_sampleData($sampleData, $dataDir);
 		}
 	}
 
@@ -300,7 +298,7 @@ function save_fromSampleDataMetadata($metadata, $dataDir, $sampleName, $type)
 
 function getFilesToDisplay($dirSelection)
 {
-	$filesPending = processPendingFiles($_SESSION['User']['_id']);
+	$filesPending = processPendingFiles($_SESSION['UserId']);
 	$files = getGSFilesFromDir($dirSelection, 1);
 
 	if (empty($files)) {
@@ -839,15 +837,15 @@ function formatData($data)
 				$data['vis_button'] = 'block';
 				switch ($vis["_id"]) {
 					case "ngl":
-						$data['NGLView'] = "<li><a href=\"visualizers/ngl/?user=" . $_SESSION['User']['id'] . "&fn[]=" . $data['_id'] . "\" target='_blank'><i class=\"fa fa-codepen\" ></i> View in NGL</a></li>";
+						$data['NGLView'] = "<li><a href=\"visualizers/ngl/?user=" . $_SESSION['User']['internalId'] . "&fn[]=" . $data['_id'] . "\" target='_blank'><i class=\"fa fa-codepen\" ></i> View in NGL</a></li>";
 						break;
 
 					case "jbrowse":
-						$data['jbrowseLink'] = "<li><a target=\"_blank\" href=\"" . $_SESSION['BASEURL'] . "visualizers/jbrowse/index.php/?user=" . $_SESSION['User']['id'] . "&fn[]=" . $data['_id'] . "\"><i class=\"fa fa-align-right\"></i> View in JBrowse</a></li>";
+						$data['jbrowseLink'] = "<li><a target=\"_blank\" href=\"" . $_SESSION['BASEURL'] . "visualizers/jbrowse/index.php/?user=" . $_SESSION['User']['internalId'] . "&fn[]=" . $data['_id'] . "\"><i class=\"fa fa-align-right\"></i> View in JBrowse</a></li>";
 						break;
 
 					case "tadkit":
-						$data['tadkitLink'] = "<li><a target=\"_blank\" href=\"visualizers/tadkit/index.php/?user=" . $_SESSION['User']['id'] . "&fn=" . $data['_id'] . "\"><i class=\"fa fa-cubes fa-rotate-180\"></i> View in TADkit</a></li>";
+						$data['tadkitLink'] = "<li><a target=\"_blank\" href=\"visualizers/tadkit/index.php/?user=" . $_SESSION['User']['internalId'] . "&fn=" . $data['_id'] . "\"><i class=\"fa fa-cubes fa-rotate-180\"></i> View in TADkit</a></li>";
 						break;
 				}
 			}
@@ -992,7 +990,7 @@ function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$file
 		}
 
 		if (!$parentDir) {
-			$parentDir = $_SESSION['User']['id'] . "/" . $_SESSION['User']['activeProject'] . "/uploads";
+			$parentDir = $_SESSION['User']['internalId'] . "/" . $_SESSION['User']['activeProject'] . "/uploads";
 		}
 	}
 
@@ -1194,7 +1192,7 @@ function processFinishedJobInfo($job, $pid, $title, &$filesPending)
 		$logFile  = fromAbsPath_toPath($job['executionDirectories']['executionLogFile']);
 
 		// force flash disk status
-		scandir($GLOBALS['userDataDir'] . $_SESSION['User']['id'] . "/" . $job['project']);
+		scandir($GLOBALS['userDataDir'] . $_SESSION['User']['internalId'] . "/" . $job['project']);
 
 		// job has log
 		if (is_file($logFileP)) {
@@ -1309,7 +1307,7 @@ function saveResults($filePath, $metaData = array(), $job = array(), $rfn = 0, $
 	$insertData = array(
 		'_id'   => $fileId,
 		'type'  => $insert_type,
-		'owner' => $_SESSION['User']['id'],
+		'owner' => $_SESSION['User']['internalId'],
 		'size'  => $size,
 		'path'  => $filePath,
 		'project' => $job['project'],
@@ -1429,7 +1427,7 @@ function  build_outputs_list($tool, $stageout_job, $stageout_file)
 function getUsedDiskSpace($userId = '', $source = "fs")
 {
 	if (!$userId) {
-		$userId = $_SESSION['User']['id'];
+		$userId = $_SESSION['User']['internalId'];
 	}
 
 	if ($source != "fs") {
@@ -1671,7 +1669,7 @@ function resolvePath_toLocalAbsolutePath($path, $job)
 		} elseif (preg_match('/^' . $job['execution'] . '/', $path)) {
 			$rfn = dirname($job["outputDir"]) . "/" . $path;
 			// path is relative to root directory (userid/prj/run/file)
-		} elseif (preg_match('/^' . $_SESSION['User']['id'] . '/', $path)) {
+		} elseif (preg_match('/^' . $_SESSION['User']['internalId'] . '/', $path)) {
 			$rfn = $GLOBALS['userDataDir'] . "/" . $path;
 			// path contains $(working_dir) tag
 		} elseif (preg_match('/(working_dir)/', $path)) {

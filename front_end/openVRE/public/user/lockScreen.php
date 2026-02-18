@@ -12,9 +12,9 @@ $bgColorAvatar = array_rand($avatarColors,1);
 
 $name = $_SESSION['User']['Name'];
 $surname = $_SESSION['User']['Surname'];
-$email = $_SESSION['User']['_id'];
+$email = $_SESSION['UserId'];
 
-$filename = glob('../assets/avatars/'.$_SESSION['User']['id'].'.*');
+$filename = glob('../assets/avatars/'.$_SESSION['User']['internalId'].'.*');
 $avatarImg = $filename[0];
 if (file_exists($avatarImg)){
 	$avatarExists = 1;

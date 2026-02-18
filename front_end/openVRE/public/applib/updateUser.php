@@ -14,7 +14,7 @@ if ($_POST) {
 		redirect($_SERVER['HTTP_REFERER']);
 	}
 
-	$login = $_POST['Email'];
+	$login = $_POST['email'];
 	$user = getUserById($login);
 
 	if ($user['_id']) {

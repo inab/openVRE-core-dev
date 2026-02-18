@@ -101,7 +101,7 @@ redirectAdminOutside();
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Email</label>
-                                                <input type="text" name="Email" id="Email" class="form-control" placeholder="<?php echo $_REQUEST['Email']; ?>">
+                                                <input type="text" name="Email" id="Email" class="form-control" placeholder="<?php echo $_REQUEST['email']; ?>">
                                             </div>
                                         </div>
                                         <div class="col-md-6">

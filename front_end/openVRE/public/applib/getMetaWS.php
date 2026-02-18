@@ -12,9 +12,11 @@ if ($_REQUEST["type"] != 2) {
 	// EXTRACT FILE METADATA FROM DMP FILE
 	$mt   = getGSFile_fromId($_REQUEST["id"], "", $asRoot);
 	$tool = getTool_fromId($mt["tool"], 1);
+	$user = getUserById($_SESSION['UserId']);
 } else {
 	// EXTRACT JOB METADATA FROM USER JOBS
-	$login = ($_REQUEST['user'] ? $_REQUEST['user'] : $_SESSION['User']['_id']);
+	$login = ($_REQUEST['user'] ? $_REQUEST['user'] : $_SESSION['UserId']);
+	$user = getUserById($login);
 	$job = getUserJobPid($login, $_REQUEST["id"]);
 	$mt = $job[$_REQUEST["id"]];
 	$job_path = getAttr_fromGSFileId($mt["_id"], "path", $asRoot);
@@ -375,7 +377,7 @@ if ($mt["cloudName"] != "") {
 <!--- DATA ONLY FOR DEVEL USERS -->
 
 <?php
-if ($_SESSION['User']['Type'] ==  UserType::Admin->value || $_SESSION['User']['Type'] == UserType::ToolDev->value) {
+if ($user->getType() ==  UserType::Admin->value || $user->getType() == UserType::ToolDev->value) {
 ?>
 
 	<h3>Development data</h3>
@@ -388,7 +390,7 @@ if ($_SESSION['User']['Type'] ==  UserType::Admin->value || $_SESSION['User']['T
 			</tr>
 			<tr>
 				<td>
-					<?php if ($_SESSION['User']['Type'] == UserType::Admin->value || $_SESSION['User']['Type'] == UserType::ToolDev->value) { ?>
+					<?php if ($user->getType() == UserType::Admin->value || $user->getType() == UserType::ToolDev->value) { ?>
 						<br />
 						<pre style="font-size:0.7em;margin:10px 25px;"><?php echo json_encode($mt, JSON_PRETTY_PRINT); ?></pre>
 					<?php } ?>
@@ -451,7 +453,7 @@ if ($_SESSION['User']['Type'] ==  UserType::Admin->value || $_SESSION['User']['T
 
 	// Devel buttons
 
-	if (($_SESSION['User']['Type'] == UserType::Admin->value) || ($_SESSION['User']['Type'] == UserType::ToolDev->value)) { ?>
+	if (($user->getType() == UserType::Admin->value) || ($user->getType() == UserType::ToolDev->value)) { ?>
 
 		<?php if (file_exists($mt['submission_file'])) { ?>
 			<a href="workspace/workspace.php?op=openPlainFileFromPath&fnPath=<?php echo urlencode($mt['submission_file']); ?>" class="btn green" target="_blank"><i class="fa fa-paper-plane"></i> VIEW SUBMIT FILE </a>
