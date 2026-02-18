@@ -94,7 +94,6 @@ function createUserFromToken($login, $token, $userinfo = array(), $anonID = fals
 
     $userArray = $objUser->toDocument();
     //load user in current session
-    $_SESSION['userId'] = $userArray['id']; //OBSOLETE
     $_SESSION['User'] = $userArray;
 
     // create user directory
@@ -145,7 +144,6 @@ function createUserAnonymous($sampleData)
     }
 
     $userArray = $objUser->toDocument();
-    $_SESSION['userId'] = $userArray['id'];
     $_SESSION['User']   = $userArray;
     $_SESSION['anonID'] = $userArray['Email'];
 
@@ -190,7 +188,9 @@ function setUser($f, $lastLogin = false)
     $aux = (array)$f;
     $_SESSION['User']   = $aux;
 
-    if (!isset($_SESSION['lastUserLogin']) && $lastLogin) $_SESSION['lastUserLogin'] = $lastLogin;
+    if (!isset($_SESSION['lastUserLogin']) && $lastLogin) {
+        $_SESSION['lastUserLogin'] = $lastLogin;
+    }
 }
 
 

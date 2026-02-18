@@ -244,7 +244,7 @@ $files = addTreeTableNodesToFiles($files);
 												value="<?php echo $GLOBALS['BASEURL']; ?>" />
 											<?php
 											if (isset($_REQUEST["userId"])) {
-												print "input type=\"hidden\" id=\"userId\" value=\"" . $_SESSION['userId'] . "\"";
+												print "input type=\"hidden\" id=\"userId\" value=\"" . $_SESSION['User']['id'] . "\"";
 											}
 											if (isset($_REQUEST["tool"])) {
 												print "input type=\"hidden\" id=\"toolSelected\" value=\"" . $_REQUEST['tool'] . "\"";

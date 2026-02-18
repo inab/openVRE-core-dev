@@ -220,7 +220,7 @@ if (isset($_REQUEST['op'])) {
 
 		case 'cancelJobDir':
 			$jobList = array();
-			$jobData = getUserJobs($_SESSION['userId']);
+			$jobData = getUserJobs($_SESSION['User']['id']);
 			if (count($jobData)) {
 				foreach ($jobData as $data) {
 					$filesId = (!is_array($data['out']) ? array($data['out']) : $data['out']);
@@ -243,7 +243,7 @@ if (isset($_REQUEST['op'])) {
 			$_SESSION['errorData']['error'][] = "Are you sure you want to cancel job for file '" . basename($_REQUEST['fn']) . "'? ";
 			$pid = $_REQUEST['pid'];
 			$jobInfo = getRunningJobInfo($pid);
-			$SGE_updated = getUserJobs($_SESSION['userId']);
+			$SGE_updated = getUserJobs($_SESSION['User']['id']);
 			$succList = "";
 			if (isset($jobInfo['jid_successor_list'])) {
 				foreach (explode(",", trim($jobInfo['jid_successor_list'])) as $pidSucc) {

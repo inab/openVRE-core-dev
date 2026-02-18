@@ -83,7 +83,7 @@ function getRunningJobInfo($pid, $launcherType = null)
 function getPidFromOutfile($outfile)
 {
     $pid = 0;
-    $SGE_updated = getUserJobs($_SESSION['userId']);
+    $SGE_updated = getUserJobs($_SESSION['User']['id']);
     foreach ($SGE_updated as $data) {
         $outs = is_array($data['out']) ? $data['out'] : array($data['out']);
         if (in_array($outfile, $outs)) {
@@ -103,7 +103,7 @@ function delJobFromOutfiles($outfiles)
     if (count($outfiles) == 0)
         return 1;
 
-    $SGE_updated = getUserJobs($_SESSION['userId']);
+    $SGE_updated = getUserJobs($_SESSION['User']['id']);
 
     foreach ($outfiles as $outfile) {
         $pid = getPidFromOutfile($outfile);
@@ -155,9 +155,6 @@ function delJobFromOutfiles($outfiles)
                         $_SESSION['errorData']['SGE'][] = "Cannot unlink $rfn" . error_get_last()["message"];
                     }
                 }
-                //update pending jobs
-                //unset($SGE_updated[$pid]);
-                //delUserJob($_SESSION['userId'],$pid);
             }
         } else {
             $_SESSION['errorData']['SGE'][] = "Cannot find job information for '" . basename($outfile) . "'.  &nbsp;<a href=\"workspace/workspace.php\">[ OK ]</a>";
