@@ -117,7 +117,7 @@ function launchTool($toolId, $userEmail, $projectName, $inputFilepaths)
         return 0;
     }
 
-    addUserJob($_SESSION['UserId'], (array)$jobMeta, $jobMeta->pid);
+    addUserJob($_SESSION['userId'], (array)$jobMeta, $jobMeta->pid);
 
     return ["jobTitle" => $jobMeta->title, "project" => $projectName, "execution" => $jobMeta->execution];
 }

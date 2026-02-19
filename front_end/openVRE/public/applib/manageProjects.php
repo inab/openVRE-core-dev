@@ -26,7 +26,7 @@ if (is_null($_REQUEST['op'])) {
     redirect($GLOBALS['BASEURL'] . "workspace/");
 }
 
-$user = getUserById($_SESSION['UserId']);
+$user = getUserById($_SESSION['userId']);
 
 $dataDir_ant      = $user->getDataDir();
 $dataDir_ant_name = getAttr_fromGSFileId($dataDir_ant, "name");
@@ -113,8 +113,8 @@ if ($_REQUEST['pr_id']) {
     $user->setDataDir($_REQUEST['pr_id']);
 
     // update User in mongo
-    modifyUser($_SESSION['UserId'], "activeProject", $_REQUEST['pr_code']);
-    modifyUser($_SESSION['UserId'], "dataDir", $_REQUEST['pr_id']);
+    modifyUser($_SESSION['userId'], "activeProject", $_REQUEST['pr_code']);
+    modifyUser($_SESSION['userId'], "dataDir", $_REQUEST['pr_id']);
 
     // print info message
     if ($user->getDataDir() != $dataDir_ant) {

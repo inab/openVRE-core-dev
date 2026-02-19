@@ -138,7 +138,7 @@ function launchToolInternal($toolId, $args = [], $outs = [], $outputDir = "", $l
 	// Setting Command line. Adding parameters
 	$jobMeta->prepareExecution($tool, []);
 	$jobMeta->submit($tool);
-	addUserJob($_SESSION['UserId'], $jobMeta->toDocument(), $jobMeta->pid);
+	addUserJob($_SESSION['userId'], $jobMeta->toDocument(), $jobMeta->pid);
 
 	return $jobMeta->pid;
 }

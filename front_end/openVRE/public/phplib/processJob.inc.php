@@ -22,7 +22,7 @@ function execJob($workDir, $shFile, $queue, $cpus = 1, $mem = 0)
 {
     getJobProcessLogger()->info("Start job submission via SGE");
 
-    if (is_null($_SESSION['User']['internalId'])) {
+    if (is_null($_SESSION['internalUserId'])) {
         getJobProcessLogger()->error("User ID not found in session.");
         throw new NotFoundException("User ID not found in session.");
     }
@@ -43,7 +43,7 @@ function execJob($workDir, $shFile, $queue, $cpus = 1, $mem = 0)
         throw new NotFoundException("Queue not provided.");
     }
 
-    $jobname = $_SESSION['User']['internalId'] . "#" . basename($shFile);
+    $jobname = $_SESSION['internalUserId'] . "#" . basename($shFile);
     $process = new ProcessSGE($shFile, $workDir, $queue, $jobname, $cpus, $mem);
 
     if (!$process->status()) {
@@ -83,7 +83,7 @@ function getRunningJobInfo($pid, $launcherType = null)
 function getPidFromOutfile($outfile)
 {
     $pid = 0;
-    $SGE_updated = getUserJobs($_SESSION['User']['internalId']);
+    $SGE_updated = getUserJobs($_SESSION['internalUserId']);
     foreach ($SGE_updated as $data) {
         $outs = is_array($data['out']) ? $data['out'] : array($data['out']);
         if (in_array($outfile, $outs)) {
@@ -103,7 +103,7 @@ function delJobFromOutfiles($outfiles)
     if (count($outfiles) == 0)
         return 1;
 
-    $SGE_updated = getUserJobs($_SESSION['User']['internalId']);
+    $SGE_updated = getUserJobs($_SESSION['internalUserId']);
 
     foreach ($outfiles as $outfile) {
         $pid = getPidFromOutfile($outfile);
@@ -202,6 +202,6 @@ function delJob($pid, $launcherType = null, $login = null)
     sleep(15);
 
     if (!$login) {
-        $login = $_SESSION['UserId'];
+        $login = $_SESSION['userId'];
     }
 }

@@ -47,11 +47,10 @@ if (empty($tool['infrastructure']['interactive']) && empty($_REQUEST['input_file
 	internalErrorRedirect();
 }
 
-$project = $_REQUEST['project'] ?? $_SESSION['User']['activeProject']; // TODO: check if project shouldn't be mandatory in the request and replace with User object otherwise
 $sites = $_REQUEST['arguments_exec']
 	? $_REQUEST['arguments_exec']['site_list']
 	: [];
-$jobMeta  = new Tooljob($tool, $_REQUEST['description'], $project, $_REQUEST['execution'], $sites);
+$jobMeta  = new Tooljob($tool, $_REQUEST['description'], $_REQUEST['project'], $_REQUEST['execution'], $sites);
 
 $logger->debug("Tool job metadata: ", ['jobMeta' => $jobMeta]);
 
@@ -149,7 +148,7 @@ try {
 	redirect($GLOBALS['BASEURL'] . "workspace/");
 }
 
-addUserJob($_SESSION['UserId'], $jobMeta->toDocument(), $jobMeta->pid);
+addUserJob($_SESSION['userId'], $jobMeta->toDocument(), $jobMeta->pid);
 $logger->info("Job submitted. PID = $pid");
 $_SESSION['errorData']['Info'][] = "Job successfully sent! Monitor it at <b>" . $proj['name'] . " &rsaquo; " . $jobMeta->execution . " &rsaquo; " . $jobMeta->title . "</b>.";
 

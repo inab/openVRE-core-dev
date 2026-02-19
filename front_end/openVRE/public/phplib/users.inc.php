@@ -21,8 +21,8 @@ function getUsersLogger()
 
 function checkLoggedIn()
 {
-    if (isset($_SESSION['User']) && isset($_SESSION['UserId'])) {
-        $user = getUserById($_SESSION['UserId']);
+    if (isset($_SESSION['User']) && isset($_SESSION['userId'])) {
+        $user = getUserById($_SESSION['userId']);
     }
 
     return isset($_SESSION['User']) && ($user['Status'] == UserStatus::Active->value);
@@ -35,14 +35,14 @@ function checkTermsOfUse()
 
 function checkAdmin()
 {
-    $user = getUserById($_SESSION['UserId']);
+    $user = getUserById($_SESSION['userId']);
 
     return isset($_SESSION['User']) && ($user['Status'] == UserStatus::Active->value) && (in_array($user['Type'], $GLOBALS['ADMIN']));
 }
 
 function checkToolDev()
 {
-    $user = getUserById($_SESSION['UserId']);
+    $user = getUserById($_SESSION['userId']);
 
     return isset($_SESSION['User']) && ($user['Status'] == UserStatus::Active->value) && (in_array($user['Type'], $GLOBALS['TOOLDEV']) || in_array($user['Type'], $GLOBALS['ADMIN']));
 }
@@ -78,7 +78,7 @@ function createUserFromToken($token, $userInfo = array())
 
     $user = new User($userAttributes['email'], $userAttributes['secretsId'], $userAttributes['Surname'], $userAttributes['Name'], "", $userAttributes['Type'], "", "", $userAttributes['AuthProvider'], "");
 
-    $_SESSION['UserId'] = $userAttributes['email']; // TODO: rename if email will not replace internalId attribute in User class (currently it is the same as _id but no as internalId)
+    $_SESSION['userId'] = $userAttributes['email']; // TODO: rename if email will not replace internalId attribute in User class (currently it is the same as _id but no as internalId)
 
     return $user;
 }
@@ -102,7 +102,7 @@ function createUserAnonymous($sampleData)
 
     $userArray = $objUser->toDocument();
     $_SESSION['User']   = $userArray;
-    $_SESSION['UserId'] = $userAttributes['email']; // TODO: rename if email will not replace id attribute in User class
+    $_SESSION['userId'] = $userAttributes['email']; // TODO: rename if email will not replace id attribute in User class
     $_SESSION['anonID'] = $userArray['email'];
 
     $dataDirId = prepUserWorkSpace($userArray['activeProject'], $objUser->getInternalId(), $sampleData);
@@ -175,7 +175,7 @@ function delUser($id)
 
 function logoutUser()
 {
-    getUsersLogger()->info("User " . $_SESSION['User']['internalId'] . " logging out");
+    getUsersLogger()->info("User " . $_SESSION['internalUserId'] . " logging out");
     session_unset();
 }
 

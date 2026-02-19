@@ -12,10 +12,10 @@ if ($_REQUEST["type"] != 2) {
 	// EXTRACT FILE METADATA FROM DMP FILE
 	$mt   = getGSFile_fromId($_REQUEST["id"], "", $asRoot);
 	$tool = getTool_fromId($mt["tool"], 1);
-	$user = getUserById($_SESSION['UserId']);
+	$user = getUserById($_SESSION['userId']);
 } else {
 	// EXTRACT JOB METADATA FROM USER JOBS
-	$login = ($_REQUEST['user'] ? $_REQUEST['user'] : $_SESSION['UserId']);
+	$login = ($_REQUEST['user'] ? $_REQUEST['user'] : $_SESSION['userId']);
 	$user = getUserById($login);
 	$job = getUserJobPid($login, $_REQUEST["id"]);
 	$mt = $job[$_REQUEST["id"]];

@@ -20,7 +20,7 @@ function getMongoProjectLogger()
 function isProject($query, $asRoot = 0, $owner = 0)
 {
     if (!$owner || !$asRoot) {
-        $owner = $_SESSION['User']['internalId'];
+        $owner = $_SESSION['internalUserId'];
     }
 
     // get proj id from proj path
@@ -40,7 +40,7 @@ function getProjects_byOwner($asRoot = 0, $owner = 0)
 {
 
     if (!$owner || !$asRoot)
-        $owner = $_SESSION['User']['internalId'];
+        $owner = $_SESSION['internalUserId'];
 
     $filters = array(
         'owner' => $owner,
@@ -62,7 +62,7 @@ function getProject($query, $asRoot = 0, $owner = 0)
     $query_type = (preg_match('/__PROJ/', $query) ? "path" : "_id");
 
     if (!$owner || !$asRoot) {
-        $owner = $_SESSION['User']['internalId'];
+        $owner = $_SESSION['internalUserId'];
     }
 
     if ($query_type == "_id") {

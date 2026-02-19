@@ -89,7 +89,7 @@ function getData_fromLocal()
     $permissions = 0666;
     chmod($filePath, $permissions);
     $insertData = [
-        'owner' => $_SESSION['User']['internalId'],
+        'owner' => $_SESSION['internalUserId'],
         'size'  => filesize($filePath),
         'mtime' => new MongoDB\BSON\UTCDateTime(filemtime($filePath) * 1000)
     ];
@@ -345,7 +345,7 @@ function getData_fromTXT()
     chmod($filePath, 0666);
     $fileBasename = basename($filePath);
     $insertData = [
-        'owner' => $_SESSION['User']['internalId'],
+        'owner' => $_SESSION['internalUserId'],
         'size'  => filesize($filePath),
         'mtime' => new MongoDB\BSON\UTCDateTime(filemtime($filePath) * 1000)
     ];
@@ -581,7 +581,7 @@ function getData_fromSampleData($params = [])
 
     foreach ($params['sampleData'] as $sampleName) {
         $_SESSION['errorData']['Info'][] = "Importing exemple dataset for '$sampleName'";
-        $dataDir = $_SESSION['User']['internalId'] . "/" . $_SESSION['User']['activeProject'];
+        $dataDir = $_SESSION['internalUserId'] . "/" . $_SESSION['User']['activeProject'];
         setUserWorkSpace_sampleData($sampleName, $dataDir);
 
         $_SESSION['errorData']['Info'][] = "Example data successfuly imported.";
@@ -603,7 +603,7 @@ function getData_fromEGA($datasetIds, $fileIds, $filenames, $fileSizes)
         $filePath = "{$datasetIdsArray[$i]}/{$filenamesArray[$i]}";
 
         $insertData = [
-            'owner' => $_SESSION['User']['internalId'],
+            'owner' => $_SESSION['internalUserId'],
             'size' => $fileSizesArray[$i],
             'mtime' => new MongoDB\BSON\UTCDateTime(strtotime("now") * 1000)
         ];

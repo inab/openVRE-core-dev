@@ -78,7 +78,7 @@ if ($_REQUEST) {
 
     // Get user info
     if (isset($_REQUEST['action']) && $_REQUEST['action'] == "getUser") {
-        echo getUser($_SESSION['User']['internalId']);
+        echo getUser($_SESSION['internalUserId']);
         exit;
     }
 

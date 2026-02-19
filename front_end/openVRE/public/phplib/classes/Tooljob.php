@@ -78,12 +78,12 @@ class Tooljob
 			$this->hasExecutionFolder = true;
 			$dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
 			$localWorkingDir = "$dataDirPath/$execution";
-			$prevs = $GLOBALS['filesCol']->findOne(['path' => $localWorkingDir, 'owner' => $_SESSION['User']['internalId']]);
+			$prevs = $GLOBALS['filesCol']->findOne(['path' => $localWorkingDir, 'owner' => $_SESSION['internalUserId']]);
 			if ($prevs) {
 				for ($n = 1; $n < 99; $n++) {
 					$executionN = $execution . "_" . $n;
 					$localWorkingDir = "$dataDirPath/$executionN";
-					$prevs = $GLOBALS['filesCol']->findOne(['path' => $localWorkingDir, 'owner' => $_SESSION['User']['internalId']]);
+					$prevs = $GLOBALS['filesCol']->findOne(['path' => $localWorkingDir, 'owner' => $_SESSION['internalUserId']]);
 					if ($prevs) {
 						$execution = $executionN;
 						break;
@@ -675,7 +675,7 @@ class Tooljob
 			--net=\$NET_NAME --name $this->containerName \
 			$cmd_envs \
 			-v {$this->jobDirectories->projectDirHost}:{$GLOBALS['shared']}public_tmp/ \
-			-v {$this->jobDirectories->userDirHost}:{$GLOBALS['shared']}userdata_tmp/{$_SESSION['User']['internalId']} \
+			-v {$this->jobDirectories->userDirHost}:{$GLOBALS['shared']}userdata_tmp/{$_SESSION['internalUserId']} \
 			--hostname $this->containerName \
 			-p \$FREE_PORT:{$tool['infrastructure']['container_port']} {$tool['infrastructure']['container_image']});
 		EOF;
@@ -764,14 +764,14 @@ class Tooljob
 		}
 
 		$timestamp = date('Y-m-d_H-i-s');
-		$this->containerName = $tool['infrastructure']['container_image'] . "_" . $_SESSION['User']['internalId'] . "_" . $timestamp;
+		$this->containerName = $tool['infrastructure']['container_image'] . "_" . $_SESSION['internalUserId'] . "_" . $timestamp;
 		$cmd_envs = "";
 		foreach ($tool['infrastructure']['container_env'] as $env_key => $env_value) {
 			$cmd_envs .= "-e $env_key=$env_value ";
 		}
 
 		foreach ($tool['infrastructure']['volumes'] as $hostDir => $containerDir) {
-			$userHomeDir = $GLOBALS['shared'] . "userdata_tmp/{$_SESSION['User']['internalId']}" . "/" . $this->project;
+			$userHomeDir = $GLOBALS['shared'] . "userdata_tmp/{$_SESSION['internalUserId']}" . "/" . $this->project;
 			$cmd_envs .= "-v $userHomeDir" . "$hostDir:$containerDir ";
 		}
 
@@ -793,7 +793,7 @@ class Tooljob
 				" " . $cmd_envs .
 				"--memory=" . $tool['infrastructure']['memory'] . "g" .
 				" -v " . $this->jobDirectories->projectDirHost . ":" . $GLOBALS['shared'] . "public_tmp/ " .
-				" -v " . $this->jobDirectories->userDirHost . ":" . $GLOBALS['shared'] . "userdata_tmp/{$_SESSION['User']['internalId']}" .
+				" -v " . $this->jobDirectories->userDirHost . ":" . $GLOBALS['shared'] . "userdata_tmp/{$_SESSION['internalUserId']}" .
 				" " . $tool['infrastructure']['container_image'] . " $cmd_vre";
 		}
 
@@ -821,7 +821,7 @@ class Tooljob
 
 		$vaultKey = $_SESSION['userVaultInfo']['vaultKey'];
 		$vaultAddress = $GLOBALS['vaultUrl'] . "/" . $GLOBALS['secretPath'] . $_SESSION['User']['secretsId'] . '/EGA';
-		$userFolder = "/shared_data/userdata/" . $_SESSION['User']['internalId'];
+		$userFolder = "/shared_data/userdata/" . $_SESSION['internalUserId'];
 		$configFilePath = $userFolder . '/env.yml';
 		$configContent = "VAULT_TOKEN={$vaultKey}\nVAULT_ADDRESS={$vaultAddress}\n";
 
@@ -833,7 +833,7 @@ class Tooljob
 		$cmd = "docker run --device /dev/fuse --security-opt apparmor:unconfined --cap-add SYS_ADMIN -v /var/run/docker.sock:/var/run/docker.sock " .
 			" " . $cmd_envs .
 			" -v " . $this->jobDirectories->projectDirHost .                            ":" . $GLOBALS['shared'] . "public_tmp/ " .
-			" -v " . $this->jobDirectories->userDirHost . "/" . $_SESSION['User']['internalId'] . ":" . $GLOBALS['shared'] . "userdata_tmp/" . $_SESSION['User']['internalId'] .
+			" -v " . $this->jobDirectories->userDirHost . "/" . $_SESSION['internalUserId'] . ":" . $GLOBALS['shared'] . "userdata_tmp/" . $_SESSION['internalUserId'] .
 			" --tmpfs " . "/clean_files:rw,uid=1000,gid=1000" .
 			" --env-file " . $configFilePath .
 			" --network=new_vre_open-vre" .
@@ -969,7 +969,7 @@ class Tooljob
 		$mugfile['_id'] = $file['_id'];
 
 		if (isset($file['path'])) {
-			if (preg_match('/^\//', $file['path']) || preg_match('/^' . $_SESSION['User']['internalId'] . '/', $file['path'])) {
+			if (preg_match('/^\//', $file['path']) || preg_match('/^' . $_SESSION['internalUserId'] . '/', $file['path'])) {
 				$path = explode("/", $file['path']);
 				$mugfile['file_path'] = implode("/", array_slice($path, -3, 3));
 			} else {
@@ -995,7 +995,7 @@ class Tooljob
 			$mugfile['sources'] = [$file['input_files']];
 		}
 
-		$mugfile['user_id'] = $file['owner'] ?? $_SESSION['User']['internalId'];
+		$mugfile['user_id'] = $file['owner'] ?? $_SESSION['internalUserId'];
 		$mugfile['creation_time'] = $file['mtime'] ?? new MongoDB\BSON\UTCDateTime(strtotime("now") * 1000);
 
 		$mugfile['taxon_id'] = $file['taxon_id'] ?? (isset($file['refGenome'])

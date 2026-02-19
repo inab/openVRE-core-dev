@@ -58,7 +58,7 @@ class DataTransfer
         $this->input_files = $input_files;
 
         // Set paths in VRE
-        $this->root_dir  = $GLOBALS['userDataDir'] . "/" . $_SESSION['User']['internalId'];
+        $this->root_dir  = $GLOBALS['userDataDir'] . "/" . $_SESSION['internalUserId'];
         $this->pub_dir   = $GLOBALS['pubDir'];
 
         // Set paths in the virtual machine
@@ -70,7 +70,7 @@ class DataTransfer
         switch ($this->launcher) {
             case Launcher::SGE:
             case Launcher::docker_SGE:
-                $this->root_dir_virtual = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual'] . "/" . $_SESSION['User']['internalId'];
+                $this->root_dir_virtual = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual'] . "/" . $_SESSION['internalUserId'];
                 $this->root_dir_mug      = $GLOBALS['clouds'][$this->cloudName]['dataDir_virtual'];
                 $this->pub_dir_virtual  = $GLOBALS['clouds'][$this->cloudName]['pubDir_virtual'];
                 break;
@@ -141,12 +141,12 @@ class DataTransfer
         $wdFN   = $dataDirPath . "/$execution";
 
         if (!$overwrite) {
-            $prevs = $GLOBALS['filesCol']->findOne(array('path' => $wdFN, 'owner' => $_SESSION['User']['internalId']));
+            $prevs = $GLOBALS['filesCol']->findOne(array('path' => $wdFN, 'owner' => $_SESSION['internalUserId']));
             if ($prevs) {
                 for ($n = 1; $n < 99; $n++) {
                     $executionN =  $execution . "_$n";
                     $wdFN      = "$dataDirPath/$executionN";
-                    $prevs     =  $GLOBALS['filesCol']->findOne(array('path' => $wdFN, 'owner' => $_SESSION['User']['internalId']));
+                    $prevs     =  $GLOBALS['filesCol']->findOne(array('path' => $wdFN, 'owner' => $_SESSION['internalUserId']));
                     if ($prevs) {
                         $execution = $executionN;
                         $wd     = $GLOBALS['userDataDir'] . "/$wdFN";

@@ -36,14 +36,14 @@ function getGSFilesFromDir($dataSelection = array(), $onlyVisible = 0)
 
 	// set directory query
 	if (empty($dataSelection)) {
-		if (!isset($_SESSION['User']['internalId'])) {
+		if (!isset($_SESSION['internalUserId'])) {
 			getMongoLogger()->error("Cannot retrieve files from the database. Given query is not valid.");
 			throw new UnexpectedValueException("Cannot retrieve files from the database. Given query is not valid.");
 		}
 
 		$dataSelection = array(
-			'owner' => $_SESSION['User']['internalId'],
-			'path'  => $_SESSION['User']['internalId']
+			'owner' => $_SESSION['internalUserId'],
+			'path'  => $_SESSION['internalUserId']
 		);
 	}
 
@@ -67,7 +67,7 @@ function getGSFilesFromDir($dataSelection = array(), $onlyVisible = 0)
 			? getGSFile_filteredBy($d, array('visible' => array('$ne' => false)))
 			: getGSFile_fromId($d);
 
-		if ($fData['path'] == $_SESSION['User']['internalId']) { // home file
+		if ($fData['path'] == $_SESSION['internalUserId']) { // home file
 			continue;
 		}
 
@@ -97,7 +97,7 @@ function isFilePresentFromPath($filePath, $asRoot = 0)
 	$mongoFilesCollection = $GLOBALS['filesCol'];
 	$filter = $asRoot
 		? array('path' => $filePath)
-		: array('path' => $filePath, 'owner' => $_SESSION['User']['internalId']);
+		: array('path' => $filePath, 'owner' => $_SESSION['internalUserId']);
 	$file = $mongoFilesCollection->findOne($filter);
 
 	return $file != null;
@@ -109,12 +109,12 @@ function getGSFileId_fromPath($filePath, $asRoot = 0)
 	$mongoFilesCollection = $GLOBALS['filesCol'];
 	$filter = $asRoot
 		? array('path' => $filePath)
-		: array('path' => $filePath, 'owner' => $_SESSION['User']['internalId']);
+		: array('path' => $filePath, 'owner' => $_SESSION['internalUserId']);
 
 	$file = $mongoFilesCollection->findOne($filter);
 
 	if (is_null($file)) {
-		getMongoLogger()->info("File " . $filePath . " does not exist for user " . $_SESSION['User']['internalId']);
+		getMongoLogger()->info("File " . $filePath . " does not exist for user " . $_SESSION['internalUserId']);
 		return null;
 	}
 
@@ -127,7 +127,7 @@ function getGSFile_fromId($fileId, $filter = "", $asRoot = 0)
 {
 	$fileData = $asRoot
 		? $GLOBALS['filesCol']->findOne(array('_id' => $fileId))
-		: $GLOBALS['filesCol']->findOne(array('_id' => $fileId, 'owner' => $_SESSION['User']['internalId']));
+		: $GLOBALS['filesCol']->findOne(array('_id' => $fileId, 'owner' => $_SESSION['internalUserId']));
 
 	if (is_null($fileData)) {
 		return null;
@@ -194,7 +194,7 @@ function getGSFiles_filteredBy($filters, $asRoot = 0)
 	if (count($filter_filesMetaCol) && count($filter_filesCol)) {
 		# Find in Files and FilesMetadata by filter.
 		if (!$asRoot) {
-			$filter_filesCol['owner'] = $_SESSION['User']['internalId'];
+			$filter_filesCol['owner'] = $_SESSION['internalUserId'];
 		}
 
 		$fileData = $GLOBALS['filesCol']->find($filter_filesCol)->toArray();
@@ -224,7 +224,7 @@ function getGSFiles_filteredBy($filters, $asRoot = 0)
 		$filesData = $GLOBALS['filesCol']->find(array("_id" => array('$in' => $ids)))->toArray();
 		foreach ($filesData as $fileData) {
 			$id = $fileData['_id'];
-			if (!$asRoot && $fileData['owner'] != $_SESSION['User']['internalId']) {
+			if (!$asRoot && $fileData['owner'] != $_SESSION['internalUserId']) {
 				continue;
 			}
 
@@ -235,7 +235,7 @@ function getGSFiles_filteredBy($filters, $asRoot = 0)
 	} elseif (count($filter_filesCol)) {
 		# Find in Files by filter, and find the resulting files into FilesMetadata
 		if (!$asRoot) {
-			$filter_filesCol['owner'] = $_SESSION['User']['internalId'];
+			$filter_filesCol['owner'] = $_SESSION['internalUserId'];
 		}
 
 		$fileData = $GLOBALS['filesCol']->find($filter_filesCol);
@@ -292,7 +292,7 @@ function moveGSFileBNS($fn, $fnNew, $asRoot = 0, $owner = "")
 {
 	getMongoLogger()->debug("moveGSFileBNS($fn, $fnNew, $asRoot, $owner)");
 	if (!$asRoot) {
-		$owner = $_SESSION['User']['internalId'];
+		$owner = $_SESSION['internalUserId'];
 	}
 
 	$fn     = fromAbsPath_toPath($fn);
@@ -397,7 +397,7 @@ function moveGSDirBNS($fn, $fnNew, $asRoot = 0, $owner = "")
 {
 	getMongoLogger()->debug("moveGSDirBNS($fn, $fnNew, $asRoot, $owner)");
 	if ($asRoot == 0) {
-		$owner = $_SESSION['User']['internalId'];
+		$owner = $_SESSION['internalUserId'];
 	}
 
 	$fn     = fromAbsPath_toPath($fn);
@@ -511,14 +511,14 @@ function absolutePathGSDir($dirPath, $asRoot = 0)
 		return $dirPath;
 	}
 
-	$root = $_SESSION['User']['internalId'];
-	if ($root != $_SESSION['User']['internalId'] && !preg_match('/^(\/)*' . $root . '(\/|$)/', $_SESSION['User']['internalId'])) {
-		getMongoLogger()->error("Current directory " . $_SESSION['User']['internalId'] . " is not under the home directory $root.");
-		throw new UnexpectedValueException("Current directory " . $_SESSION['User']['internalId'] . " is not under the home directory $root.");
+	$root = $_SESSION['internalUserId'];
+	if ($root != $_SESSION['internalUserId'] && !preg_match('/^(\/)*' . $root . '(\/|$)/', $_SESSION['internalUserId'])) {
+		getMongoLogger()->error("Current directory " . $_SESSION['internalUserId'] . " is not under the home directory $root.");
+		throw new UnexpectedValueException("Current directory " . $_SESSION['internalUserId'] . " is not under the home directory $root.");
 	}
 
 	if (!preg_match('/^(\/)*' . $root . '(\/|$)/', $dirPath)) {
-		return $_SESSION['User']['internalId'] . "/" . $dirPath;
+		return $_SESSION['internalUserId'] . "/" . $dirPath;
 	}
 
 	return $dirPath;
@@ -536,14 +536,14 @@ function absolutePathGSFile($filePath, $asRoot)
 
 		return $filePath;
 	} else {
-		$userId = $_SESSION['User']['internalId'];
-		if ($userId != $_SESSION['User']['internalId'] && !preg_match('/^(\/)*' . $userId . '(\/|$)/', $_SESSION['User']['internalId'])) {
-			$_SESSION['errorData']['mongoDB'][] = "Current directory " . $_SESSION['User']['internalId'] . " is not under the home directory $userId. Restart login, please";
+		$userId = $_SESSION['internalUserId'];
+		if ($userId != $_SESSION['internalUserId'] && !preg_match('/^(\/)*' . $userId . '(\/|$)/', $_SESSION['internalUserId'])) {
+			$_SESSION['errorData']['mongoDB'][] = "Current directory " . $_SESSION['internalUserId'] . " is not under the home directory $userId. Restart login, please";
 			return null;
 		}
 
 		if (!preg_match('/^(\/)*' . $userId . '\//', $filePath)) {
-			return $_SESSION['User']['internalId'] . "/" . $filePath;
+			return $_SESSION['internalUserId'] . "/" . $filePath;
 		}
 
 		return $filePath;
@@ -580,8 +580,8 @@ function createGSDirBNS($dirPath, $asRoot = 0)
 	try {
 		$absoluteDirPath = absolutePathGSDir($dirPath, $asRoot);
 	} catch (UnexpectedValueException $e) {
-		getMongoLogger()->error("Cannot create $dirPath . Target not under root directory " . $_SESSION['User']['internalId'] . ".");
-		throw new UnexpectedValueException("Cannot create $dirPath . Target not under root directory " . $_SESSION['User']['internalId'] . "." . "\n" . $e->getMessage());
+		getMongoLogger()->error("Cannot create $dirPath . Target not under root directory " . $_SESSION['internalUserId'] . ".");
+		throw new UnexpectedValueException("Cannot create $dirPath . Target not under root directory " . $_SESSION['internalUserId'] . "." . "\n" . $e->getMessage());
 	}
 
 	$fileId = getGSFileId_fromPath($absoluteDirPath, 1);
@@ -589,7 +589,7 @@ function createGSDirBNS($dirPath, $asRoot = 0)
 		return $fileId;
 	}
 
-	$isRootLevelDir = ($absoluteDirPath == $_SESSION['User']['internalId'])
+	$isRootLevelDir = ($absoluteDirPath == $_SESSION['internalUserId'])
 		|| ($asRoot && (
 			preg_match('/^' . preg_quote($GLOBALS['userDataDir'], '/') . '(\/)*[^\/.]+$/', $absoluteDirPath)
 			|| preg_match('/^[^\/.]+$/', $absoluteDirPath)));
@@ -604,14 +604,14 @@ function createGSDirBNS($dirPath, $asRoot = 0)
 	}
 
 	if (isset($parentDirId)) {
-		$parentDir = $mongoFilesCollection->findOne(['_id' => $parentDirId, 'owner' => $_SESSION['User']['internalId']]);
+		$parentDir = $mongoFilesCollection->findOne(['_id' => $parentDirId, 'owner' => $_SESSION['internalUserId']]);
 		if (isset($parentDir['permissions']) && $parentDir['permissions'] == "000") {
 			getMongoLogger()->error("Not permissions to modify parent directory $parentPath");
 			throw new UnexpectedValueException("Not permissions to modify parent directory $parentPath");
 		}
 	}
 
-	$owner = $_SESSION['User']['internalId'];
+	$owner = $_SESSION['internalUserId'];
 	if ($asRoot) {
 		if (preg_match('/^' . preg_quote($GLOBALS['userDataDir'], '/') . '(\/)*([^\/.]+)/', $absoluteDirPath, $matches)) {
 			$owner = $matches[2];
@@ -657,8 +657,8 @@ function uploadGSFileBNS($localFilePath, $filePath, $attributes = [], $meta = []
 	$mongoFilesCollection = $GLOBALS['filesCol'];
 	$absoluteFilePath = absolutePathGSFile($localFilePath, $asRoot);
 	if (is_null($absoluteFilePath)) {
-		getMongoLogger()->error("Cannot upload $localFilePath to current directory " . $_SESSION['User']['internalId']);
-		throw new UnexpectedValueException("Cannot upload $localFilePath to current directory " . $_SESSION['User']['internalId']);
+		getMongoLogger()->error("Cannot upload $localFilePath to current directory " . $_SESSION['internalUserId']);
+		throw new UnexpectedValueException("Cannot upload $localFilePath to current directory " . $_SESSION['internalUserId']);
 	}
 
 	$fileId = getGSFileId_fromPath($absoluteFilePath);
@@ -679,7 +679,7 @@ function uploadGSFileBNS($localFilePath, $filePath, $attributes = [], $meta = []
 	if (empty($parentId)) {
 		$parentPath = dirname($absoluteFilePath);
 		if ($parentPath == ".") {
-			$parentPath = $_SESSION['User']['internalId'];
+			$parentPath = $_SESSION['internalUserId'];
 		}
 
 		$parentId  = getGSFileId_fromPath($parentPath, $asRoot);
@@ -693,7 +693,7 @@ function uploadGSFileBNS($localFilePath, $filePath, $attributes = [], $meta = []
 
 			$parentObj = $mongoFilesCollection->findOne([
 				'_id' => $parentId,
-				'owner' => $_SESSION['User']['internalId']
+				'owner' => $_SESSION['internalUserId']
 			]);
 			if (isset($parentObj['permissions']) && $parentObj['permissions'] == "000") {
 				$_SESSION['errorData']['mongoDB'][] = "Not permissions to modify parent directory $parentPath";
@@ -705,7 +705,7 @@ function uploadGSFileBNS($localFilePath, $filePath, $attributes = [], $meta = []
 
 	$fileId = $attributes['_id'] ?? createLabel();
 	$attributes['_id'] ??= $fileId;
-	$attributes['owner'] ??= $_SESSION['User']['internalId'];
+	$attributes['owner'] ??= $_SESSION['internalUserId'];
 	$attributes['mtime'] ??= new MongoDB\BSON\UTCDateTime(filemtime($filePath) * 1000);
 	$attributes['size'] ??= filesize($filePath);
 	$attributes['parentDir'] ??= $parentId;
@@ -804,7 +804,7 @@ function deleteGSFileBNS($fn, $asRoot = 0)
 {
 	$file = $asRoot
 		? $GLOBALS['filesCol']->findOne(array('_id' => $fn))
-		: $GLOBALS['filesCol']->findOne(array('_id' => $fn, 'owner' => $_SESSION['User']['internalId']));
+		: $GLOBALS['filesCol']->findOne(array('_id' => $fn, 'owner' => $_SESSION['internalUserId']));
 
 	if (is_null($file)) {
 		getMongoLogger()->warning("Cannot remove file with id = $fn. File is not there anymore.");
@@ -831,7 +831,7 @@ function deleteGSFileBNS($fn, $asRoot = 0)
 			$filePath  = $file['path'];
 			$parentPath = dirname($filePath);
 			if ($parentPath == ".") {
-				$parentPath = $_SESSION['User']['internalId'];
+				$parentPath = $_SESSION['internalUserId'];
 			}
 
 			$parentId  = getGSFileId_fromPath($parentPath, $asRoot);
@@ -842,7 +842,7 @@ function deleteGSFileBNS($fn, $asRoot = 0)
 			throw new UnexpectedValueException("Cannot remove $filePath. 'parentPath' ($parentId)  is not a directory.");
 		}
 
-		if (($parentPath == $_SESSION['User']['internalId'] || $parentId == "0") && !$asRoot) {
+		if (($parentPath == $_SESSION['internalUserId'] || $parentId == "0") && !$asRoot) {
 			getMongoLogger()->error("Cannot remove home directory.");
 			throw new UnexpectedValueException("Cannot remove home directory.");
 		}
@@ -862,7 +862,7 @@ function deleteGSDirBNS($fn, $asRoot = 0)
 {
 	$dir = $asRoot
 		? $GLOBALS['filesCol']->findOne(array('_id' => $fn))
-		: $GLOBALS['filesCol']->findOne(array('_id' => $fn, 'owner' => $_SESSION['User']['internalId']));
+		: $GLOBALS['filesCol']->findOne(array('_id' => $fn, 'owner' => $_SESSION['internalUserId']));
 
 	if (is_null($dir)) {
 		getMongoLogger()->error("Cannot remove directory with id = $fn. Directory is not there anymore.");
@@ -928,9 +928,9 @@ function calcGSUsedSpaceDir($fn)
 
 function createLabel()
 {
-	$label = uniqid($_SESSION['User']['internalId'] . "_", true);
+	$label = uniqid($_SESSION['internalUserId'] . "_", true);
 	if (! empty($GLOBALS['filesCol']->findOne(array('_id' => $label)))) {
-		$label = uniqid($_SESSION['User']['internalId'] . "_", true);
+		$label = uniqid($_SESSION['internalUserId'] . "_", true);
 	}
 	return $label;
 }

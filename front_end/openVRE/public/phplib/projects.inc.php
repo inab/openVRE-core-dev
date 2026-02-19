@@ -298,7 +298,7 @@ function save_fromSampleDataMetadata($metadata, $dataDir, $sampleName, $type)
 
 function getFilesToDisplay($dirSelection)
 {
-	$filesPending = processPendingFiles($_SESSION['UserId']);
+	$filesPending = processPendingFiles($_SESSION['userId']);
 	$files = getGSFilesFromDir($dirSelection, 1);
 
 	if (empty($files)) {
@@ -837,15 +837,15 @@ function formatData($data)
 				$data['vis_button'] = 'block';
 				switch ($vis["_id"]) {
 					case "ngl":
-						$data['NGLView'] = "<li><a href=\"visualizers/ngl/?user=" . $_SESSION['User']['internalId'] . "&fn[]=" . $data['_id'] . "\" target='_blank'><i class=\"fa fa-codepen\" ></i> View in NGL</a></li>";
+						$data['NGLView'] = "<li><a href=\"visualizers/ngl/?user=" . $_SESSION['internalUserId'] . "&fn[]=" . $data['_id'] . "\" target='_blank'><i class=\"fa fa-codepen\" ></i> View in NGL</a></li>";
 						break;
 
 					case "jbrowse":
-						$data['jbrowseLink'] = "<li><a target=\"_blank\" href=\"" . $_SESSION['BASEURL'] . "visualizers/jbrowse/index.php/?user=" . $_SESSION['User']['internalId'] . "&fn[]=" . $data['_id'] . "\"><i class=\"fa fa-align-right\"></i> View in JBrowse</a></li>";
+						$data['jbrowseLink'] = "<li><a target=\"_blank\" href=\"" . $_SESSION['BASEURL'] . "visualizers/jbrowse/index.php/?user=" . $_SESSION['internalUserId'] . "&fn[]=" . $data['_id'] . "\"><i class=\"fa fa-align-right\"></i> View in JBrowse</a></li>";
 						break;
 
 					case "tadkit":
-						$data['tadkitLink'] = "<li><a target=\"_blank\" href=\"visualizers/tadkit/index.php/?user=" . $_SESSION['User']['internalId'] . "&fn=" . $data['_id'] . "\"><i class=\"fa fa-cubes fa-rotate-180\"></i> View in TADkit</a></li>";
+						$data['tadkitLink'] = "<li><a target=\"_blank\" href=\"visualizers/tadkit/index.php/?user=" . $_SESSION['internalUserId'] . "&fn=" . $data['_id'] . "\"><i class=\"fa fa-cubes fa-rotate-180\"></i> View in TADkit</a></li>";
 						break;
 				}
 			}
@@ -990,7 +990,7 @@ function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$file
 		}
 
 		if (!$parentDir) {
-			$parentDir = $_SESSION['User']['internalId'] . "/" . $_SESSION['User']['activeProject'] . "/uploads";
+			$parentDir = $_SESSION['internalUserId'] . "/" . $_SESSION['User']['activeProject'] . "/uploads";
 		}
 	}
 
@@ -1192,7 +1192,7 @@ function processFinishedJobInfo($job, $pid, $title, &$filesPending)
 		$logFile  = fromAbsPath_toPath($job['executionDirectories']['executionLogFile']);
 
 		// force flash disk status
-		scandir($GLOBALS['userDataDir'] . $_SESSION['User']['internalId'] . "/" . $job['project']);
+		scandir($GLOBALS['userDataDir'] . $_SESSION['internalUserId'] . "/" . $job['project']);
 
 		// job has log
 		if (is_file($logFileP)) {
@@ -1307,7 +1307,7 @@ function saveResults($filePath, $metaData = array(), $job = array(), $rfn = 0, $
 	$insertData = array(
 		'_id'   => $fileId,
 		'type'  => $insert_type,
-		'owner' => $_SESSION['User']['internalId'],
+		'owner' => $_SESSION['internalUserId'],
 		'size'  => $size,
 		'path'  => $filePath,
 		'project' => $job['project'],
@@ -1427,7 +1427,7 @@ function  build_outputs_list($tool, $stageout_job, $stageout_file)
 function getUsedDiskSpace($userId = '', $source = "fs")
 {
 	if (!$userId) {
-		$userId = $_SESSION['User']['internalId'];
+		$userId = $_SESSION['internalUserId'];
 	}
 
 	if ($source != "fs") {
@@ -1669,7 +1669,7 @@ function resolvePath_toLocalAbsolutePath($path, $job)
 		} elseif (preg_match('/^' . $job['execution'] . '/', $path)) {
 			$rfn = dirname($job["outputDir"]) . "/" . $path;
 			// path is relative to root directory (userid/prj/run/file)
-		} elseif (preg_match('/^' . $_SESSION['User']['internalId'] . '/', $path)) {
+		} elseif (preg_match('/^' . $_SESSION['internalUserId'] . '/', $path)) {
 			$rfn = $GLOBALS['userDataDir'] . "/" . $path;
 			// path contains $(working_dir) tag
 		} elseif (preg_match('/(working_dir)/', $path)) {

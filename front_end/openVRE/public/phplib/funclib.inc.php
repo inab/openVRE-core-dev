@@ -18,7 +18,7 @@ function redirectOutside()
 		//Get access creating an a anonymous guest account
 		createUserAnonymous(null);
 	} else {
-		loadUser($_SESSION['UserId'], false);
+		loadUser($_SESSION['userId'], false);
 	}
 
 	if (!checkTermsOfUse() && pathinfo($_SERVER['PHP_SELF'])['filename'] != 'usrProfile') {

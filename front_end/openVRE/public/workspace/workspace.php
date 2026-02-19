@@ -31,7 +31,7 @@ if (is_null($_REQUEST['fn']) && is_null($_REQUEST['fnPath']) && !preg_match('/ca
 if (is_array($_REQUEST['fn']) && $_REQUEST['op'] != 'moveFiles')
 	$_REQUEST['fn'] = $_REQUEST['fn'][0];
 
-$fileData = $GLOBALS['filesCol']->findOne(array('_id' => $_REQUEST['fn'], 'owner' => $_SESSION['User']['internalId']));
+$fileData = $GLOBALS['filesCol']->findOne(array('_id' => $_REQUEST['fn'], 'owner' => $_SESSION['internalUserId']));
 $fileMeta = $GLOBALS['filesMetaCol']->findOne(array('_id' => $_REQUEST['fn']));
 $filePath = getAttr_fromGSFileId($_REQUEST['fn'], 'path');
 $rfn      = $GLOBALS['userDataDir'] . "/$filePath";
@@ -220,7 +220,7 @@ if (isset($_REQUEST['op'])) {
 
 		case 'cancelJobDir':
 			$jobList = array();
-			$jobData = getUserJobs($_SESSION['User']['internalId']);
+			$jobData = getUserJobs($_SESSION['internalUserId']);
 			if (count($jobData)) {
 				foreach ($jobData as $data) {
 					$filesId = (!is_array($data['out']) ? array($data['out']) : $data['out']);
@@ -243,7 +243,7 @@ if (isset($_REQUEST['op'])) {
 			$_SESSION['errorData']['error'][] = "Are you sure you want to cancel job for file '" . basename($_REQUEST['fn']) . "'? ";
 			$pid = $_REQUEST['pid'];
 			$jobInfo = getRunningJobInfo($pid);
-			$SGE_updated = getUserJobs($_SESSION['User']['internalId']);
+			$SGE_updated = getUserJobs($_SESSION['internalUserId']);
 			$succList = "";
 			if (isset($jobInfo['jid_successor_list'])) {
 				foreach (explode(",", trim($jobInfo['jid_successor_list'])) as $pidSucc) {
@@ -269,7 +269,7 @@ if (isset($_REQUEST['op'])) {
 
 		case 'cancelJobDirSure':
 			$jobList = array();
-			$jobData = getUserJobs($_SESSION['UserId']);
+			$jobData = getUserJobs($_SESSION['userId']);
 
 			if (count($jobData)) {
 				foreach ($jobData as $jobId => $data) {
@@ -362,7 +362,7 @@ if (isset($_REQUEST['op'])) {
 				if (is_file($rfn_Tmp)) {
 					$insertData = array(
 						'_id'   => $_REQUEST['fn'],
-						'owner' => $_SESSION['User']['internalId'],
+						'owner' => $_SESSION['internalUserId'],
 						'size'  => filesize($rfn_Tmp),
 						'mtime' => new MongoDB\BSON\UTCDateTime(filemtime($rfn_Tmp) * 1000),
 						'path'  => $fn_Tmp
@@ -398,7 +398,7 @@ if (isset($_REQUEST['op'])) {
 
 				$insertData = array(
 					'_id'   => $_REQUEST['fn'],
-					'owner' => $_SESSION['User']['internalId'],
+					'owner' => $_SESSION['internalUserId'],
 					'size'  => filesize($rfn_TmpZip),
 					'path'  => $fn_TmpZip,
 					'mtime' => new MongoDB\BSON\UTCDateTime(filemtime($rfn_TmpZip) * 1000)

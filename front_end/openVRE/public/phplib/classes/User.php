@@ -2,17 +2,15 @@
 
 namespace OpenVRE;
 
-use MongoDB\BSON\Document;
-use MongoDB\BSON\PackedArray;
 use MongoDB\BSON\Persistable;
 use Monolog\Logger;
-use stdClass;
 use UnexpectedValueException;
 
 
 class User implements Persistable
 {
     private $_id;
+    private $id;
     private $email;
     private $secretsId;
     private $Surname;

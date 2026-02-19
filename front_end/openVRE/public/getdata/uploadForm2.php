@@ -58,7 +58,7 @@ redirectOutside();
 					}
 					foreach ($_REQUEST['fn'] as $idx => $v) {
 						$file     = $_REQUEST['fn'][$idx];
-						$fileData = $GLOBALS['filesCol']->findOne(array('_id' => $file, 'owner' => $_SESSION['User']['internalId']));
+						$fileData = $GLOBALS['filesCol']->findOne(array('_id' => $file, 'owner' => $_SESSION['internalUserId']));
 						$fileMeta = $GLOBALS['filesMetaCol']->findOne(array('_id' => $file));
 						if (empty($fileData)) {
 							$_SESSION['errorData']['Error'][] = "Problems while loading data. $file not found in the database.";
