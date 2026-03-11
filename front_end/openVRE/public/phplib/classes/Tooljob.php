@@ -76,7 +76,8 @@ class Tooljob
 		} else {
 			//create Project Folder
 			$this->hasExecutionFolder = true;
-			$dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+			$user = getUserById($_SESSION['userId']);
+			$dataDirPath = getAttr_fromGSFileId($user->getDataDir(), "path");
 			$localWorkingDir = "$dataDirPath/$execution";
 			$prevs = $GLOBALS['filesCol']->findOne(['path' => $localWorkingDir, 'owner' => $_SESSION['internalUserId']]);
 			if ($prevs) {

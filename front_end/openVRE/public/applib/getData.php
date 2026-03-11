@@ -10,25 +10,31 @@ if (! $_REQUEST['uploadType']) {
 	//redirect($GLOBALS['BASEURL']."/workspace/"); # Bug fix for: TOO LONG REQUEST
 }
 
+$user = getUserById($_SESSION['userId']);
+if (is_null($user)) {
+	$_SESSION['errorData']['getData'][] = "User not found";
+	die(0);
+}
+
 switch ($_REQUEST['uploadType']) {
 	case 'file':
 		header("Connection: close");
-		getData_fromLocal();
+		getData_fromLocal($user);
 		break;
 
 	case 'url':
-		getData_fromUrl($_REQUEST['url']);
+		getData_fromUrl($user, $_REQUEST['url']);
 		break;
 
 	case 'txt':
-		echo getData_fromTXT();
+		echo getData_fromTXT($user);
 		break;
 	case 'repository':
 		$url = $_REQUEST['url'];
 		$datatype = $_REQUEST['data_type'] ?? "";
 		$filetype = $_REQUEST['filetype'] ?? "";
 		$descrip = $_REQUEST['description'] ?? "";
-		getData_fromRepository($url, $datatype, $filetype, $descrip);
+		getData_fromRepository($user, $url, $datatype, $filetype, $descrip);
 		break;
 	case 'sampleData':
 		getData_fromSampleData($_REQUEST);
@@ -39,7 +45,7 @@ switch ($_REQUEST['uploadType']) {
 		$fileIds = $_REQUEST['fileIds'];
 		$filenames = $_REQUEST['displayNames'];
 		$fileSizes = $_REQUEST['fileSizes'];
-		getData_fromEGA($datasetIds, $fileIds, $filenames, $fileSizes);
+		getData_fromEGA($user, $datasetIds, $fileIds, $filenames, $fileSizes);
 		break;
 
 	default:

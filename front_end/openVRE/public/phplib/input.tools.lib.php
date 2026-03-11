@@ -117,10 +117,10 @@ function InputTool_getPathsAndRerun($request)
 
 function InputTool_getDefExName()
 {
-
 	// default execution name
 	$dirNum = "000";
-	$dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+	$user = getUserById($_SESSION['userId']);
+	$dataDirPath = getAttr_fromGSFileId($user->getDataDir(), "path");
 	$reObj = new \MongoDB\BSON\Regex("^" . $dataDirPath . "\\/run\d\d\d$");
 	$prevs  = $GLOBALS['filesCol']->find(array('path' => $reObj, 'owner' => $_SESSION['internalUserId']), array('sort' => array('path' => -1)))->toArray();
 	if ($prevs) {

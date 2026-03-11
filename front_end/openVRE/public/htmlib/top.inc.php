@@ -1,7 +1,8 @@
 <?php
 
-$firstLetterName =  substr($_SESSION['User']['Name'], 0, 1);
-$firstLetterSurname =  substr($_SESSION['User']['Surname'], 0, 1);
+$user = getUserById($_SESSION['userId']);
+$firstLetterName =  substr($user->getName(), 0, 1);
+$firstLetterSurname =  substr($user->getSurname(), 0, 1);
 
 $avatarColors = array('#0f7e8c', '#a3d86d', '#9113ff', '#edc642', '#2ac5a3', '#ffb858', '#955216');
 $bgColorAvatar = array_rand($avatarColors, 1);
@@ -43,7 +44,7 @@ if (file_exists($avatarImg)) {
         <div class="top-menu">
             <div class="display-hide" id="session-expire-top"> <i class="glyphicon glyphicon-time"></i> Your session will expire in <span>60</span> seconds </div>
 
-            <?php if (in_array($_SESSION['User']['Type'], $GLOBALS['NO_GUEST'])) { ?>
+            <?php if (in_array($_SESSION['userType'], $GLOBALS['NO_GUEST'])) { ?>
                 <ul class="nav navbar-nav pull-right">
 
                     <!-- BEGIN USER LOGIN DROPDOWN -->
@@ -52,7 +53,7 @@ if (file_exists($avatarImg)) {
                         <a href="javascript:;" class="dropdown-toggle" data-toggle="dropdown" data-hover="dropdown" data-close-others="true">
                             <img alt="" class="img-circle<?php echo $dispClassAv1; ?>" id="avatar-with-picture" src="<?php echo $avatarImg; ?>" />
                             <div class="img-circle<?php echo $dispClassAv2; ?>" id="avatar-no-picture" style="background-color:<?php echo $avatarColors[$bgColorAvatar]; ?>"><?php echo $firstLetterName . $firstLetterSurname; ?></div>
-                            <span class="username username-hide-on-mobile"><?php echo $_SESSION['User']['Name'] ?></span>
+                            <span class="username username-hide-on-mobile"><?php $user->getName() ?></span>
                             <i class="fa fa-angle-down"></i>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-default">
@@ -61,7 +62,7 @@ if (file_exists($avatarImg)) {
                                 <a href="user/usrProfile.php">
                                     <i class="glyphicon glyphicon-user"></i> My Profile </a>
                             </li>
-                            <?php if ((in_array($_SESSION['User']['Type'], $GLOBALS['ADMIN'])) && (!in_array($_SESSION['User']['Type'], $GLOBALS['TOOLDEV']))) { ?>
+                            <?php if ((in_array($_SESSION['userType'], $GLOBALS['ADMIN'])) && (!in_array($_SESSION['userType'], $GLOBALS['TOOLDEV']))) { ?>
                                 <li>
                                     <a href="admin/dashboard.php">
                                         <i class="glyphicon glyphicon-dashboard"></i> Dashboard </a>

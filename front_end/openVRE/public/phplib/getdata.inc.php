@@ -2,6 +2,7 @@
 
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
+use OpenVRE\User;
 use OpenVRE\UserType;
 
 
@@ -17,10 +18,10 @@ function getDataLogger()
 }
 
 
-function getData_fromLocal()
+function getData_fromLocal(User $user)
 {
     getDataLogger()->info("Uploading local file");
-    $dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+    $dataDirPath = getAttr_fromGSFileId($user->getDataDir(), "path");
     $localWorkingDir = "$dataDirPath/uploads";
     $workingDir = $GLOBALS['userDataDir'] . "/" . $localWorkingDir;
     if (!is_dir($workingDir)) {
@@ -69,7 +70,7 @@ function getData_fromLocal()
     }
 
     $usedDisk = (int) getUsedDiskSpace();
-    $diskLimit = (int) $_SESSION['User']['diskQuota'];
+    $diskLimit = (int) $user->getDiskQuota();
     if ($size > ($diskLimit - $usedDisk)) {
         getDataLogger()->error("Cannot upload file. Not enough space left in the workspace");
         throw new OverflowException("Cannot upload file. Not enough space left in the workspace");
@@ -112,25 +113,25 @@ function getData_fromLocal()
 
 
 // upload file from URL via CURL
-function getData_fromUrl($url, $meta = null)
+function getData_fromUrl(User $user, $url, $meta = null)
 {
     getDataLogger()->info("Uploading file from URL $url");
-    [$toolArgs, $toolOuts, $outputDir] = prepare_getData_fromURL($url, "uploads", $GLOBALS['BASEURL'] . "/getdata/uploadForm.php#load_from_url", $meta);
+    [$toolArgs, $toolOuts, $outputDir] = prepare_getData_fromURL($user, $url, "uploads", $GLOBALS['BASEURL'] . "/getdata/uploadForm.php#load_from_url", $meta);
     getData_wget_asyncron($toolArgs, $toolOuts, $outputDir);
 }
 
 // prepare target directory and file metadata
 
-function prepare_getData_fromURL($url, $outdir, $referer, $meta = [])
+function prepare_getData_fromURL(User $user, $url, $outdir, $referer, $meta = [])
 {
     //parse out username and password from URL, if any
-    $user = 0;
+    $username = 0;
     $pass = 0;
     $url_withCredentials = 0;
     if (preg_match('/(.*\/\/)(.*):(.*)@(.*)/', $url, $matches)) {
-        $user = $matches[2];
+        $username = $matches[2];
         $pass = $matches[3];
-        $url_withCredentials = $matches[1] . urlencode($user) . ":" . urlencode($pass) . "@" . $matches[4];
+        $url_withCredentials = $matches[1] . urlencode($username) . ":" . urlencode($pass) . "@" . $matches[4];
         $url  = $matches[1] . $matches[4];
     }
 
@@ -141,8 +142,8 @@ function prepare_getData_fromURL($url, $outdir, $referer, $meta = [])
     curl_setopt($ch, CURLOPT_HEADER, true);
     curl_setopt($ch, CURLOPT_VERBOSE, true);
     curl_setopt($ch, CURLOPT_NOBODY, true);
-    if ($user && $pass) {
-        curl_setopt($ch, CURLOPT_USERPWD, "$user:$pass");
+    if ($username && $pass) {
+        curl_setopt($ch, CURLOPT_USERPWD, "$username:$pass");
     }
 
     $curl_data = curl_exec($ch);
@@ -173,7 +174,7 @@ function prepare_getData_fromURL($url, $outdir, $referer, $meta = [])
 
     $size = curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
     $usedDisk = (int) getUsedDiskSpace();
-    $diskLimit = (int) $_SESSION['User']['diskQuota'];
+    $diskLimit = (int) $user->getdiskQuota();
     if ($size == 0) {
         $msg = "Resource URL ('$url') is pointing to an empty resource (size = 0)";
         if ($referer == "die") {
@@ -195,7 +196,7 @@ function prepare_getData_fromURL($url, $outdir, $referer, $meta = [])
         redirect($referer);
     }
 
-    $dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+    $dataDirPath = getAttr_fromGSFileId($user->getdatadir(), "path");
     $localWorkingDir = "{$dataDirPath}/{$outdir}";
     $workingDir = $GLOBALS['userDataDir'] . "/" . $localWorkingDir;
     $workingDirId = getGSFileId_fromPath($localWorkingDir);
@@ -220,7 +221,7 @@ function prepare_getData_fromURL($url, $outdir, $referer, $meta = [])
     }
 
     if (!is_dir($workingDir)) {
-        getDataLogger()->error("Target server directory '$localWorkingDir' is not a directory. User account of user '{$_SESSION['User']['username']}' is corrupted");
+        getDataLogger()->error("Target server directory '$localWorkingDir' is not a directory. User account of user '" . $user->getEmail() . "' is corrupted");
         throw new UnexpectedValueException("Target server directory '$localWorkingDir' is not a directory. Your user account is corrupted.");
     }
 
@@ -284,13 +285,13 @@ function  getData_wget_asyncron($toolArgs, $toolOuts, $outputDir)
 /////////////////////////////////
 /////// BUILD FILE TEXT
 /////////////////////////////////
-function getData_fromTXT()
+function getData_fromTXT($user)
 {
     getDataLogger()->info("Uploading text file");
     $filename = $_REQUEST['filename'];
     $data = $_REQUEST['txtdata'];
 
-    $dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+    $dataDirPath = getAttr_fromGSFileId($user->getDataDir(), "path");
     $localWorkingDir = $dataDirPath . "/uploads";
 
     $workingDir  = $GLOBALS['userDataDir'] . "/" . $localWorkingDir;
@@ -406,7 +407,7 @@ function process_URL($url)
 
 
 // import from Repository (URL) to user workspace
-function getData_fromRepository($url, $datatype, $filetype, $description)
+function getData_fromRepository(User $user, $url, $datatype, $filetype, $description)
 {
     getDataLogger()->info("Uploading file from Repository");
     $url_data = process_URL($url);
@@ -430,7 +431,7 @@ function getData_fromRepository($url, $datatype, $filetype, $description)
     }
 
     // setting repository directory
-    $dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+    $dataDirPath = getAttr_fromGSFileId($user->getDataDir(), "path");
     $localWorkingDir = "$dataDirPath/repository";
     $workingDir = $GLOBALS['userDataDir'] . "/" . $localWorkingDir;
     $workingDirId = getGSFileId_fromPath($localWorkingDir);
@@ -455,8 +456,8 @@ function getData_fromRepository($url, $datatype, $filetype, $description)
     }
 
     if (!is_dir($workingDir)) {
-        getDataLogger()->error("Target server directory '$localWorkingDir' is not a directory. User account of user '{$_SESSION['User']['username']}' is corrupted");
-        throw new UnexpectedValueException("Target server directory '$localWorkingDir' is not a directory. Your user account is corrupted.");
+        getDataLogger()->error("Target server directory '$localWorkingDir' is not a directory.");
+        throw new UnexpectedValueException("Target server directory '$localWorkingDir' is not a directory.");
     }
 
     $filePath  = "$workingDir/$filename";
@@ -534,7 +535,7 @@ function getSampleDataList($status = 1, $filter_tool_status = true)
         $tools_active = array_keys(array_merge($fa, $fu));
 
         // if common/anon user, list sampledata for active tools
-        if ($_SESSION['User']['Type'] == UserType::Guest->value || $_SESSION['User']['Type'] == UserType::Registered->value) {
+        if ($_SESSION['userType'] == UserType::Guest->value || $_SESSION['userType'] == UserType::Registered->value) {
             $ft = $GLOBALS['sampleDataCol']->find(array(
                 '$or' => array(
                     array("status" => $status, "tool" => array('$not' => array('$exists' => 1))),
@@ -543,11 +544,11 @@ function getSampleDataList($status = 1, $filter_tool_status = true)
             ), array('_id' => 1));
 
             // if admin user, list sampledata regardless tool status    
-        } elseif ($_SESSION['User']['Type'] == UserType::Admin->value) {
+        } elseif ($_SESSION['userType'] == UserType::Admin->value) {
             $ft = $GLOBALS['sampleDataCol']->find(array('status' => $status), array('_id' => 1));
 
             // if tool dev user, list sampledata for active tools + its own tools
-        } elseif ($_SESSION['User']['Type'] == UserType::ToolDev->value) {
+        } elseif ($_SESSION['userType'] == UserType::ToolDev->value) {
             $fr = $GLOBALS['toolsCol']->find(array('status' => 3, '_id' => array('$in' => $_SESSION['User']['ToolsDev'])), array('_id' => 1));
             $tools_owned = array_keys(iterator_to_array($fr));
             $ft = $GLOBALS['sampleDataCol']->find(array(
@@ -590,14 +591,14 @@ function getData_fromSampleData($params = [])
 }
 
 
-function getData_fromEGA($datasetIds, $fileIds, $filenames, $fileSizes)
+function getData_fromEGA(User $user, $datasetIds, $fileIds, $filenames, $fileSizes)
 {
     getDataLogger()->info("Uploading file from EGA");
     $datasetIdsArray = explode(',', $datasetIds);
     $fileIdsArray = explode(',', $fileIds);
     $filenamesArray = explode(',', $filenames);
     $fileSizesArray = explode(',', $fileSizes);
-    $dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+    $dataDirPath = getAttr_fromGSFileId($user->getDataDir(), "path");
     $localWorkingDir = $dataDirPath . "/uploads";
     for ($i = 0; $i < count($fileIdsArray); $i++) {
         $filePath = "{$datasetIdsArray[$i]}/{$filenamesArray[$i]}";

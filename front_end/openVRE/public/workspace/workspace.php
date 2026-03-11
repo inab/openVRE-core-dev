@@ -31,13 +31,14 @@ if (is_null($_REQUEST['fn']) && is_null($_REQUEST['fnPath']) && !preg_match('/ca
 if (is_array($_REQUEST['fn']) && $_REQUEST['op'] != 'moveFiles')
 	$_REQUEST['fn'] = $_REQUEST['fn'][0];
 
+$user = getUserById($_SESSION['userId']);
 $fileData = $GLOBALS['filesCol']->findOne(array('_id' => $_REQUEST['fn'], 'owner' => $_SESSION['internalUserId']));
 $fileMeta = $GLOBALS['filesMetaCol']->findOne(array('_id' => $_REQUEST['fn']));
 $filePath = getAttr_fromGSFileId($_REQUEST['fn'], 'path');
 $rfn      = $GLOBALS['userDataDir'] . "/$filePath";
 
 // user project directory
-$userPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+$userPath = getAttr_fromGSFileId($user->getDataDir(), "path");
 
 // Process operation
 if (isset($_REQUEST['op'])) {

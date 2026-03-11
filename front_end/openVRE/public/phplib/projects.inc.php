@@ -527,7 +527,7 @@ function printLastJobs($filesAll = array())
 function getToolsByDT($data_type, $status = 1)
 {
 	$tl = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => array('$in' => [$status, 3])));
-	if ($_SESSION['User']['Type'] == UserType::ToolDev->value) {
+	if ($_SESSION['userType'] == UserType::ToolDev->value) {
 		$tools_list = iterator_to_array($tl, false);
 		foreach ($tools_list as $key => $tool) {
 			if ($tool["status"] == 3 && !in_array($tool["_id"], $_SESSION['User']["ToolsDev"])) {

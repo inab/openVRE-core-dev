@@ -11,8 +11,9 @@ redirectOutside();
 
 require "../htmlib/header.inc.php";
 
-// Merge pending files and retrieved data compute data disk space
+$user = getUserById($_SESSION['userId']);
 
+// Merge pending files and retrieved data compute data disk space
 $usedDisk = getUsedDiskSpace();
 $diskLimit = $_SESSION['User']['diskQuota'];
 $usedDiskPerc = sprintf('%f', ($usedDisk / $diskLimit) * 100);
@@ -32,7 +33,7 @@ $dtlist = ((isset($_REQUEST["tool"]) && $_REQUEST["tool"] != "") ? getAvailableD
 $projects = getProjects_byOwner();
 
 //update files workspace content (job and files)
-$userFiles = getFilesToDisplay(array('_id' => $_SESSION['User']['dataDir']));
+$userFiles = getFilesToDisplay(array('_id' => $user->getDataDir()));
 
 $files = (isset($dtlist['list']) ? filterFiles_by_dataType($userFiles, $dtlist["list"]) : $userFiles);
 $files = addTreeTableNodesToFiles($files);
@@ -62,13 +63,13 @@ $files = addTreeTableNodesToFiles($files);
 							<i class="fa fa-circle"></i>
 						</li>
 						<li>
-							<span><?php echo getProject($_SESSION['User']['dataDir'])["name"]; ?> Workspace</span>
+							<span><?php echo getProject($user->getDataDir())["name"]; ?> Workspace</span>
 						</li>
 					</ul>
 				</div>
 				<!-- END PAGE BAR -->
 				<!-- BEGIN PAGE TITLE-->
-				<h1 class="page-title"> <?php echo getProject($_SESSION['User']['dataDir'])["name"]; ?> Workspace
+				<h1 class="page-title"> <?php echo getProject($user->getDataDir())["name"]; ?> Workspace
 
 					<div class="btn-group" style="float:right;">
 						<a class="btn green" href="javascript:;" data-toggle="dropdown">
@@ -77,13 +78,13 @@ $files = addTreeTableNodesToFiles($files);
 						</a>
 						<ul class="dropdown-menu pull-right">
 							<li>
-								<a href="workspace/editProject.php?id=<?php echo $_SESSION['User']['dataDir']; ?>">
+								<a href="workspace/editProject.php?id=<?php echo $user->getDataDir(); ?>">
 									<i class="fa fa-pencil-square-o"></i> Edit current project
 								</a>
 							</li>
 							<li>
 								<a
-									href="javascript:deleteProject('<?php echo $_SESSION['User']['dataDir']; ?>', '<?php echo getProject($_SESSION['User']['dataDir'])["name"]; ?>')">
+									href="javascript:deleteProject('<?php echo $user->getDataDir(); ?>', '<?php echo getProject($user->getDataDir())["name"]; ?>')">
 									<i class="fa fa-trash-o"></i> Delete current project
 								</a>
 							</li>
@@ -106,7 +107,7 @@ $files = addTreeTableNodesToFiles($files);
 								class="fa fa-sitemap font-white"></i></span>
 						<select class="form-control" id="select_project" onchange="loadProjectWS(this);">
 							<?php foreach ($projects as $p_id => $p) {
-								$selected = (($_SESSION['User']['dataDir'] == $p_id) ? "selected" : ""); ?>
+								$selected = (($user->getDataDir() == $p_id) ? "selected" : ""); ?>
 								<option value="<?php echo $p_id; ?>" <?php echo $selected; ?>><?php echo $p['name']; ?>
 								</option>
 							<?php } ?>
@@ -130,14 +131,14 @@ $files = addTreeTableNodesToFiles($files);
 					<div class="col-md-12">
 						<?php
 						// TODO: check what is a premium user (code 100)
-						if ($_SESSION['User']['Type'] == 100) { ?>
+						if ($_SESSION['userType'] == 100) { ?>
 							<div class="alert alert-warning">
 								Your request for a premium user account is being processed. In the meantime, you can use the
 								platform as a common user.
 							</div>
 						<?php }
 
-						if ($_SESSION['User']['Type'] == UserType::Guest->value) {
+						if ($_SESSION['userType'] == UserType::Guest->value) {
 
 						?>
 
@@ -601,7 +602,7 @@ $files = addTreeTableNodesToFiles($files);
 									</div>
 
 									<div id="extra-space-home">
-										<?php if (in_array($_SESSION['User']['Type'], $GLOBALS['NO_GUEST'])) { ?>
+										<?php if (in_array($_SESSION['userType'], $GLOBALS['NO_GUEST'])) { ?>
 											Do you need extra disk space? Click the button below to contact us!
 											<br><br>
 											<a href="<?php echo $GLOBALS['BASEURL']; ?>helpdesk/?sel=space"
@@ -730,7 +731,7 @@ If you want to <strong>re-use your session</strong>, make sure you save the <str
 						<h4 class="modal-title">Warning!</h4>
 					</div>
 					<div class="modal-body">Are you sure you want to delete the project
-						<strong><?php echo getProject($_SESSION['User']['dataDir'])["name"]; ?></strong>
+						<strong><?php echo getProject($user->getDataDir())["name"]; ?></strong>
 						and <strong>ALL</strong> its executions and files? This action cannot be undone.
 					</div>
 					<div class="modal-footer">

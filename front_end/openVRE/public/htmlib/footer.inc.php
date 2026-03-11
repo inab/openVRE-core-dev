@@ -52,7 +52,7 @@ use OpenVRE\UserType;
     </div>
 </div>
 
-<input type="hidden" id="type-of-user" value="<?php echo $_SESSION['User']['Type']; ?>" />
+<input type="hidden" id="type-of-user" value="<?php echo $_SESSION['userType']; ?>" />
 
 <div class="modal fade bs-modal" id="modalLogoutGuest" tabindex="-1" role="basic" aria-hidden="true">
     <div class="modal-dialog modal-lg">

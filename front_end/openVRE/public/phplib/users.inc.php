@@ -79,6 +79,8 @@ function createUserFromToken($token, $userInfo = array())
     $user = new User($userAttributes['email'], $userAttributes['secretsId'], $userAttributes['Surname'], $userAttributes['Name'], "", $userAttributes['Type'], "", "", $userAttributes['AuthProvider'], "");
 
     $_SESSION['userId'] = $userAttributes['email']; // TODO: rename if email will not replace internalId attribute in User class (currently it is the same as _id but no as internalId)
+    $_SESSION['userType'] = $userAttributes['Type'];
+
 
     return $user;
 }
@@ -108,7 +110,6 @@ function createUserAnonymous($sampleData)
     $dataDirId = prepUserWorkSpace($userArray['activeProject'], $objUser->getInternalId(), $sampleData);
     $userArray['dataDir'] = $dataDirId;
     $userArray['terms']  =  "1";
-    $_SESSION['User']['dataDir'] = $dataDirId;
     $_SESSION['User']['terms'] = "1";
 
     // register user in mongo. NOT in ldap nor in the oauth2 provider
@@ -220,7 +221,7 @@ function loadUser($login, $pass)
 
     // check pass/token verifies - except when loading an ANON or when impersonating
     $pass_verified =  check_password($pass, null);
-    $impersonating =  isset($_SESSION['User']) && $_SESSION['User']['Type'] == UserType::Admin->value && $pass == 99;
+    $impersonating =  isset($_SESSION['User']) && $_SESSION['userType'] == UserType::Admin->value && $pass == 99;
     $loadingAnon   =  $user['Type'] == UserType::Guest;
 
     if (!$pass_verified) {
