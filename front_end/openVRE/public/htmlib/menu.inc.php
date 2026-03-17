@@ -170,8 +170,10 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 		break;
 }
 
+$user = getUserById($_SESSION['userId']);
+
 // load all tools 
-$tools = getTools_List();
+$tools = getTools_List($user);
 sort($tools);
 
 // load all visualizers 

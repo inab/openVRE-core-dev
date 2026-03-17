@@ -4,7 +4,8 @@ require __DIR__ . "/../../config/bootstrap.php";
 
 redirectOutside();
 
-$tools = getTools_List();
+$user = getUserById($_SESSION['userId']);
+$tools = getTools_List($user);
 
 ?>
 

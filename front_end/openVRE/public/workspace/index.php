@@ -195,7 +195,7 @@ $files = addTreeTableNodesToFiles($files);
 						print printErrorDivision();
 
 						// fetch tool of lists
-						$toolsList = getTools_List();
+						$toolsList = getTools_List($user);
 						sort($toolsList);
 						?>
 
@@ -347,7 +347,7 @@ $files = addTreeTableNodesToFiles($files);
 
 				<?php
 				$toolsHelp = getTools_Help();
-				$toolsList = getTools_List();
+				$toolsList = getTools_List($user);
 				sort($toolsList);
 				?>
 

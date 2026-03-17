@@ -1,9 +1,9 @@
 <?php
 
-use OpenVRE\Launcher;
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
 use OpenVRE\Oauth2Provider;
+use OpenVRE\User;
 use OpenVRE\UserType;
 
 
@@ -524,13 +524,13 @@ function printLastJobs($filesAll = array())
 <?php
 }
 
-function getToolsByDT($data_type, $status = 1)
+function getToolsByDT(User $user, $data_type)
 {
-	$tl = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => array('$in' => [$status, 3])));
+	$tl = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => array('$in' => [1, 3])));
 	if ($_SESSION['userType'] == UserType::ToolDev->value) {
 		$tools_list = iterator_to_array($tl, false);
 		foreach ($tools_list as $key => $tool) {
-			if ($tool["status"] == 3 && !in_array($tool["_id"], $_SESSION['User']["ToolsDev"])) {
+			if ($tool["status"] == 3 && !in_array($tool["_id"], $user->getDevelopedTools())) {
 				unset($tools_list[$key]);
 			}
 		}
@@ -573,6 +573,8 @@ function formatData($data)
 	if (is_null($data['_id'])) {
 		return $data;
 	}
+
+	$user = getUserById($_SESSION['userId']);
 
 	$data['_id_URL'] = urlencode($data['_id']);
 
@@ -726,7 +728,7 @@ function formatData($data)
 
 	// tools list
 	if (isset($data['data_type']) && ($data['data_type'] != "")) {
-		$tList = getToolsByDT($data['data_type'], 1);
+		$tList = getToolsByDT($user, $data['data_type']);
 		$data['tools_list'] = '<ul class="dropdown-menu pull-right" role="menu">';
 		if (sizeof($tList) > 0) {
 			foreach ($tList as $t) {

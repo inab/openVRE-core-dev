@@ -1,6 +1,7 @@
 <?php
 
 use OpenVRE\LoggerFactory;
+use OpenVRE\User;
 use OpenVRE\UserType;
 
 
@@ -191,17 +192,17 @@ function getTools_ByDT($toolsDT, $filesDT)
 	return $toolsList;
 }
 
-function getTools_ListByID($array, $status)
+function getTools_ListByID(User $user, $array)
 {
 	$array = array_values($array);
-	$tl = $GLOBALS['toolsCol']->find(array('_id' => array('$in' => $array), 'status' => array('$in' => [$status, 3])), array("name" => true, "status" => true));
+	$tl = $GLOBALS['toolsCol']->find(array('_id' => array('$in' => $array), 'status' => array('$in' => [1, 3])), array("name" => true, "status" => true));
 	if ($_SESSION['userType'] == UserType::ToolDev->value) {
 
 		$tools_list = iterator_to_array($tl, false);
 
 		foreach ($tools_list as $key => $tool) {
 
-			if ($tool["status"] == 3 && !in_array($tool["_id"], $_SESSION['User']["ToolsDev"])) {
+			if ($tool["status"] == 3 && !in_array($tool["_id"], $user->getDevelopedTools())) {
 				unset($tools_list[$key]);
 			}
 		}

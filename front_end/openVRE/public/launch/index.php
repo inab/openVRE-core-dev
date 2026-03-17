@@ -5,7 +5,8 @@ redirectOutside();
 
 require "../htmlib/header.inc.php";
 
-$tls = getTools_ListComplete(1);
+$user = getUserById($_SESSION['userId']);
+$tls = getTools_ListComplete($user);
 ##### $vslzrs = getVisualizers_ListComplete(1);
 $vslzrs = array();
 

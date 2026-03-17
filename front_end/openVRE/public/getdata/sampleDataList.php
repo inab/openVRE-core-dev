@@ -3,8 +3,8 @@
 require __DIR__ . "/../../config/bootstrap.php";
 redirectOutside();
 
-
-$sampleList = getSampleDataList();
+$user = getUserById($_SESSION['userId']);
+$sampleList = getSampleDataList($user);
 ?>
 
 <?php require "../htmlib/header.inc.php"; ?>

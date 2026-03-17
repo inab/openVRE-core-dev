@@ -3,6 +3,7 @@
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
 use OpenVRE\Tooljob;
+use OpenVRE\User;
 use OpenVRE\UserType;
 
 
@@ -18,7 +19,7 @@ function getToolsLogger()
 }
 
 
-function getTools_List($status = 1)
+function getTools_List(User $user, $status = 1)
 {
 	if ($_SESSION['userType'] == UserType::Guest->value) {
 		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => $status, 'owner.license' => array('$ne' => "free_for_academics")), array('name' => 1, 'title' => 1, 'short_description' => 1, 'keywords' => 1), array('title' => 1));
@@ -31,7 +32,7 @@ function getTools_List($status = 1)
 	if ($_SESSION['userType'] == UserType::ToolDev->value) {
 		$tools_list = iterator_to_array($tools);
 		foreach ($tools_list as $key => $tool) {
-			if ($tool["status"] == 3 && !in_array($tool["_id"], $_SESSION['User']["ToolsDev"])) {
+			if ($tool["status"] == 3 && !in_array($tool["_id"], $user->getDevelopedTools())) {
 				unset($tools_list[$key]);
 			}
 		}
@@ -44,22 +45,22 @@ function getTools_List($status = 1)
 
 // list tools
 
-function getTools_ListComplete($status = 1)
+function getTools_ListComplete(User $user)
 {
 	getToolsLogger()->debug("Get list of tools");
 
 	if ($_SESSION['userType'] == UserType::Guest->value) {
-		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => $status, 'owner.license' => array('$ne' => "free_for_academics")), array(), array('title' => 1));
+		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => 1, 'owner.license' => array('$ne' => "free_for_academics")), array(), array('title' => 1));
 	} elseif ($_SESSION['userType'] == UserType::Admin->value || $_SESSION['userType'] == UserType::ToolDev->value) {
 		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => array('$ne' => 2)), array(), array('title' => 1));
 	} else {
-		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => $status), array(), array('title' => 1));
+		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => 1), array(), array('title' => 1));
 	}
 
 	if ($_SESSION['userType'] == UserType::ToolDev->value) {
 		$tools_list = iterator_to_array($tools);
 		foreach ($tools_list as $key => $tool) {
-			if ($tool["status"] == 3 && !in_array($tool["_id"], $_SESSION['User']["ToolsDev"])) {
+			if ($tool["status"] == 3 && !in_array($tool["_id"], $user->getDevelopedTools())) {
 				unset($tools_list[$key]);
 			}
 		}

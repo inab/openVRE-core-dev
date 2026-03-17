@@ -26,9 +26,10 @@ class User implements Persistable
     private $internalId;
     private $activeProject;
     private $terms;
+    private $developedTools;
     private Logger $logger;
 
-    public function __construct(string $email, string $secretsId, string $surname, string $name, string $inst, int $type, int $diskQuota, string $dataDir, ?string $authProvider, string $activeProject)
+    public function __construct(string $email, string $secretsId, string $surname, string $name, string $inst, int $type, int $diskQuota, string $dataDir, ?string $authProvider, string $activeProject, array $developedTools)
     {
         $this->logger = LoggerFactory::getLogger('User');
         if ($type != UserType::Guest->value && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -64,6 +65,7 @@ class User implements Persistable
 
         $this->Surname = ucfirst($this->Surname);
         $this->Name    = ucfirst($this->Name);
+        $this->developedTools = $developedTools;
 
         $_SESSION['userVaultInfo'] = array(
             "vaultKey"     => null
@@ -241,6 +243,16 @@ class User implements Persistable
         $this->terms = $terms;
     }
 
+    public function getDevelopedTools(): array
+    {
+        return $this->developedTools;
+    }
+
+    public function setDevelopedTools(array $developedTools): void
+    {
+        $this->developedTools = $developedTools;
+    }
+
     public function getLogger(): Logger
     {
         return $this->logger ??= LoggerFactory::getLogger('User');
@@ -277,5 +289,6 @@ class User implements Persistable
         $this->lastLogin = $data['lastLogin'];
         $this->registrationDate = $data['registrationDate'];
         $this->id = $data['id'];
+        $this->developedTools = $data['developedTools'];
     }
 }

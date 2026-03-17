@@ -21,13 +21,11 @@ $tool = $_REQUEST['tool'];
 
 // fetch user
 $user = getUserById($_SESSION['userId']);
-if (isset($user["ToolsDev"])) $tdev = $user["ToolsDev"];
-else $tdev = array();
 
 if ((isset($user)
 		&& ($user['Status'] == UserStatus::Active->value)
 		&& (in_array($user['Type'], $GLOBALS['TOOLDEV']))
-		&& (in_array($tool, $tdev))) ||
+		&& (in_array($tool, $user->getDevelopedTools()))) ||
 	(isset($user)
 		&& ($user['Status'] == UserStatus::Active->value)
 		&& ($user['Type'] == UserType::Admin->value)

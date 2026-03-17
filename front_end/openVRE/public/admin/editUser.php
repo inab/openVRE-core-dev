@@ -14,7 +14,7 @@ if ($user['Type'] == UserType::Admin->value) {
     redirect($GLOBALS['URL'] . 'admin/adminUsers.php');
 }
 
-$tls = getTools_List();
+$tls = getTools_List($user);
 $vlzrs = getVisualizers_List();
 
 $tlsvlzrs = array_merge($tls, $vlzrs);
@@ -173,7 +173,7 @@ sort($tlsvlzrs);
                                                     <?php
                                                     foreach ($tlsvlzrs as $id => $value) {
                                                         $selected = "";
-                                                        if (in_array($value['_id'], $user['ToolsDev'])) $selected = "selected";
+                                                        if (in_array($value['_id'], $user->getDevelopedTools())) $selected = "selected";
 
                                                         echo "<option value='" . $value['_id'] . "' $selected>" . $value['name'] . "</option>";
                                                     }

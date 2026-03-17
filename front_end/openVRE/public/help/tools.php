@@ -3,7 +3,8 @@
 require __DIR__."/../../config/bootstrap.php";
 redirectOutside();
 
-$toolList = getTools_List();
+$user = getUserById($_SESSION['userId']);
+$toolList = getTools_List($user);
 
 sort($toolList);
 
