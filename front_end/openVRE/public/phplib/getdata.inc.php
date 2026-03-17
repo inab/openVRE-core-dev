@@ -285,7 +285,7 @@ function  getData_wget_asyncron($toolArgs, $toolOuts, $outputDir)
 /////////////////////////////////
 /////// BUILD FILE TEXT
 /////////////////////////////////
-function getData_fromTXT($user)
+function getData_fromTXT(User $user)
 {
     getDataLogger()->info("Uploading text file");
     $filename = $_REQUEST['filename'];
@@ -311,7 +311,7 @@ function getData_fromTXT($user)
     }
 
     $usedDisk = (int) getUsedDiskSpace();
-    $diskLimit = (int) $_SESSION['User']['diskQuota'];
+    $diskLimit = $user->getDiskQuota();
     if ($size > ($diskLimit - $usedDisk)) {
         getDataLogger()->error("Not enough space left in the workspace");
         throw new UnexpectedValueException("Not enough space left in the workspace");
@@ -419,7 +419,7 @@ function getData_fromRepository(User $user, $url, $datatype, $filetype, $descrip
 
     $size = (int) $url_data['size'];
     $usedDisk = (int) getUsedDiskSpace();
-    $diskLimit = (int) $_SESSION['User']['diskQuota'];
+    $diskLimit = $user->getDiskQuota();
     if ($size == 0) {
         getDataLogger()->error("Resource URL ('$url') is pointing to an empty resource (size = 0)");
         throw new UnexpectedValueException("Resource URL ('$url') is pointing to an empty resource (size = 0)");

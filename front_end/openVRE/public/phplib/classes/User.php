@@ -28,7 +28,7 @@ class User implements Persistable
     private $terms;
     private Logger $logger;
 
-    public function __construct(string $email, string $secretsId, string $surname, string $name, string $inst, int $type, string $diskQuota, string $dataDir, ?string $authProvider, string $activeProject)
+    public function __construct(string $email, string $secretsId, string $surname, string $name, string $inst, int $type, int $diskQuota, string $dataDir, ?string $authProvider, string $activeProject)
     {
         $this->logger = LoggerFactory::getLogger('User');
         if ($type != UserType::Guest->value && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -48,7 +48,6 @@ class User implements Persistable
         $this->Surname = ucfirst(sanitizeString($surname));
         $this->Name = ucfirst(sanitizeString($name));
         $this->Inst = sanitizeString($inst);
-        $this->diskQuota = sanitizeString($diskQuota);
         $this->dataDir = sanitizeString($dataDir);
         $this->AuthProvider = sanitizeString($authProvider);
         $this->activeProject = sanitizeString($activeProject);
@@ -59,7 +58,7 @@ class User implements Persistable
         $this->Status = UserStatus::Active->value;
         $this->lastLogin = moment();
         $this->registrationDate = $this->registrationDate ?: moment();
-        $this->diskQuota  = $this->diskQuota || $this->Type == UserType::Guest->value // TODO: check if this is ok
+        $this->diskQuota  = $diskQuota || $this->Type == UserType::Guest->value // TODO: check if this is ok
             ? $GLOBALS['DISKLIMIT_ANON']
             : $GLOBALS['DISKLIMIT'];
 
@@ -152,7 +151,7 @@ class User implements Persistable
         $this->Inst = $inst;
     }
 
-    public function getDiskQuota(): string
+    public function getDiskQuota(): int
     {
         return $this->diskQuota;
     }

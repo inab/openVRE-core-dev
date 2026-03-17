@@ -271,16 +271,6 @@ function loadUserWithToken($user, $userInfo, $token)
 }
 
 
-function getUser_diskQuota($login)
-{
-    $r = $GLOBALS['usersCol']->findOne(array(
-        '_id'  => $login,
-        'diskQuota' => array('$exists' => true)
-    ));
-
-    return $r['diskQuota'] ?? false;
-}
-
 function saveUserJobs($login, $jobInfo)
 {
     getUsersLogger()->debug("Updating user $login with job data: " . json_encode($jobInfo));

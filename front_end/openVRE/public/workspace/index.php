@@ -15,7 +15,7 @@ $user = getUserById($_SESSION['userId']);
 
 // Merge pending files and retrieved data compute data disk space
 $usedDisk = getUsedDiskSpace();
-$diskLimit = $_SESSION['User']['diskQuota'];
+$diskLimit = $user->getDiskQuota();
 $usedDiskPerc = sprintf('%f', ($usedDisk / $diskLimit) * 100);
 $usedDiskPerc = number_format($usedDiskPerc, 1, '.', '');
 
