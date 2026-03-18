@@ -92,8 +92,8 @@ function handleSSHAccount($action, $userId, $site_id, $postData)
 
 		if (isset($postData['private_key'], $postData['public_key'])) {
 			// If credentials are provided, use them directly
-			if (isset($_SESSION['User']['credentials']['timestamp'])) {
-				$savedTime = $_SESSION['User']['credentials']['timestamp'];
+			if (isset($_SESSION['sshCredentialsTimestamp'])) {
+				$savedTime = $_SESSION['sshCredentialsTimestamp'];
 				$currentTime = time();
 
 
@@ -111,11 +111,7 @@ function handleSSHAccount($action, $userId, $site_id, $postData)
 			$data['data']['SSH']['public_key'] = $postData['public_key'];
 			$data['data']['SSH']['user_key'] = $postData['user_key'];
 			$data['data']['SSH']['_id'] = $userId;
-			$_SESSION['User']['credentials'] = [
-				'timestamp' => time()  // Only store the timestamp
-			];
-
-
+			$_SESSION['sshCredentialsTimestamp'] = time();
 
 			$_SESSION['errorData']['Info'][] = "Credentials in the system, saving to Vault...";
 		} else {
@@ -133,9 +129,7 @@ function handleSSHAccount($action, $userId, $site_id, $postData)
 			$data['data']['SSH']['public_key'] = $postData['public_key'];
 			$data['data']['SSH']['user_key'] = $postData['user_key'];
 			$data['data']['SSH']['_id'] = $userId;
-			$_SESSION['User']['credentials'] = [
-				'timestamp' => time()  // Only store the timestamp
-			];
+			$_SESSION['sshCredentialsTimestamp'] = time();
 
 			$_SESSION['errorData']['Info'][] = "Credentials in the system, saving to Vault...";
 		} else {
