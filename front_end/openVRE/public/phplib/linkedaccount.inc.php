@@ -1,5 +1,7 @@
 <?php
 
+use OpenVRE\EgaLinkedAccount;
+use OpenVRE\LinkedAccount;
 use OpenVRE\LoggerFactory;
 use OpenVRE\VaultClientFactory;
 
@@ -18,6 +20,8 @@ function getLinkedAccountLogger()
 
 function addUserLinkedAccount($accountType, $action, $userId, $site_id, $postData)
 {
+	$credentials = array_merge($postData, ['_id' => $userId]);
+
 	switch ($accountType) {
 		case "SSH":
 			if (isset($_POST["submitOption"])) {
@@ -36,7 +40,7 @@ function addUserLinkedAccount($accountType, $action, $userId, $site_id, $postDat
 				handleSSHAccount($action, $userId, $site_id, $postData);
 				break;
 			}
-		case "objectstorage":
+		case "objectStorage":
 			if (isset($_POST["submitOption"])) {
 				$submitOption = $_POST["submitOption"];
 				if ($submitOption === "clearAccount") {
@@ -54,22 +58,17 @@ function addUserLinkedAccount($accountType, $action, $userId, $site_id, $postDat
 				break;
 			}
 		case "EGA":
+			$egaLinkedAccount = new EgaLinkedAccount();
 			try {
 				if (isset($_POST["submitOption"])) {
 					$submitOption = $_POST["submitOption"];
 					if ($submitOption === "clearAccount") {
-						handleEgaAccount("delete", $userId, $postData);
+						removeAccount($egaLinkedAccount);
 						break;
 					} elseif ($submitOption === "updateAccount") {
-						handleEgaAccount("update", $userId, $postData);
-						break;
-					} else {
-						handleEgaAccount($action, $userId, $postData);
+						updateAccount($egaLinkedAccount, $credentials);
 						break;
 					}
-				} else {
-					handleEgaAccount($action, $userId, $postData);
-					break;
 				}
 			} catch (Exception $e) {
 				$_SESSION['errorData']['Error'][] = $e->getMessage();
@@ -78,7 +77,7 @@ function addUserLinkedAccount($accountType, $action, $userId, $site_id, $postDat
 
 			break;
 		default:
-			$_SESSION['errorData']['Error'][] = "Account of type '$accountType' is not yet supported.";
+			handleInvalidAction();
 			redirect($_SERVER['HTTP_REFERER']);
 	}
 }
@@ -306,42 +305,21 @@ function handleObjectStorageAccount($action, $userId, $site_id, $postData)
 }
 
 
-function handleEgaAccount($action, $userId, $postData)
+function updateAccount(LinkedAccount $linkedAccount, $credentials)
 {
-	if ($action === "update") {
-		try {
-			$egaAuthToken = getEgaAuthToken($postData['username'], $postData['password']);
-			$_SESSION['User']['EGA']['token'] = $egaAuthToken;
-		} catch (Exception $e) {
-			getLinkedAccountLogger()->error("Could not connect to EGA: " . $e->getMessage());
-			throw new UnexpectedValueException("Could not connect to EGA. Check your credentials and try again.");
-		}
-	}
-
-	$data = [];
-	if ($action === "update") {
-		if (empty($postData['username'])  || empty($postData['password'])) {
-			$_SESSION['errorData']['Error'][] = "Please provide username and password.";
-			redirect($_SERVER['HTTP_REFERER']);
-		} else {
-			$data['data']['EGA'] = [];
-			$data['data']['EGA']['username'] = $postData['username'];
-			$data['data']['EGA']['password'] = $postData['password'];
-			$data['data']['EGA']['privateKey'] = $postData['privateKey'];
-			$data['data']['EGA']['_id'] = $userId;
-		}
-	} elseif ($action === "delete") {
-		clearLinkedAccount("EGA");
+	try {
+		$linkedAccount->storeCredentials($credentials);
+		$_SESSION['errorData']['Info'][] = $linkedAccount->getSite() . " account successfully linked.";
 		redirect($_SERVER['HTTP_REFERER']);
-	} else {
-		handleInvalidAction();
+	} catch (Exception $e) {
+		getLinkedAccountLogger()->error("Could not connect to" . $linkedAccount->getSite() . ": " . $e->getMessage());
+		throw new UnexpectedValueException("Could not connect to " . $linkedAccount->getSite() . ". Check your credentials and try again.");
 	}
+}
 
-	$vaultClient = VaultClientFactory::create();
-	$vaultClient->uploadFileToVault("EGA", $data);
 
-	$_SESSION['errorData']['Info'][] = "EGA account successfully linked.";
-	getLinkedAccountLogger()->info("EGA account successfully linked.");
+function removeAccount(LinkedAccount $linkedAccount) {
+	$linkedAccount->removeCredentials();
 	redirect($_SERVER['HTTP_REFERER']);
 }
 

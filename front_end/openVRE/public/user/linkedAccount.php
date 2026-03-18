@@ -283,7 +283,7 @@ require "../htmlib/header.inc.php"; ?>
         </div>
 
         <!--  OPENSTACK FORM    -->
-    <?php } elseif ($_REQUEST['account'] == "objectstorage") {
+    <?php } elseif ($_REQUEST['account'] == "objectStorage") {
 
                             $siteId = $_REQUEST['account'];
 
@@ -411,8 +411,8 @@ require "../htmlib/header.inc.php"; ?>
                         <div class="col-md-12 text-right">
                             <input type="hidden" name="save_credential" id="save_credential" value="false">
                             <button type="submit" onclick="document.getElementById('save_credential').value=true" class="btn blue"><i class="fa fa-check"></i> Accept</button>
-                            <button type="submit" name="submitOption" value="clearAccount" href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=objectstorage&action=delete" class="btn" style="background-color: white"><i class="fa fa-plus"></i> &nbsp; Clear account</button>
-                            <button type="submit" name="submitOption" value="updateAccount" href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=objectstorage&action=update" class="btn" style="background-color: #d4d4d4"><i class="fa fa-plus"></i> &nbsp; Update account</button>
+                            <button type="submit" name="submitOption" value="clearAccount" href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=objectStorage&action=delete" class="btn" style="background-color: white"><i class="fa fa-plus"></i> &nbsp; Clear account</button>
+                            <button type="submit" name="submitOption" value="updateAccount" href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=objectStorage&action=update" class="btn" style="background-color: #d4d4d4"><i class="fa fa-plus"></i> &nbsp; Update account</button>
                         </div>
                     </div>
                 </div>

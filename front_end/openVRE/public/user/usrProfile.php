@@ -541,7 +541,7 @@ redirectOutside();
                                                         </p>
                                                         <div class="row" style="margin-left:30px; padding-bottom:10px; ">
                                                             <div class="col-md-6">
-                                                                <a href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=objectstorage&action=new" class="btn green"><i class="fa fa-plus"></i> &nbsp; Link your account</a>
+                                                                <a href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=objectStorage&action=new" class="btn green"><i class="fa fa-plus"></i> &nbsp; Link your account</a>
                                                             </div>
                                                             <div class="col-md-6">
                                                                 <a href="javascript:void(0)"><i class="fa fa-sign-in"></i> How to apply to BSC OpenStack Object Storage access?</a>
