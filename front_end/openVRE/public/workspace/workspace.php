@@ -45,7 +45,7 @@ if (isset($_REQUEST['op'])) {
 	switch ($_REQUEST['op']) {
 
 		case 'newFolder':
-			$r = createGSDirBNS($GLOBALS['filesCol'], $_REQUEST['fn']);
+			$r = createGSDirBNS($user->getActiveProject(), $GLOBALS['filesCol'], $_REQUEST['fn']);
 			if ($r == 0) {
 				mkdir($rfn, 0777);
 				chmod($rfn, 0777);
@@ -371,7 +371,7 @@ if (isset($_REQUEST['op'])) {
 					$insertMeta = $fileMeta;
 					$insertMeta['compress'] = 0;
 
-					uploadGSFileBNS($fn_Tmp, $rfn_Tmp, $insertData, $insertMeta);
+					uploadGSFileBNS($user->getActiveProject(), $fn_Tmp, $rfn_Tmp, $insertData, $insertMeta);
 					if (is_file($rfn)) {
 						unlink($rfn);
 					}
@@ -409,7 +409,7 @@ if (isset($_REQUEST['op'])) {
 				$insertMeta = $fileMeta;
 				$insertMeta['compressed'] = "zip";
 
-				uploadGSFileBNS($fn_TmpZip, $rfn_TmpZip, $insertData, $insertMeta);
+				uploadGSFileBNS($user->getActiveProject(), $fn_TmpZip, $rfn_TmpZip, $insertData, $insertMeta);
 			} else {
 				$_SESSION['errorData']['error'][] = "Compressed ZIP file not created.";
 				if ($output)

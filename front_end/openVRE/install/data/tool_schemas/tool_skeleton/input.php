@@ -4,7 +4,7 @@ require __DIR__ . "/../../../config/bootstrap.php";
 redirectOutside();
 
 InputTool_checkRequest($_REQUEST);
-
+$user = getUserById($_SESSION['userId']);
 $from = InputTool_getOrigin($_REQUEST);
 
 list($rerunParams, $inPaths) = InputTool_getPathsAndRerun($_REQUEST);
@@ -115,7 +115,7 @@ $sites = getSites_Info($toolId);
 											<div class="col-md-6">
 												<div class="form-group">
 													<label class="control-label">Select Project</label>
-													<?php InputTool_getSelectProjects(); ?>
+													<?php InputTool_getSelectProjects($user); ?>
 												</div>
 											</div>
 											<div class="col-md-6">

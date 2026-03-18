@@ -100,7 +100,7 @@ function getData_fromLocal(User $user)
     ];
 
     $fileBasename = basename($filePath);
-    $fileId = uploadGSFileBNS("$localWorkingDir/$fileBasename", $filePath, $insertData, $metaData);
+    $fileId = uploadGSFileBNS($user->getActiveProject(), "$localWorkingDir/$fileBasename", $filePath, $insertData, $metaData);
     getDataLogger()->info("File $fileBasename uploaded");
 
     print $fileId;
@@ -117,7 +117,7 @@ function getData_fromUrl(User $user, $url, $meta = null)
 {
     getDataLogger()->info("Uploading file from URL $url");
     [$toolArgs, $toolOuts, $outputDir] = prepare_getData_fromURL($user, $url, "uploads", $GLOBALS['BASEURL'] . "/getdata/uploadForm.php#load_from_url", $meta);
-    getData_wget_asyncron($toolArgs, $toolOuts, $outputDir);
+    getData_wget_asyncron($toolArgs, $toolOuts, $outputDir, $user->getActiveProject());
 }
 
 // prepare target directory and file metadata
@@ -203,7 +203,7 @@ function prepare_getData_fromURL(User $user, $url, $outdir, $referer, $meta = []
 
     if (is_null($workingDirId)) {
         try {
-            $workingDirId  = createGSDirBNS($localWorkingDir, 1);
+            $workingDirId  = createGSDirBNS($user->getActiveProject(), $localWorkingDir, 1);
         } catch (UnexpectedValueException $e) {
             getDataLogger()->error("Cannot create repository directory '$localWorkingDir' in '$dataDirPath'");
             throw $e;
@@ -268,14 +268,14 @@ function prepare_getData_fromURL(User $user, $url, $outdir, $referer, $meta = []
 }
 
 
-function  getData_wget_asyncron($toolArgs, $toolOuts, $outputDir)
+function  getData_wget_asyncron($toolArgs, $toolOuts, $outputDir, $projectDir)
 {
     $toolId = "wget";
     $filePath = $toolOuts['output_files'][0]["path"];
     $logName = basename($filePath) . ".log";
 
     //TODO: FIXME START - This is a temporal fix. In future, files should not be downloaded, only registered
-    launchToolInternal($toolId, $toolArgs, $toolOuts, $outputDir, $logName);
+    launchToolInternal($toolId, $projectDir, $toolArgs, $toolOuts, $outputDir, $logName);
     $outdir = basename($outputDir);
 
     getDataLogger()->info("File from URL '" . basename($filePath) . "' is being imported into the '$outdir' folder below. Please, edit its metadata once the import has finished");
@@ -355,7 +355,7 @@ function getData_fromTXT(User $user)
         'validated' => false
     ];
 
-    $fileId = uploadGSFileBNS("$localWorkingDir/$fileBasename", $filePath, $insertData, $metaData);
+    $fileId = uploadGSFileBNS($user->getActiveProject(), "$localWorkingDir/$fileBasename", $filePath, $insertData, $metaData);
     getDataLogger()->info("File '" . $fileBasename . "' uploaded");
 
     return $fileId;
@@ -438,7 +438,7 @@ function getData_fromRepository(User $user, $url, $datatype, $filetype, $descrip
 
     if (is_null($workingDirId)) {
         try {
-            $workingDirId  = createGSDirBNS($localWorkingDir, 1);
+            $workingDirId  = createGSDirBNS($user->getActiveProject(), $localWorkingDir, 1);
         } catch (UnexpectedValueException $e) {
             getDataLogger()->error("Cannot create repository directory '$localWorkingDir' in '$dataDirPath'");
             throw $e;
@@ -511,7 +511,7 @@ function getData_fromRepository(User $user, $url, $datatype, $filetype, $descrip
 
     $toolOuts = ["output_files" => [$fileOut]];
     $logName = basename($filePath) . ".log";
-    launchToolInternal($toolId, $toolArgs, $toolOuts, $workingDir, $logName);
+    launchToolInternal($toolId, $toolArgs, $toolOuts, $workingDir, $logName, $user->getActiveProject());
 
     $_SESSION['errorData']['Info'][] = "Remote file '" . basename($filePath) . "' imported into the 'repository' folder below. Please, edit its metadata once the job has finished";
     redirect($GLOBALS['BASEURL'] . "workspace/");
@@ -570,7 +570,7 @@ function getSampleData($sampleDataId)
 
 
 // import sampleData into into current WS user
-function getData_fromSampleData($params = [])
+function getData_fromSampleData(User $user, $params = [])
 {
     if (!is_array($params['sampleData'])) {
         $params['sampleData'] = [$params['sampleData']];
@@ -578,8 +578,8 @@ function getData_fromSampleData($params = [])
 
     foreach ($params['sampleData'] as $sampleName) {
         $_SESSION['errorData']['Info'][] = "Importing exemple dataset for '$sampleName'";
-        $dataDir = $_SESSION['internalUserId'] . "/" . $_SESSION['User']['activeProject'];
-        setUserWorkSpace_sampleData($sampleName, $dataDir);
+        $dataDir = $_SESSION['internalUserId'] . "/" . $user->getActiveProject();
+        setUserWorkSpace_sampleData($user->getActiveProject(), $sampleName, $dataDir);
 
         $_SESSION['errorData']['Info'][] = "Example data successfuly imported.";
         header("Location:" . $GLOBALS['URL'] . "/workspace/");
@@ -615,7 +615,7 @@ function getData_fromEGA(User $user, $datasetIds, $fileIds, $filenames, $fileSiz
         ];
 
         $fileBasename = basename($filePath);
-        uploadGSFileBNS("$localWorkingDir/$fileBasename", $filePath, $insertData, $metaData);
+        uploadGSFileBNS($user->getActiveProject(), "$localWorkingDir/$fileBasename", $filePath, $insertData, $metaData);
         getDataLogger()->info("File $fileBasename uploaded");
     }
 }

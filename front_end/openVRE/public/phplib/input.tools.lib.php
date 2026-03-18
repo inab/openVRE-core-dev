@@ -1,5 +1,7 @@
 <?php
 
+use OpenVRE\User;
+
 // UTILITIES
 //
 
@@ -144,17 +146,17 @@ function InputTool_getDefExName()
 //
 
 // get list of projects
-function InputTool_getSelectProjects()
+function InputTool_getSelectProjects(User $user)
 {
-
 	$projects = getProjects_byOwner();
-
 	$output = '<select class="form-control" id="select_project" name="project">';
-	foreach ($projects as $project_id => $project) {
+	foreach ($projects as $project) {
 		$selected = "";
 		$project_code = basename($project['path']);
-		if ($project_code == $_SESSION['User']['activeProject'])
+		if ($project_code == $user->getActiveProject()) {
 			$selected = " selected ";
+		}
+
 		$output .= "<option value=\"$project_code\" $selected >" . $project['name'] . "</option>";
 	}
 	$output .= '</select>';

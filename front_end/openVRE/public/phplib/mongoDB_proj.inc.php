@@ -101,7 +101,7 @@ function createLabel_proj()
 }
 
 
-function createProjectDir($dirfn, $dirrfn, $project_attr = array(), $asRoot = 0)
+function createProjectDir($projectDir, $dirfn, $dirrfn, $project_attr = array(), $asRoot = 0)
 {
     if (is_dir($dirrfn)) {
         getMongoProjectLogger()->error("Cannot create project folder: '$dirfn'. It already exists");
@@ -109,7 +109,7 @@ function createProjectDir($dirfn, $dirrfn, $project_attr = array(), $asRoot = 0)
     }
 
     // register proj dir
-    $dirId = createGSDirBNS($dirfn, $asRoot);
+    $dirId = createGSDirBNS($projectDir, $dirfn, $asRoot);
 
     //  make project directory
     mkdir($dirrfn, 0777);

@@ -101,7 +101,7 @@ class Tooljob
 	/**
 	 * Create working directory
 	 */
-	public function createWorking_dir()
+	public function createWorking_dir($projectDir)
 	{
 		if (is_null($this->executionDirectories->executionDir)) {
 			$this->logger->error("Cannot create working directory. Not set yet");
@@ -114,7 +114,7 @@ class Tooljob
 			$this->_id = 1;
 			if ($this->hasExecutionFolder) {
 				try {
-					$this->_id = createGSDirBNS($dirPath);
+					$this->_id = createGSDirBNS($projectDir, $dirPath);
 				} catch (UnexpectedValueException $e) {
 					$this->logger->error("Cannot create execution folder: '" . $this->executionDirectories->executionDir . "'");
 					throw new UnexpectedValueException("Cannot create execution folder: '" . $this->executionDirectories->executionDir . "'" . $e->getMessage());

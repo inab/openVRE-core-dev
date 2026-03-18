@@ -2,6 +2,7 @@
 
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
+use OpenVRE\User;
 
 
 function getMongoLogger()
@@ -551,25 +552,7 @@ function absolutePathGSFile($filePath, $asRoot)
 }
 
 
-function determineParentDirId(string $absoluteDirPath, bool $asRoot): ?string
-{
-	// Root-like directory? No parent
-	if (isRootLevelDir($absoluteDirPath, $asRoot)) {
-		return null;
-	}
-
-	$parentPath = dirname($absoluteDirPath);
-
-	try {
-		return getGSFileId_fromPath($parentPath, 1);
-	} catch (NotFoundException $e) {
-		// Create parent recursively and re-fetch
-		return createGSDirBNS($parentPath, $asRoot);
-	}
-}
-
-
-function createGSDirBNS($dirPath, $asRoot = 0)
+function createGSDirBNS($projectDir, $dirPath, $asRoot = 0)
 {
 	$mongoFilesCollection = $GLOBALS['filesCol'];
 	if (empty($dirPath)) {
@@ -599,7 +582,7 @@ function createGSDirBNS($dirPath, $asRoot = 0)
 		$parentPath = dirname($absoluteDirPath);
 		$parentDirId = getGSFileId_fromPath($parentPath, 1);
 		if (is_null($parentDirId)) {
-			createGSDirBNS($parentPath);
+			createGSDirBNS($projectDir, $parentPath);
 		}
 	}
 
@@ -630,7 +613,7 @@ function createGSDirBNS($dirPath, $asRoot = 0)
 				'owner'      => $owner,
 				'size'       => 0,
 				'path'       => $absoluteDirPath,
-				'project'    => $_SESSION['User']['activeProject'],
+				'project'    => $projectDir,
 				'mtime'      => new MongoDB\BSON\UTCDateTime(strtotime("now") * 1000),
 				'atime'      => new MongoDB\BSON\UTCDateTime(strtotime("now") * 1000),
 				'files'      => [],
@@ -652,7 +635,7 @@ function createGSDirBNS($dirPath, $asRoot = 0)
 
 
 // create new file registry
-function uploadGSFileBNS($localFilePath, $filePath, $attributes = [], $meta = [], $asRoot = 0)
+function uploadGSFileBNS($projectDir, $localFilePath, $filePath, $attributes = [], $meta = [], $asRoot = 0)
 {
 	$mongoFilesCollection = $GLOBALS['filesCol'];
 	$absoluteFilePath = absolutePathGSFile($localFilePath, $asRoot);
@@ -684,7 +667,7 @@ function uploadGSFileBNS($localFilePath, $filePath, $attributes = [], $meta = []
 
 		$parentId  = getGSFileId_fromPath($parentPath, $asRoot);
 		if (is_null($parentId)) {
-			createGSDirBNS($parentPath, $asRoot);
+			createGSDirBNS($projectDir, $parentPath, $asRoot);
 		} else {
 			if (!isGSDirBNS($mongoFilesCollection, $parentId)) {
 				getMongoLogger()->error("Cannot upload $absoluteFilePath. Parent '$parentPath' is not a directory");
@@ -710,7 +693,7 @@ function uploadGSFileBNS($localFilePath, $filePath, $attributes = [], $meta = []
 	$attributes['size'] ??= filesize($filePath);
 	$attributes['parentDir'] ??= $parentId;
 	$attributes['path'] ??= $localFilePath;
-	$attributes['project'] ??= $_SESSION['User']['activeProject'];
+	$attributes['project'] ??= $projectDir;
 	if (!isset($attributes['expiration'])) {
 		$expiration = $GLOBALS['caduca'] * 24 * 3600;
 		$t = filemtime($filePath);

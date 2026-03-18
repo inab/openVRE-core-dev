@@ -55,7 +55,7 @@ function setUserWorkSpace($projectDir, $userInternalId, $projectData, $sampleDat
 	$homeDirP  = $GLOBALS['userDataDir'] . "/" . $userInternalId;
 	$homeDirId = getGSFileId_fromPath($userInternalId);
 	if (! isGSDirBNS($GLOBALS['filesCol'], $homeDirId) || ! is_dir($homeDirP)) {
-		$homeDirId  = createGSDirBNS($userInternalId, 1);
+		$homeDirId  = createGSDirBNS($projectDir, $userInternalId, 1);
 		getProjectLogger()->info("Creating main user directory: $homeDirP ($homeDirId)");
 		addMetadataToFile($homeDirId, array(
 			"expiration" => -1,
@@ -83,12 +83,12 @@ function setUserWorkSpace($projectDir, $userInternalId, $projectData, $sampleDat
 
 	if (! isGSDirBNS($GLOBALS['filesCol'], $dataDirId) || ! is_dir($dataDirP)) {
 		//creating project directory
-		$dataDirId = createProjectDir($dataDir, $dataDirP, $projectData);
+		$dataDirId = createProjectDir($projectDir, $dataDir, $dataDirP, $projectData);
 		getProjectLogger()->info("Creating project directory: $dataDirP ($dataDirId)");
 
 		if (!empty($sampleData)) {
 			//creating uploads directory
-			$upDirId  = createGSDirBNS($dataDir . "/uploads", 1);
+			$upDirId  = createGSDirBNS($projectDir, $dataDir . "/uploads", 1);
 			getProjectLogger()->info("Creating uploads directory: $dataDir/uploads ($upDirId)");
 			addMetadataToFile($upDirId, array(
 				"expiration" => -1,
@@ -100,7 +100,7 @@ function setUserWorkSpace($projectDir, $userInternalId, $projectData, $sampleDat
 			}
 
 			//creating repository directory
-			$repDirId  = createGSDirBNS($dataDir . "/repository", 1);
+			$repDirId  = createGSDirBNS($projectDir, $dataDir . "/repository", 1);
 			getProjectLogger()->info("Creating repository directory: $dataDir/repository ($repDirId)");
 			addMetadataToFile($repDirId, array(
 				"expiration" => -1,
@@ -112,7 +112,7 @@ function setUserWorkSpace($projectDir, $userInternalId, $projectData, $sampleDat
 			}
 
 			// injecting sample data
-			setUserWorkSpace_sampleData($sampleData, $dataDir);
+			setUserWorkSpace_sampleData($projectDir, $sampleData, $dataDir);
 		}
 	}
 
@@ -129,7 +129,7 @@ function setUserWorkSpace($projectDir, $userInternalId, $projectData, $sampleDat
 }
 
 
-function setUserWorkSpace_sampleData($sampleName, $dataDir)
+function setUserWorkSpace_sampleData($projectDir, $sampleName, $dataDir)
 {
 	$sampleData = getSampleData($sampleName);
 	if (is_null($sampleData)) {
@@ -158,7 +158,7 @@ function setUserWorkSpace_sampleData($sampleName, $dataDir)
 			continue;
 		}
 
-		save_fromSampleDataMetadata($metadata, $dataDir, $sampleName, "folder");
+		save_fromSampleDataMetadata($projectDir, $metadata, $dataDir, $sampleName, "folder");
 
 		// TODO: check if it is necessary
 		// looking for files in the folder 
@@ -182,7 +182,7 @@ function setUserWorkSpace_sampleData($sampleName, $dataDir)
 				continue;
 			}
 
-			save_fromSampleDataMetadata($meta_file, $dataDir, $sampleName, "file");
+			save_fromSampleDataMetadata($projectDir, $meta_file, $dataDir, $sampleName, "file");
 		}
 	}
 
@@ -190,7 +190,7 @@ function setUserWorkSpace_sampleData($sampleName, $dataDir)
 }
 
 
-function save_fromSampleDataMetadata($metadata, $dataDir, $sampleName, $type)
+function save_fromSampleDataMetadata($projectDir, $metadata, $dataDir, $sampleName, $type)
 {
 	if (isset($metadata['mongo']) && $metadata['mongo'] === false) {
 		return;
@@ -281,11 +281,11 @@ function save_fromSampleDataMetadata($metadata, $dataDir, $sampleName, $type)
 
 		//saving metadata
 		if ($type == "folder") {
-			$newId = createGSDirBNS($metadata['path'], 1);
+			$newId = createGSDirBNS($projectDir, $metadata['path'], 1);
 			addMetadataToFile($newId, $modifiedMetadata);
 			getProjectLogger()->info("Sample data imported in your workspace. New Project: '" . basename($modifiedMetadata['path']) . "'");
 		} elseif ($type == "file") {
-			uploadGSFileBNS($metadata['path'], $userDataPath, $file, $modifiedMetadata, false);
+			uploadGSFileBNS($projectDir, $metadata['path'], $userDataPath, $file, $modifiedMetadata, false);
 			if (isset($modifiedMetadata['path']) && preg_match('/uploads/', $modifiedMetadata['path'])) {
 				getProjectLogger()->info("Sample data imported in your <strong>uploads</strong> folder. New File: '<strong>" . basename($metadata['path']) . "</strong>'");
 			}
@@ -296,9 +296,9 @@ function save_fromSampleDataMetadata($metadata, $dataDir, $sampleName, $type)
 }
 
 
-function getFilesToDisplay($dirSelection)
+function getFilesToDisplay($projectDir, $dirSelection)
 {
-	$filesPending = processPendingFiles($_SESSION['userId']);
+	$filesPending = processPendingFiles($projectDir, $_SESSION['userId']);
 	$files = getGSFilesFromDir($dirSelection, 1);
 
 	if (empty($files)) {
@@ -308,7 +308,7 @@ function getFilesToDisplay($dirSelection)
 
 	// Filter user pending files not belonging to active project
 	foreach ($filesPending as $r) {
-		if ($r['project'] != $_SESSION['User']['activeProject']) {
+		if ($r['project'] != $projectDir) {
 			unset($filesPending[$r['_id']]);
 		}
 	}
@@ -992,7 +992,7 @@ function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$file
 		}
 
 		if (!$parentDir) {
-			$parentDir = $_SESSION['internalUserId'] . "/" . $_SESSION['User']['activeProject'] . "/uploads";
+			$parentDir = $_SESSION['internalUserId'] . "/" . $job['project'] . "/uploads";
 		}
 	}
 
@@ -1032,7 +1032,7 @@ function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$file
 }
 
 
-function processFinishedJobInfo($job, $pid, $title, &$filesPending)
+function processFinishedJobInfo($projectDir, $job, $pid, $title, &$filesPending)
 {
 	getProjectLogger()->info("Workspace reload detects job $pid is not running anymore");
 
@@ -1140,7 +1140,7 @@ function processFinishedJobInfo($job, $pid, $title, &$filesPending)
 
 				list($out_vre, $metadata) = getVREfile_fromFile($out_data);
 				try {
-					$fileInfo = saveResults($outPath, $metadata, $job);
+					$fileInfo = saveResults($projectDir, $outPath, $metadata, $job);
 					getProjectLogger()->debug("Job output outfile ($out_name) generated (" . basename($rfn) . ").");
 				} catch (Exception $e) {
 					$_SESSION['errorData']['Error'][] = "Job output file (" . basename($rfn) . ") generated, but with wrong metadata.";
@@ -1204,7 +1204,7 @@ function processFinishedJobInfo($job, $pid, $title, &$filesPending)
 				$logMeta['format']      = "ERR";
 				$metaDataLog = prepMetadataLog($logMeta, $logFile);
 				try {
-					$logInfo = saveResults($logFile, $metaDataLog, $job);
+					$logInfo = saveResults($projectDir, $logFile, $metaDataLog, $job);
 					$filesPending[$logInfo['_id']] = $logInfo;
 				} catch (Exception $e) {
 					$_SESSION['errorData']['Error'][] = $e->getMessage();
@@ -1217,7 +1217,7 @@ function processFinishedJobInfo($job, $pid, $title, &$filesPending)
 }
 
 
-function processPendingFiles($sessionId)
+function processPendingFiles($projectDir, $sessionId)
 {
 	$SGE_updated = array(); // jobs to be monitored. Stored in SESSION. Updated by checkPendingJobs.php (called by ajax)
 	$filesPending = array(); // files to be listed
@@ -1245,7 +1245,7 @@ function processPendingFiles($sessionId)
 
 		//set as running job
 		if (empty($jobProcess)) {
-			processFinishedJobInfo($job, $pid, $title, $filesPending);
+			processFinishedJobInfo($projectDir, $job, $pid, $title, $filesPending);
 		} else {
 			$SGE_updated = processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, $filesPending, $SGE_updated);
 		}
@@ -1258,7 +1258,7 @@ function processPendingFiles($sessionId)
 }
 
 
-function saveResults($filePath, $metaData = array(), $job = array(), $rfn = 0, $asRoot = 0)
+function saveResults($projectDir, $filePath, $metaData = array(), $job = array(), $rfn = 0, $asRoot = 0)
 {
 	getProjectLogger()->debug("saveResults(" . $filePath . ", " . json_encode($metaData) . ", " . json_encode($job) . ", " . $rfn . ", " . $asRoot . ")");
 	// check given filePath
@@ -1322,7 +1322,7 @@ function saveResults($filePath, $metaData = array(), $job = array(), $rfn = 0, $
 	}
 
 	try {
-		uploadGSFileBNS($filePath, $rfn, $insertData, $metaData, $asRoot);
+		uploadGSFileBNS($projectDir, $filePath, $rfn, $insertData, $metaData, $asRoot);
 		$insertData['mtime'] = $insertData['mtime']->toDateTime()->format('U');
 		return array_merge($insertData, $metaData);
 	} catch (Exception $e) {

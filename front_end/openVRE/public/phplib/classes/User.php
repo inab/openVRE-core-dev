@@ -51,11 +51,10 @@ class User implements Persistable
         $this->Inst = sanitizeString($inst);
         $this->dataDir = sanitizeString($dataDir);
         $this->AuthProvider = sanitizeString($authProvider);
-        $this->activeProject = sanitizeString($activeProject);
         $this->id = $this->Type == UserType::Guest->value
             ? uniqid($GLOBALS['AppPrefix'] . "ANON")
             : uniqid($GLOBALS['AppPrefix'] . "USER");
-        $this->activeProject = $this->activeProject ?: createLabel_proj();
+        $this->activeProject = sanitizeString($activeProject) ?: createLabel_proj();
         $this->Status = UserStatus::Active->value;
         $this->lastLogin = moment();
         $this->registrationDate = $this->registrationDate ?: moment();

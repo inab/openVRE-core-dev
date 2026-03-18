@@ -26,6 +26,7 @@ $logger->debug("Execution: " . $_REQUEST['execution']);
 $logger->debug("Description: " . $_REQUEST['description']);
 
 $tool = getTool_fromId($_REQUEST['tool'], true);
+$user = getUserById($_SESSION['userId']);
 
 if (is_null($tool)) {
 	$logger->error("Tool not found: " . $_REQUEST['tool']);
@@ -126,7 +127,7 @@ if ($_REQUEST['input_files_public_dir']) {
 }
 
 try {
-	$jobMeta->createWorking_dir();
+	$jobMeta->createWorking_dir($user->getActiveProject());
 } catch (Exception $e) {
 	$logger->error("Cannot create working directory.");
 	redirect($GLOBALS['BASEURL'] . "workspace/");

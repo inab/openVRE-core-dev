@@ -37,7 +37,7 @@ switch ($_REQUEST['uploadType']) {
 		getData_fromRepository($user, $url, $datatype, $filetype, $descrip);
 		break;
 	case 'sampleData':
-		getData_fromSampleData($_REQUEST);
+		getData_fromSampleData($user, $_REQUEST);
 		break;
 
 	case 'EGA':
