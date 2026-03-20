@@ -89,9 +89,9 @@ class EgaLinkedAccount extends LinkedAccount
         return json_decode($jsonData, true);
     }
 
-    public function storeCredentials(#[\SensitiveParameter] $credentials)
+    public function storeCredentials(string $userSecretsId, #[\SensitiveParameter] $credentials)
     {
         $this->getAuthToken($credentials['password'], $credentials['username']); // Check if the credentials are valid
-        return parent::storeCredentials($credentials);
+        return parent::storeCredentials( $userSecretsId, $credentials);
     }
 }

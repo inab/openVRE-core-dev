@@ -821,7 +821,8 @@ class Tooljob
 		}
 
 		$vaultKey = $_SESSION['userVaultInfo']['vaultKey'];
-		$vaultAddress = $GLOBALS['vaultUrl'] . "/" . $GLOBALS['secretPath'] . $_SESSION['User']['secretsId'] . '/EGA';
+		$user = getUserById($_SESSION['userId']);
+		$vaultAddress = $GLOBALS['vaultUrl'] . "/" . $GLOBALS['secretPath'] . $user->getSecretsId() . '/EGA';
 		$userFolder = "/shared_data/userdata/" . $_SESSION['internalUserId'];
 		$configFilePath = $userFolder . '/env.yml';
 		$configContent = "VAULT_TOKEN={$vaultKey}\nVAULT_ADDRESS={$vaultAddress}\n";

@@ -145,9 +145,6 @@
 				<link href="assets/pages/css/login.min.css" rel="stylesheet" type="text/css" />
 			<?php } ?>
 		<?php break;
-		case 'lockScreen': ?>
-			<link href="assets/pages/css/lock.min.css" rel="stylesheet" type="text/css" />
-		<?php break;
 		case 'usrProfile': ?>
 			<link href="assets/pages/css/profile.min.css" rel="stylesheet" type="text/css" />
 		<?php break;

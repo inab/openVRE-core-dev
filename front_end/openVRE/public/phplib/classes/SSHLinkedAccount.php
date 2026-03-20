@@ -36,7 +36,7 @@ class SshLinkedAccount extends LinkedAccount
     }
 
     
-    public function storeCredentials(#[\SensitiveParameter] $credentials)
+    public function storeCredentials(string $userSecretsId, #[\SensitiveParameter] $credentials)
     {
         $this->logger->info('Storing SSH credentials');
 
@@ -44,6 +44,6 @@ class SshLinkedAccount extends LinkedAccount
             throw new InvalidArgumentException('Invalid key pair');
         }
 
-        return parent::storeCredentials($credentials);
+        return parent::storeCredentials( $userSecretsId, $credentials);
     }
 }

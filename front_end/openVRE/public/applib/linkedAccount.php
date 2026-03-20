@@ -19,6 +19,7 @@ $accountSite = Site::from($_POST['account']);
 $action = $_POST['submitOption'];
 unset($_POST['account'], $_POST['submitOption']);
 $credentials = array_merge($_POST, ['_id' => $_SESSION['userId']]);
+$user = getUserById($_SESSION['userId']);
 
 if ($accountSite === Site::SSH) {
 	$linkedAccount = new SshLinkedAccount();
@@ -31,7 +32,7 @@ if ($accountSite === Site::SSH) {
 }
 
 if ($action === "updateAccount") {
-	updateAccount($linkedAccount, $credentials);
+	updateAccount($linkedAccount, $user->getSecretsId(), $credentials);
 } elseif ($action === "clearAccount") {
 	removeAccount($linkedAccount);
 }

@@ -16,10 +16,10 @@ function getLinkedAccountLogger()
 }
 
 
-function updateAccount(LinkedAccount $linkedAccount, $credentials)
+function updateAccount(LinkedAccount $linkedAccount, string $userSecretsId, $credentials)
 {
 	try {
-		$linkedAccount->storeCredentials($credentials);
+		$linkedAccount->storeCredentials($userSecretsId, $credentials);
 		$_SESSION['errorData']['Info'][] = $linkedAccount->getSite() . " account successfully linked.";
 		redirect($_SERVER['HTTP_REFERER']);
 	} catch (Exception $e) {

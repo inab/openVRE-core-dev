@@ -22,7 +22,7 @@ class LinkedAccount
     }
 
 
-    public function storeCredentials(#[\SensitiveParameter] $credentials)
+    public function storeCredentials(string $userSecretsId, #[\SensitiveParameter] $credentials)
     {
         $this->logger->info("Storing credentials for site: " . $this->site);
 
@@ -32,7 +32,7 @@ class LinkedAccount
             $vaultData['data'][$this->site][$key] = $value;
         }
         
-        $vaultClient = VaultClientFactory::create();
+        $vaultClient = VaultClientFactory::create($userSecretsId);
         $vaultClient->uploadFileToVault($this->site, $vaultData);
 
         $this->logger->info("Stored credentials for site: " . $this->site);

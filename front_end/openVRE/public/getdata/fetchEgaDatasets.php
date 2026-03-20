@@ -13,7 +13,8 @@ $logger = LoggerFactory::getLogger('Fetch EGA datasets');
 $currentPage = isset($_GET['page']) ? (int) $_GET['page'] : 1;
 $offset = ($currentPage - 1) * 10;
 
-$vaultClient = VaultClientFactory::create();
+$user = getUserById($_SESSION['userId']);
+$vaultClient = VaultClientFactory::create($user->getSecretsId());
 $data = $vaultClient->retrieveDatafromVault(Site::EGA);
 
 $egaUsername = $data['username'] ?? null;

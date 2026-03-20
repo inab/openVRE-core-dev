@@ -21,11 +21,11 @@ function getUsersLogger()
 
 function checkLoggedIn()
 {
-    if (isset($_SESSION['User']) && isset($_SESSION['userId'])) {
+    if (isset($_SESSION['userId'])) {
         $user = getUserById($_SESSION['userId']);
     }
 
-    return isset($_SESSION['User']) && ($user['Status'] == UserStatus::Active->value);
+    return isset($user) && ($user['Status'] == UserStatus::Active->value);
 }
 
 function checkTermsOfUse(User $user)
@@ -37,14 +37,14 @@ function checkAdmin()
 {
     $user = getUserById($_SESSION['userId']);
 
-    return isset($_SESSION['User']) && ($user['Status'] == UserStatus::Active->value) && (in_array($user['Type'], $GLOBALS['ADMIN']));
+    return isset($user) && ($user['Status'] == UserStatus::Active->value) && (in_array($user['Type'], $GLOBALS['ADMIN']));
 }
 
 function checkToolDev()
 {
     $user = getUserById($_SESSION['userId']);
 
-    return isset($_SESSION['User']) && ($user['Status'] == UserStatus::Active->value) && (in_array($user['Type'], $GLOBALS['TOOLDEV']) || in_array($user['Type'], $GLOBALS['ADMIN']));
+    return isset($user) && ($user['Status'] == UserStatus::Active->value) && (in_array($user['Type'], $GLOBALS['TOOLDEV']) || in_array($user['Type'], $GLOBALS['ADMIN']));
 }
 
 // create user - after being authentified by the Auth Server
@@ -103,18 +103,14 @@ function createUserAnonymous($sampleData)
     }
 
     $objUser->setTerms("1");
-    $userArray = $objUser->toDocument();
-    $_SESSION['User']   = $userArray;
     $_SESSION['userId'] = $userAttributes['email']; // TODO: rename if email will not replace id attribute in User class
-    $_SESSION['anonID'] = $userArray['email'];
 
-    $dataDirId = prepUserWorkSpace($userArray['activeProject'], $objUser->getInternalId(), $sampleData);
-    $userArray['dataDir'] = $dataDirId;
-    $userArray['terms']  =  "1";
+    $dataDirId = prepUserWorkSpace($objUser->getActiveProject(), $objUser->getInternalId(), $sampleData);
+    $objUser->setDataDir($dataDirId);
 
     // register user in mongo. NOT in ldap nor in the oauth2 provider
     try {
-        saveNewUser($userArray);
+        saveNewUser($objUser);
     } catch (Exception $e) {
         getUsersLogger()->error("Error saving new user into Mongo database");
         getUsersLogger()->error($e->getMessage());
@@ -144,11 +140,8 @@ function getUsersByFilter($filter, $options = array())
 
 
 // load user to SESSION
-function setUser($f, $lastLogin = false)
+function setUserLastLogin($lastLogin = false)
 {
-    $aux = (array)$f;
-    $_SESSION['User']   = $aux;
-
     if (!isset($_SESSION['lastUserLogin']) && $lastLogin) {
         $_SESSION['lastUserLogin'] = $lastLogin;
     }
@@ -184,12 +177,12 @@ function logoutUser()
 
 function logoutAnon()
 {
-    unset($_SESSION['User']);
+    unset($_SESSION['userId']);
     unset($_SESSION['userToken']);
     unset($_SESSION['userInfo']);
 }
 
-function saveNewUser($user)
+function saveNewUser(User $user)
 {
     return $GLOBALS['usersCol']->insertOne($user);
 }
@@ -223,7 +216,7 @@ function loadUser($login, $pass)
 
     // check pass/token verifies - except when loading an ANON or when impersonating
     $pass_verified =  check_password($pass, null);
-    $impersonating =  isset($_SESSION['User']) && $_SESSION['userType'] == UserType::Admin->value && $pass == 99;
+    $impersonating =  isset($_SESSION['userId']) && $_SESSION['userType'] == UserType::Admin->value && $pass == 99;
     $loadingAnon   =  $user['Type'] == UserType::Guest;
 
     if (!$pass_verified) {
@@ -231,7 +224,6 @@ function loadUser($login, $pass)
             // keep open SESSION
             $user['lastReload'] = moment();
             updateUser($user);
-            setUser($user);
             return;
         } elseif ($impersonating) {
             getUsersLogger()->info("User $login successfully impersonated");
@@ -244,7 +236,7 @@ function loadUser($login, $pass)
     updateUser($user);
 
     // load user into SESSION
-    setUser($user, $auxlastlog);
+    setUserLastLogin($auxlastlog);
 
     return $user;
 }
@@ -263,7 +255,7 @@ function loadUserWithToken($user, $userInfo, $token)
     $_SESSION['tokenInfo'] = $userInfo;
 
     updateUser($user);
-    setUser($user, $auxlastlog);
+    setUserLastLogin($auxlastlog);
 
     $_SESSION['userVaultInfo'] = array(
         "vaultKey"     => null,
