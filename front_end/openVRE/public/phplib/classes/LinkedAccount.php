@@ -29,7 +29,7 @@ class LinkedAccount
         $vaultData = [];
         $vaultData['data'][$this->site] = [];
         foreach ($credentials as $key => $value) {
-            $vaultData['data'][$this->site][$key] = $value; // Check $data['data'][$this->site]['_id'] = $userId; is being included
+            $vaultData['data'][$this->site][$key] = $value;
         }
         
         $vaultClient = VaultClientFactory::create();
