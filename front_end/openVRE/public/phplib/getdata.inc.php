@@ -2,6 +2,7 @@
 
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
+use OpenVRE\Site;
 use OpenVRE\User;
 use OpenVRE\UserType;
 
@@ -607,7 +608,7 @@ function getData_fromEGA(User $user, $datasetIds, $fileIds, $filenames, $fileSiz
 
         $metaData = [
             'data_type' => "variants",
-            'data_source' => "EGA",
+            'data_source' => Site::EGA->value,
             'ega_path' => $filePath,
             'format' => "VCF",
             'validated' => true,

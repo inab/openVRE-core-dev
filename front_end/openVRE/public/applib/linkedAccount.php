@@ -1,19 +1,37 @@
 <?php
 
-require __DIR__."/../../config/bootstrap.php";
+use OpenVRE\EgaLinkedAccount;
+use OpenVRE\LinkedAccount;
+use OpenVRE\Site;
+use OpenVRE\SshLinkedAccount;
+
+require __DIR__ . "/../../config/bootstrap.php";
 
 redirectOutside();
 
-// Check query
-if(!$_REQUEST){
+if (!$_REQUEST) {
 	redirect($GLOBALS['URL']);
-
-}elseif (is_null($_REQUEST['account'])) {
+} elseif (is_null($_REQUEST['account'])) {
 	redirect($_SERVER['HTTP_REFERER']);
 }
 
-$siteId = $_REQUEST['site_id'] ?? null;
+$accountSite = Site::from($_POST['account']);
+$action = $_POST['submitOption'];
+unset($_POST['account'], $_POST['submitOption']);
+$credentials = array_merge($_POST, ['_id' => $_SESSION['userId']]);
 
-addUserLinkedAccount($_POST['account'], $_POST['action'], $_SESSION['userId'], $siteId, $_POST);
+if ($accountSite === Site::SSH) {
+	$linkedAccount = new SshLinkedAccount();
+} elseif ($accountSite === Site::EGA) {
+	$linkedAccount = new EgaLinkedAccount();
+} elseif ($accountSite === Site::objectStorage) {
+	$linkedAccount = new LinkedAccount(Site::objectStorage);
+} else {
+	throw new UnexpectedValueException("Account site not recognized: " . $accountSite);
+}
 
-?>
+if ($action === "updateAccount") {
+	updateAccount($linkedAccount, $credentials);
+} elseif ($action === "clearAccount") {
+	removeAccount($linkedAccount);
+}

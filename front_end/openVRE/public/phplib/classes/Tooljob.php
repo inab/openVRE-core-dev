@@ -495,7 +495,7 @@ class Tooljob
 			// convert metadata to DMP format
 			$fileMuG = $this->fromVREfile_toMUGfile($file);
 
-			if ($fileMuG['data_source'] == "EGA") {
+			if ($fileMuG['data_source'] == Site::EGA->value) {
 				$fileMuG['file_path'] = "/clean_files/" . $file['ega_path']; // hardcoded ega path
 			}
 

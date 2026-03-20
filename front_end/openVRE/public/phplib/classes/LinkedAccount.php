@@ -22,7 +22,7 @@ class LinkedAccount
     }
 
 
-    public function storeCredentials($credentials)
+    public function storeCredentials(#[\SensitiveParameter] $credentials)
     {
         $this->logger->info("Storing credentials for site: " . $this->site);
 

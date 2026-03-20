@@ -4,7 +4,6 @@ namespace OpenVRE;
 
 use Exception;
 use Monolog\Logger;
-use SensitiveParameterValue;
 
 class EgaLinkedAccount extends LinkedAccount
 {
@@ -18,7 +17,7 @@ class EgaLinkedAccount extends LinkedAccount
     }
 
 
-    public function getAuthToken(#[\SensitiveParameter] $password, #[\SensitiveParameter] $username)
+    public function getAuthToken(#[\SensitiveParameter] string $password, #[\SensitiveParameter] string $username)
     {
         $this->logger->info('Fetching EGA token');
 

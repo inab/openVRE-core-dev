@@ -1,5 +1,7 @@
 <?php
 
+use OpenVRE\Site;
+
 require __DIR__ . "/../../config/bootstrap.php";
 
 redirectOutside();
@@ -68,9 +70,8 @@ require "../htmlib/header.inc.php"; ?>
                     <form name="linkedAccount" id="linkedAccount" action="applib/linkedAccount.php" method="post">
 
                         <input type="hidden" name="account" id="account" value="<?php echo $_REQUEST['account']; ?>">
-                        <input type="hidden" name="action" id="action" value="<?php echo $_REQUEST['action']; ?>">
 
-                        <?php if ($_REQUEST['account'] == "EGA") {
+                        <?php if ($_REQUEST['account'] == Site::EGA->value) {
 
                         ?>
                             <div class="portlet box blue-oleo">
@@ -126,7 +127,6 @@ require "../htmlib/header.inc.php"; ?>
                                     </div>
                                     <div class="row">
                                         <div class="col-md-12 text-right">
-                                            <input type="hidden" name="save_credential" id="save_credential" value="false">
                                             <button type="submit" name="submitOption" value="clearAccount"
                                                 class="btn" style="background-color: white; margin-bottom: 10px; display: none;"><i
                                                     class="fa fa-plus"></i> &nbsp; Clear account</button>
@@ -144,7 +144,7 @@ require "../htmlib/header.inc.php"; ?>
 
         <!--  SSH FORM     -->
 
-    <?php } elseif ($_REQUEST['account'] == "SSH") {
+    <?php } elseif ($_REQUEST['account'] == Site::SSH->value) {
 
                             if (isset($_REQUEST['site_id'])) {
 
@@ -222,15 +222,11 @@ require "../htmlib/header.inc.php"; ?>
 
                         <!-- Submit and action buttons -->
                         <div class="col-md-12 text-right">
-                            <input type="hidden" name="save_credential" id="save_credential" value="false">
                             <input type="hidden" name="site_id" value="<?php echo htmlspecialchars($siteId); ?>">
-                            <button type="submit" onclick="document.getElementById('save_credential').value=true" class="btn blue">
-                                <i class="fa fa-check"></i> Accept
-                            </button>
-                            <button type="submit" name="submitOption" value="clearAccount" href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=SSH&action=delete&site_id=<?php echo $siteId; ?>" class="btn" style="background-color: white">
+                            <button type="submit" name="submitOption" value="clearAccount" class="btn" style="background-color: white">
                                 <i class="fa fa-plus"></i> &nbsp; Clear account
                             </button>
-                            <button type="submit" name="submitOption" value="updateAccount" href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=SSH&action=update&site_id=<?php echo $siteId; ?>" class="btn" style="background-color: #d4d4d4">
+                            <button type="submit" name="submitOption" value="updateAccount" class="btn" style="background-color: #d4d4d4">
                                 <i class="fa fa-plus"></i> &nbsp; Update account
                             </button>
                         </div>
@@ -283,7 +279,7 @@ require "../htmlib/header.inc.php"; ?>
         </div>
 
         <!--  OPENSTACK FORM    -->
-    <?php } elseif ($_REQUEST['account'] == "objectStorage") {
+    <?php } elseif ($_REQUEST['account'] == Site::objectStorage->value) {
 
                             $siteId = $_REQUEST['account'];
 
@@ -409,10 +405,8 @@ require "../htmlib/header.inc.php"; ?>
                     </div>
                     <div class="row">
                         <div class="col-md-12 text-right">
-                            <input type="hidden" name="save_credential" id="save_credential" value="false">
-                            <button type="submit" onclick="document.getElementById('save_credential').value=true" class="btn blue"><i class="fa fa-check"></i> Accept</button>
-                            <button type="submit" name="submitOption" value="clearAccount" href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=objectStorage&action=delete" class="btn" style="background-color: white"><i class="fa fa-plus"></i> &nbsp; Clear account</button>
-                            <button type="submit" name="submitOption" value="updateAccount" href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=objectStorage&action=update" class="btn" style="background-color: #d4d4d4"><i class="fa fa-plus"></i> &nbsp; Update account</button>
+                            <button type="submit" name="submitOption" value="clearAccount" class="btn" style="background-color: white"><i class="fa fa-plus"></i> &nbsp; Clear account</button>
+                            <button type="submit" name="submitOption" value="updateAccount" class="btn" style="background-color: #d4d4d4"><i class="fa fa-plus"></i> &nbsp; Update account</button>
                         </div>
                     </div>
                 </div>
