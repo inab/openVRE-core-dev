@@ -296,9 +296,9 @@ function save_fromSampleDataMetadata($projectDir, $metadata, $dataDir, $sampleNa
 }
 
 
-function getFilesToDisplay($projectDir, $dirSelection)
+function getFilesToDisplay($projectDir, $dirSelection, $lastJobs)
 {
-	$filesPending = processPendingFiles($projectDir, $_SESSION['userId']);
+	$filesPending = processPendingFiles($projectDir, $_SESSION['userId'], $lastJobs);
 	$files = getGSFilesFromDir($dirSelection, 1);
 
 	if (empty($files)) {
@@ -970,7 +970,7 @@ function updatePendingFiles($sessionId)
 }
 
 
-function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$filesPending, $SGE_updated)
+function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$filesPending, $SGE_updated, $lastJobs)
 {
 	getProjectLogger()->debug("Start processRunningJobInfo $pid.  Job data: " . json_encode($job));
 
@@ -1018,7 +1018,7 @@ function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$file
 
 	if ($jobProcess['state'] == "RUNNING" && $job['job_type'] == "interactive") {
 		$fileDummy['pending'] = "ACTIVE SESSION";
-		$fileDummy['toolContainerName'] = $_SESSION['User']['lastjobs'][$pid]['containerName'];
+		$fileDummy['toolContainerName'] = $lastJobs[$pid]['containerName'];
 	}
 
 	//list job in workspace
@@ -1217,7 +1217,7 @@ function processFinishedJobInfo($projectDir, $job, $pid, $title, &$filesPending)
 }
 
 
-function processPendingFiles($projectDir, $sessionId)
+function processPendingFiles($projectDir, $sessionId, $lastJobs)
 {
 	$SGE_updated = array(); // jobs to be monitored. Stored in SESSION. Updated by checkPendingJobs.php (called by ajax)
 	$filesPending = array(); // files to be listed
@@ -1247,7 +1247,7 @@ function processPendingFiles($projectDir, $sessionId)
 		if (empty($jobProcess)) {
 			processFinishedJobInfo($projectDir, $job, $pid, $title, $filesPending);
 		} else {
-			$SGE_updated = processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, $filesPending, $SGE_updated);
+			$SGE_updated = processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, $filesPending, $SGE_updated, $lastJobs);
 		}
 	}
 

@@ -27,6 +27,7 @@ class User implements Persistable
     private $activeProject;
     private $terms;
     private $developedTools;
+    private $lastJobs;
     private Logger $logger;
 
     public function __construct(string $email, string $secretsId, string $surname, string $name, string $inst, int $type, int $diskQuota, string $dataDir, ?string $authProvider, string $activeProject, array $developedTools)
@@ -252,6 +253,16 @@ class User implements Persistable
         $this->developedTools = $developedTools;
     }
 
+    public function getLastJobs(): array
+    {
+        return $this->lastJobs;
+    }
+
+    public function setLastJobs(array $lastJobs): void
+    {
+        $this->lastJobs = $lastJobs;
+    }
+
     public function getLogger(): Logger
     {
         return $this->logger ??= LoggerFactory::getLogger('User');
@@ -289,5 +300,6 @@ class User implements Persistable
         $this->registrationDate = $data['registrationDate'];
         $this->id = $data['id'];
         $this->developedTools = $data['developedTools'];
+        $this->lastJobs = $data['lastJobs'];
     }
 }

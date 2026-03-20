@@ -170,6 +170,9 @@ function delJob($pid, $launcherType = null, $login = null)
         throw new NotFoundException("Job ID not provided.");
     }
 
+    $userId = $login ?? $_SESSION['userId'];
+    $user = getUserById($userId);
+
     // guess launcher
     if (!$launcherType && is_numeric($pid)) {
         $launcherType = Launcher::docker_SGE;
@@ -185,7 +188,7 @@ function delJob($pid, $launcherType = null, $login = null)
         throw new UnexpectedValueException("Cannot delete job of type '$launcherType' [id = $pid]. Launcher not implemented.");
     }
 
-    $jobUser = $_SESSION['User']['lastjobs'][$pid];
+    $jobUser = $user->getLastJobs()[$pid];
 
     if ($jobUser && $jobUser['job_type'] == "interactive") {
         return false;

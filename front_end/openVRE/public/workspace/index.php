@@ -33,7 +33,7 @@ $dtlist = ((isset($_REQUEST["tool"]) && $_REQUEST["tool"] != "") ? getAvailableD
 $projects = getProjects_byOwner();
 
 //update files workspace content (job and files)
-$userFiles = getFilesToDisplay($user->getActiveProject(), array('_id' => $user->getDataDir()));
+$userFiles = getFilesToDisplay($user->getActiveProject(), array('_id' => $user->getDataDir()), $user->getLastJobs());
 
 $files = (isset($dtlist['list']) ? filterFiles_by_dataType($userFiles, $dtlist["list"]) : $userFiles);
 $files = addTreeTableNodesToFiles($files);
