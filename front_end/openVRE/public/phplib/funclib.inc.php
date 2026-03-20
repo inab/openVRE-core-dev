@@ -16,12 +16,12 @@ function redirectOutside()
 {
 	if (!checkLoggedIn()) {
 		//Get access creating an a anonymous guest account
-		createUserAnonymous(null);
+		$user = createUserAnonymous(null);
 	} else {
-		loadUser($_SESSION['userId'], false);
+		$user = loadUser($_SESSION['userId'], false);
 	}
 
-	if (!checkTermsOfUse() && pathinfo($_SERVER['PHP_SELF'])['filename'] != 'usrProfile') {
+	if (!checkTermsOfUse($user) && pathinfo($_SERVER['PHP_SELF'])['filename'] != 'usrProfile') {
 		redirect($GLOBALS['BASEURL'] . "user/usrProfile.php");
 	}
 }

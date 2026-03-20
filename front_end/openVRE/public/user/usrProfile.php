@@ -3,6 +3,8 @@
 require __DIR__ . "/../../config/bootstrap.php";
 redirectOutside();
 
+$user = getUserById($_SESSION['userId']);
+
 ?>
 
 <?php require "../htmlib/header.inc.php"; ?>
@@ -43,7 +45,7 @@ redirectOutside();
                 <!-- END PAGE TITLE-->
                 <!-- END PAGE HEADER-->
 
-                <?php if (!checkTermsOfUse()) { ?>
+                <?php if (!checkTermsOfUse($user)) { ?>
                     <div class="row">
                         <div class="col-md-12">
                             <div class="alert alert-warning">
@@ -186,7 +188,7 @@ redirectOutside();
                                                                 value="<?php echo $_SESSION['User']['Inst']; ?>"
                                                                 class="form-control" />
                                                         </div>
-                                                        <?php if (!in_array($_SESSION['userType'], $GLOBALS['TOOLDEV']) && (checkTermsOfUse())) { ?>
+                                                        <?php if (!in_array($_SESSION['userType'], $GLOBALS['TOOLDEV']) && (checkTermsOfUse($user))) { ?>
                                                             <div class="form-group margin-top-30">
                                                                 <label class="control-label">You are a standard user. Do you
                                                                     want to bring your own tool?
@@ -205,7 +207,7 @@ redirectOutside();
                                                                 style="margin-bottom:0;"> Please, accept <a
                                                                     href="javascript:openTermsOfUse();">terms of use</a>
                                                                 <input type="checkbox" value="1" name="terms" id="terms"
-                                                                    <?php if (checkTermsOfUse())
+                                                                    <?php if (checkTermsOfUse($user))
                                                                         echo 'checked readonly'; ?> />
                                                                 <span></span>
                                                             </label>

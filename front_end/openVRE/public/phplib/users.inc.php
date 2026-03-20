@@ -28,9 +28,9 @@ function checkLoggedIn()
     return isset($_SESSION['User']) && ($user['Status'] == UserStatus::Active->value);
 }
 
-function checkTermsOfUse()
+function checkTermsOfUse(User $user)
 {
-    return isset($_SESSION['User']['terms']) && $_SESSION['User']['terms'] == 1;
+    return $user->getTerms() == 1;
 }
 
 function checkAdmin()
@@ -97,11 +97,12 @@ function createUserAnonymous($sampleData)
         "AuthProvider" => "VRE"
     );
 
-    $objUser = new User($userAttributes['email'], "", $userAttributes['Surname'], $userAttributes['Name'], "", $userAttributes['Type'], "", "", $userAttributes['AuthProvider'], "", "");
+    $objUser = new User($userAttributes['email'], "", $userAttributes['Surname'], $userAttributes['Name'], "", $userAttributes['Type'], "", "", $userAttributes['AuthProvider'], "", []);
     if (!$objUser) {
         return false;
     }
 
+    $objUser->setTerms("1");
     $userArray = $objUser->toDocument();
     $_SESSION['User']   = $userArray;
     $_SESSION['userId'] = $userAttributes['email']; // TODO: rename if email will not replace id attribute in User class
@@ -110,7 +111,6 @@ function createUserAnonymous($sampleData)
     $dataDirId = prepUserWorkSpace($userArray['activeProject'], $objUser->getInternalId(), $sampleData);
     $userArray['dataDir'] = $dataDirId;
     $userArray['terms']  =  "1";
-    $_SESSION['User']['terms'] = "1";
 
     // register user in mongo. NOT in ldap nor in the oauth2 provider
     try {
@@ -120,6 +120,8 @@ function createUserAnonymous($sampleData)
         getUsersLogger()->error($e->getMessage());
         exit('Login error: cannot create anonymous user');
     }
+
+    return $objUser;
 }
 
 
