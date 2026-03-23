@@ -25,26 +25,26 @@ function checkLoggedIn()
         $user = getUserById($_SESSION['userId']);
     }
 
-    return isset($user) && ($user['Status'] == UserStatus::Active->value);
+    return isset($user) && ($user->getStatus() == UserStatus::Active->value);
 }
 
-function checkTermsOfUse(User $user)
+function checkTermsOfUse(User $user): bool
 {
-    return $user->getTerms() == 1;
+    return $user->getTermsAccepted();
 }
 
 function checkAdmin()
 {
     $user = getUserById($_SESSION['userId']);
 
-    return isset($user) && ($user['Status'] == UserStatus::Active->value) && (in_array($user['Type'], $GLOBALS['ADMIN']));
+    return isset($user) && ($user->getStatus() == UserStatus::Active->value) && (in_array($user->getType(), $GLOBALS['ADMIN']));
 }
 
 function checkToolDev()
 {
     $user = getUserById($_SESSION['userId']);
 
-    return isset($user) && ($user['Status'] == UserStatus::Active->value) && (in_array($user['Type'], $GLOBALS['TOOLDEV']) || in_array($user['Type'], $GLOBALS['ADMIN']));
+    return isset($user) && ($user->getStatus() == UserStatus::Active->value) && (in_array($user->getType(), $GLOBALS['TOOLDEV']) || in_array($user->getType(), $GLOBALS['ADMIN']));
 }
 
 // create user - after being authentified by the Auth Server
@@ -76,11 +76,11 @@ function createUserFromToken($token, $userInfo = array())
         $_SESSION['tokenInfo'] = $userInfo;
     }
 
-    $user = new User($userAttributes['email'], $userAttributes['secretsId'], $userAttributes['Surname'], $userAttributes['Name'], "", $userAttributes['Type'], "", "", $userAttributes['AuthProvider'], "");
+    $user = new User($userAttributes['email'], $userAttributes['secretsId'], $userAttributes['Surname'], $userAttributes['Name'], "", $userAttributes['Type'], 0, "", $userAttributes['AuthProvider'], "", []);
 
     $_SESSION['userId'] = $userAttributes['email']; // TODO: rename if email will not replace internalId attribute in User class (currently it is the same as _id but no as internalId)
-    $_SESSION['userType'] = $userAttributes['Type'];
-
+    $_SESSION['internalUserId'] = $user->getInternalId();
+    $_SESSION['userType'] = $user->getType();
 
     return $user;
 }
@@ -89,21 +89,25 @@ function createUserFromToken($token, $userInfo = array())
 // create anonymous user - without being authentified by the Auth Server
 function createUserAnonymous($sampleData)
 {
+    getUsersLogger()->info("Creating anonymous user");
     $userAttributes = array(
         "email"        => substr(md5(rand()), 0, 25) . "",
         "Type"         => UserType::Guest->value,
         "Name"         => "Guest",
-        "Surname"      => "",
+        "Surname"      => "User",
+        "Inst"         => "Institution",
         "AuthProvider" => "VRE"
     );
 
-    $objUser = new User($userAttributes['email'], "", $userAttributes['Surname'], $userAttributes['Name'], "", $userAttributes['Type'], "", "", $userAttributes['AuthProvider'], "", []);
+    $objUser = new User($userAttributes['email'], "", $userAttributes['Surname'], $userAttributes['Name'], $userAttributes['Inst'], $userAttributes['Type'], 0, "", $userAttributes['AuthProvider'], "", []);
     if (!$objUser) {
         return false;
     }
 
-    $objUser->setTerms("1");
+    $objUser->setTermsAccepted(true);
     $_SESSION['userId'] = $userAttributes['email']; // TODO: rename if email will not replace id attribute in User class
+    $_SESSION['internalUserId'] = $objUser->getInternalId();
+    $_SESSION['userType'] = $objUser->getType();
 
     $dataDirId = prepUserWorkSpace($objUser->getActiveProject(), $objUser->getInternalId(), $sampleData);
     $objUser->setDataDir($dataDirId);
@@ -121,30 +125,17 @@ function createUserAnonymous($sampleData)
 }
 
 
-function getUserById($id, $options = array()) : User
+function getUserById($id, $options = [
+    'typeMap' => ['array' => 'array', 'root' => 'MongoDB\Model\BSONDocument', 'document' => 'array']
+]): ?User
 {
     return $GLOBALS['usersCol']->findOne(["_id" => $id], $options);
-}
-
-
-function getUserByType($type, $options = array())
-{
-    return $GLOBALS['usersCol']->findOne(["Type" => $type], $options);
 }
 
 
 function getUsersByFilter($filter, $options = array())
 {
     return $GLOBALS['usersCol']->find($filter, $options);
-}
-
-
-// load user to SESSION
-function setUserLastLogin($lastLogin = false)
-{
-    if (!isset($_SESSION['lastUserLogin']) && $lastLogin) {
-        $_SESSION['lastUserLogin'] = $lastLogin;
-    }
 }
 
 
@@ -189,12 +180,12 @@ function saveNewUser(User $user)
 
 function updateUser($user)
 {
-    $GLOBALS['usersCol']->updateOne(array('_id' => $user['_id']), array('$set' => $user), array('upsert=>true'));
+    getUsersLogger()->info("Updating user " . $user->get_id());
+    $GLOBALS['usersCol']->updateOne(array('_id' => $user->get_id()), array('$set' => $user), array('upsert=>true'));
 }
 
 
 // update attribute user document in Mongo
-
 function modifyUser($login, $attribute, $value)
 {
     $GLOBALS['usersCol']->updateOne(
@@ -205,57 +196,36 @@ function modifyUser($login, $attribute, $value)
 }
 
 
-function loadUser($login, $pass)
+function loadUser($userId, $impersonate)
 {
-    // check user exists
-    $user = getUserById($login);
-    if (empty($user['_id']) || $user['Status'] == UserStatus::Inactive->value) {
-        getUsersLogger()->error("Requested user (_id = $login) not found. Cannot load user.");
-        throw new NotFoundException("Requested user (_id = $login) not found. Cannot load user.");
+    $user = getUserById($userId);
+    if (empty($user->get_id()) || $user->getStatus() == UserStatus::Inactive->value) {
+        getUsersLogger()->error("Requested user (_id = $userId) not found. Cannot load user.");
+        throw new NotFoundException("Requested user (_id = $userId) not found. Cannot load user.");
     }
 
-    // check pass/token verifies - except when loading an ANON or when impersonating
-    $pass_verified =  check_password($pass, null);
-    $impersonating =  isset($_SESSION['userId']) && $_SESSION['userType'] == UserType::Admin->value && $pass == 99;
-    $loadingAnon   =  $user['Type'] == UserType::Guest;
-
-    if (!$pass_verified) {
-        if (!$loadingAnon  && !$impersonating) {
-            // keep open SESSION
-            $user['lastReload'] = moment();
-            updateUser($user);
-            return;
-        } elseif ($impersonating) {
-            getUsersLogger()->info("User $login successfully impersonated");
-        }
+    $impersonating =  isset($_SESSION['userId']) && $_SESSION['userType'] == UserType::Admin->value && $impersonate;
+    if ($impersonating) {
+        getUsersLogger()->info("User $userId successfully impersonated");
     }
-
-    // edit user to load
-    $auxlastlog = $user['lastLogin'];
-    $user['lastLogin'] = moment();
-    updateUser($user);
-
-    // load user into SESSION
-    setUserLastLogin($auxlastlog);
 
     return $user;
 }
 
-function loadUserWithToken($user, $userInfo, $token)
+
+function loadUserWithToken(User $user, $userInfo, $token)
 {
-    if ($user['Status'] == UserStatus::Inactive->value) {
+    if ($user->getStatus() == UserStatus::Inactive->value) {
         getUsersLogger()->error("Requested user is inactive. Cannot load user.");
         throw new UnexpectedValueException("Requested user is inactive. Cannot load user.");
     }
 
-    $auxlastlog = $user['lastLogin'];
-    $user['lastLogin'] = moment();
-    $user['secretsId'] = $userInfo['sub'];
+    $user->setLastLogin(moment());
+    $user->setSecretsId($userInfo['sub']);
     $_SESSION['userToken'] = $token;
     $_SESSION['tokenInfo'] = $userInfo;
 
     updateUser($user);
-    setUserLastLogin($auxlastlog);
 
     $_SESSION['userVaultInfo'] = array(
         "vaultKey"     => null,
@@ -270,7 +240,7 @@ function saveUserJobs($login, $jobInfo)
     getUsersLogger()->debug("Updating user $login with job data: " . json_encode($jobInfo));
     $GLOBALS['usersCol']->updateOne(
         array('_id' => $login),
-        array('$set'   => array('lastjobs' => $jobInfo)),
+        array('$set'   => array('lastJobs' => $jobInfo)),
         array('upsert' => true)
     );
 }
@@ -280,7 +250,7 @@ function delUserJob($login, $pid)
     getUsersLogger()->debug("Deleting job $pid from user $login");
     $GLOBALS['usersCol']->updateOne(
         array('_id' => $login),
-        array('$unset' => array("lastjobs.$pid" => 1))
+        array('$unset' => array("lastJobs.$pid" => 1))
     );
 }
 
@@ -288,13 +258,13 @@ function delUserJob($login, $pid)
 function addUserJob($login, $data, $pid)
 {
     $pid = strval($pid);
-    $lastjobs = getUserJobs($login);
-    $lastjobs[$pid] = $data;
+    $lastJobs = getUserJobs($login);
+    $lastJobs[$pid] = $data;
     getUsersLogger()->debug("Adding job $pid to user $login");
     getUsersLogger()->debug("Job data: " . json_encode($data));
     $GLOBALS['usersCol']->updateOne(
         array('_id' => $login),
-        array('$set'   => array('lastjobs' => $lastjobs)),
+        array('$set'   => array('lastJobs' => $lastJobs)),
         array('upsert' => true)
     );
 }
@@ -304,10 +274,10 @@ function getUserJobs($login)
 {
     $userLastJobs = $GLOBALS['usersCol']->findOne(array(
         '_id'  => $login,
-        'lastjobs' => array('$exists' => true)
+        'lastJobs' => array('$exists' => true)
     ));
 
-    return $userLastJobs['lastjobs'] ?? [];
+    return $userLastJobs['lastJobs'] ?? [];
 }
 
 function getAllUserJobs()
@@ -315,11 +285,11 @@ function getAllUserJobs()
     $r = $GLOBALS['usersCol']->find(
         array(
             '$nor' => array(
-                array('lastjobs' => array('$exists' => false)),
-                array('lastjobs' => array('$size' => 0)),
+                array('lastJobs' => array('$exists' => false)),
+                array('lastJobs' => array('$size' => 0)),
             )
         ),
-        array("_id" => 1, "lastjobs" => 1, "id" => 1)
+        array("_id" => 1, "lastJobs" => 1, "id" => 1)
     );
 
     if (empty($r))
@@ -329,8 +299,8 @@ function getAllUserJobs()
     // return [login] => array(jobId_1 => job1, jobId_2 => job2)
     $result = array();
     foreach ($r_arr as $login => $info) {
-        $result[$login] = $info["lastjobs"];
-        foreach ($info["lastjobs"] as $job_id => $job) {
+        $result[$login] = $info["lastJobs"];
+        foreach ($info["lastJobs"] as $job_id => $job) {
             $result[$login][$job_id]["userId"] = $info["id"];
         }
     }
@@ -341,8 +311,8 @@ function getUserJobPid($login, $pid)
 {
     $r = $GLOBALS['usersCol']->findOne(array(
         "_id"      => $login,
-        "lastjobs.$pid" => array('$exists' => true)
+        "lastJobs.$pid" => array('$exists' => true)
     ));
 
-    return $r['lastjobs'] ?? array();
+    return $r['lastJobs'] ?? array();
 }

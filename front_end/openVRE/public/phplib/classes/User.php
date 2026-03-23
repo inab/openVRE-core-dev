@@ -9,25 +9,24 @@ use UnexpectedValueException;
 
 class User implements Persistable
 {
-    private $_id;
-    private $id;
-    private $email;
-    private $secretsId;
-    private $Surname;
-    private $Name;
-    private $Inst;
-    private $lastLogin;
-    private $registrationDate;
-    private $Type;
-    private $Status;
-    private $diskQuota;
-    private $dataDir;
-    private $AuthProvider;
-    private $internalId;
-    private $activeProject;
-    private $terms;
-    private $developedTools;
-    private $lastJobs;
+    private string $_id;
+    private string $email;
+    private string $secretsId;
+    private string $surname;
+    private string $name;
+    private string $institution;
+    private string $lastLogin;
+    private string $registrationDate;
+    private int $type;
+    private int $status;
+    private int $diskQuota;
+    private string $dataDir;
+    private ?string $authProvider;
+    private string $internalId;
+    private string $activeProject;
+    private bool $termsAccepted = false;
+    private array $developedTools = [];
+    private array $lastJobs = [];
     private Logger $logger;
 
     public function __construct(string $email, string $secretsId, string $surname, string $name, string $inst, int $type, int $diskQuota, string $dataDir, ?string $authProvider, string $activeProject, array $developedTools)
@@ -43,30 +42,30 @@ class User implements Persistable
             throw new UnexpectedValueException("User not logged in");
         }
 
-        $this->Type = $type ?? UserType::Registered->value; // TODO: check if this is ok
+        $this->type = $type ?? UserType::Registered->value; // TODO: check if this is ok
         $this->email = sanitizeString($email);
         $this->secretsId = sanitizeString($secretsId);
         $this->_id = sanitizeString($email);
-        $this->Surname = ucfirst(sanitizeString($surname));
-        $this->Name = ucfirst(sanitizeString($name));
-        $this->Inst = sanitizeString($inst);
+        $this->surname = ucfirst(sanitizeString($surname));
+        $this->name = ucfirst(sanitizeString($name));
+        $this->institution = sanitizeString($inst);
         $this->dataDir = sanitizeString($dataDir);
-        $this->AuthProvider = sanitizeString($authProvider);
-        $this->id = $this->Type == UserType::Guest->value
+        $this->authProvider = sanitizeString($authProvider);
+        $this->internalId = $this->type == UserType::Guest->value
             ? uniqid($GLOBALS['AppPrefix'] . "ANON")
             : uniqid($GLOBALS['AppPrefix'] . "USER");
         $this->activeProject = sanitizeString($activeProject) ?: createLabel_proj();
-        $this->Status = UserStatus::Active->value;
+        $this->status = UserStatus::Active->value;
         $this->lastLogin = moment();
-        $this->registrationDate = $this->registrationDate ?: moment();
-        $this->diskQuota  = $diskQuota || $this->Type == UserType::Guest->value // TODO: check if this is ok
+        $this->registrationDate = moment();
+        $this->diskQuota  = $diskQuota || $this->type == UserType::Guest->value // TODO: check if this is ok
             ? $GLOBALS['DISKLIMIT_ANON']
             : $GLOBALS['DISKLIMIT'];
 
-        $this->Surname = ucfirst($this->Surname);
-        $this->Name    = ucfirst($this->Name);
+        $this->surname = ucfirst($this->surname);
+        $this->name    = ucfirst($this->name);
         $this->developedTools = $developedTools;
-        $this->terms = "0";
+        $this->termsAccepted = "0";
 
         $_SESSION['userVaultInfo'] = array(
             "vaultKey"     => null
@@ -76,12 +75,12 @@ class User implements Persistable
 
     public function getType(): int
     {
-        return $this->Type;
+        return $this->type;
     }
 
     public function setType(int $type): void
     {
-        $this->Type = $type;
+        $this->type = $type;
     }
 
     public function getEmail(): string
@@ -126,32 +125,32 @@ class User implements Persistable
 
     public function getSurname(): string
     {
-        return $this->Surname;
+        return $this->surname;
     }
 
     public function setSurname(string $surname): void
     {
-        $this->Surname = $surname;
+        $this->surname = $surname;
     }
 
     public function getName(): string
     {
-        return $this->Name;
+        return $this->name;
     }
 
     public function setName(string $name): void
     {
-        $this->Name = $name;
+        $this->name = $name;
     }
 
     public function getInst(): string
     {
-        return $this->Inst;
+        return $this->institution;
     }
 
     public function setInst(string $inst): void
     {
-        $this->Inst = $inst;
+        $this->institution = $inst;
     }
 
     public function getDiskQuota(): int
@@ -174,14 +173,14 @@ class User implements Persistable
         $this->dataDir = $dataDir;
     }
 
-    public function getAuthProvider(): string
+    public function getauthProvider(): string
     {
-        return $this->AuthProvider;
+        return $this->authProvider;
     }
 
-    public function setAuthProvider(string $authProvider): void
+    public function setauthProvider(string $authProvider): void
     {
-        $this->AuthProvider = $authProvider;
+        $this->authProvider = $authProvider;
     }
 
     public function getActiveProject(): string
@@ -194,24 +193,14 @@ class User implements Persistable
         $this->activeProject = $activeProject;
     }
 
-    public function getId(): string
-    {
-        return $this->id;
-    }
-
-    public function setId(string $id): void
-    {
-        $this->id = $id;
-    }
-
     public function getStatus(): int
     {
-        return $this->Status;
+        return $this->status;
     }
 
     public function setStatus(int $status): void
     {
-        $this->Status = $status;
+        $this->status = $status;
     }
 
     public function getLastLogin(): string
@@ -234,14 +223,14 @@ class User implements Persistable
         $this->registrationDate = $registrationDate;
     }
 
-    public function getTerms()
+    public function getTermsAccepted()
     {
-        return $this->terms;
+        return $this->termsAccepted;
     }
 
-    public function setTerms($terms)
+    public function setTermsAccepted($termsAccepted)
     {
-        $this->terms = $terms;
+        $this->termsAccepted = $termsAccepted;
     }
 
     public function getDevelopedTools(): array
@@ -269,12 +258,6 @@ class User implements Persistable
         return $this->logger ??= LoggerFactory::getLogger('User');
     }
 
-    public function toDocument(): array
-    {
-        $data = get_object_vars($this);
-        unset($data['logger']);
-        return $data;
-    }
 
     public function bsonSerialize(): array
     {
@@ -288,19 +271,20 @@ class User implements Persistable
         $this->_id = $data['_id'];
         $this->email = $data['email'];
         $this->secretsId = $data['secretsId'];
-        $this->Surname = $data['Surname'];
-        $this->Name = $data['Name'];
-        $this->Inst = $data['Inst'];
-        $this->Type = $data['Type'];
+        $this->surname = $data['surname'];
+        $this->name = $data['name'];
+        $this->institution = $data['institution'];
+        $this->type = $data['type'];
         $this->diskQuota = $data['diskQuota'];
         $this->dataDir = $data['dataDir'];
-        $this->AuthProvider = $data['AuthProvider'];
+        $this->authProvider = $data['authProvider'];
         $this->activeProject = $data['activeProject'];
-        $this->Status = $data['Status'];
+        $this->status = $data['status'];
         $this->lastLogin = $data['lastLogin'];
         $this->registrationDate = $data['registrationDate'];
-        $this->id = $data['id'];
+        $this->internalId = $data['internalId'];
         $this->developedTools = $data['developedTools'];
         $this->lastJobs = $data['lastJobs'];
+        $this->termsAccepted = $data['termsAccepted'];
     }
 }

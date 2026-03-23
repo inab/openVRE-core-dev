@@ -929,16 +929,15 @@ function formatData($data)
 }
 
 
-//update Mongo lastjobs
+//update Mongo lastJobs
 function updatePendingFiles($sessionId)
 {
 	$SGE_updated = array(); // jobs to be monitored in next round. Stored in SESSION. Updated by checkPendingJobs.php (called by ajax)
 
-	// get jobs from mongo[users][lastjobs]
-	$lastjobs = getUserJobs($sessionId);
+	$lastJobs = getUserJobs($sessionId);
 
-	if (count($lastjobs)) {
-		foreach ($lastjobs as $job) {
+	if (count($lastJobs)) {
+		foreach ($lastJobs as $job) {
 			if (is_null($job['_id'])) {
 				continue;
 			}
@@ -1222,15 +1221,14 @@ function processPendingFiles($projectDir, $sessionId, $lastJobs)
 	$SGE_updated = array(); // jobs to be monitored. Stored in SESSION. Updated by checkPendingJobs.php (called by ajax)
 	$filesPending = array(); // files to be listed
 
-	// get jobs from mongo[users][lastjobs]
-	$lastjobs = getUserJobs($sessionId);
-	if (empty($lastjobs)) {
+	$lastJobs = getUserJobs($sessionId);
+	if (empty($lastJobs)) {
 		getProjectLogger()->debug("No pending jobs");
 		return [];
 	}
 
 	// classify jobs
-	foreach ($lastjobs as $job) {
+	foreach ($lastJobs as $job) {
 		if (!isset($job['pid'])) {
 			continue;
 		}
@@ -1241,7 +1239,7 @@ function processPendingFiles($projectDir, $sessionId, $lastJobs)
 		getProjectLogger()->info("Start processPendingFiles -> getRunningJobInfo $pid. Log= " . $job['executionDirectories']['executionLogFile']);
 		$jobProcess = getRunningJobInfo($pid, $job['launcher'], $job['cloudName']);
 		$title   = $job['title'] ?? "Job " . $job['execution'];
-		$descrip = getJobDescription($job['description'], $jobProcess, $lastjobs);
+		$descrip = getJobDescription($job['description'], $jobProcess, $lastJobs);
 
 		//set as running job
 		if (empty($jobProcess)) {

@@ -14,11 +14,10 @@ function moment()
 
 function redirectOutside()
 {
-	if (!checkLoggedIn()) {
-		//Get access creating an a anonymous guest account
-		$user = createUserAnonymous(null);
-	} else {
+	if (checkLoggedIn()) {
 		$user = loadUser($_SESSION['userId'], false);
+	} else {
+		$user = createUserAnonymous(null);
 	}
 
 	if (!checkTermsOfUse($user) && pathinfo($_SERVER['PHP_SELF'])['filename'] != 'usrProfile') {

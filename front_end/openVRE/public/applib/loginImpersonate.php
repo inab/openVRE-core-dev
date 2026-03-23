@@ -1,6 +1,7 @@
 <?php
 require __DIR__ . "/../../config/bootstrap.php";
 
+use OpenVRE\NotFoundException;
 
 $isLoggedIn = checkLoggedIn();
 if ($isLoggedIn) {
@@ -11,7 +12,11 @@ if ($isLoggedIn) {
 
     // Load requested user
     if ($_REQUEST['id']) {
-        $user = loadUser($_REQUEST['id'], 99);
+        try {
+            loadUser($_REQUEST['id'], true);
+        } catch (NotFoundException $e) {
+            $_SESSION['errorData']['Error'][] = $e->getMessage();
+        }
     }
 }
 

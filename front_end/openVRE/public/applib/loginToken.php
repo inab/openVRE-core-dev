@@ -119,7 +119,7 @@ if (!isset($_GET['code'])) {
             throw $e;
         }
 
-        if (!$user['Name'] || !$user['Surname'] || !$user['Inst']) {
+        if (!$user->getName() || !$user->getSurname() || !$user->getInst()) {
             getUsersLogger()->info("User metadata incomplete, redirecting to profile page");
             redirect($GLOBALS['BASEURL'] . 'user/usrProfile.php');
             exit(0);

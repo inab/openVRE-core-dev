@@ -219,7 +219,7 @@ function printFilePath_fromPath($path, $asRoot = 0)
 
 
 // build text description for running jobs in datatables
-function getJobDescription($descrip0, $jobSGE, $lastjobs)
+function getJobDescription($descrip0, $jobSGE, $lastJobs)
 {
 
     $descrip = ($descrip0 ? $descrip0 . "<br/>" : "");
@@ -228,13 +228,13 @@ function getJobDescription($descrip0, $jobSGE, $lastjobs)
     } elseif ($jobSGE['state'] == "HOLD") {
         $descrip .= "<br><strong>Job waiting</strong>";
 
-        # get info for dependent jobs from lastjobs
+        # get info for dependent jobs from lastJobs
         if (isset($jobSGE['jid_predecessor_list'])) {
             $depText = "";
             $depPids = explode(",", $jobSGE['jid_predecessor_list']);
             foreach ($depPids as $depPid) {
-                if (isset($lastjobs[$depPid])) {
-                    $depText .= basename($lastjobs[$depPid]['out'][0]) . " ";
+                if (isset($lastJobs[$depPid])) {
+                    $depText .= basename($lastJobs[$depPid]['out'][0]) . " ";
                 }
             }
             if ($depText)

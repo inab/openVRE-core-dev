@@ -7,7 +7,7 @@ use OpenVRE\UserType;
 
 redirectAdminOutside();
 
-$userAttributesProjection = ['projection' => ['email' => 1, 'Surname' => 1, 'Name' => 1, 'Inst' => 1, 'diskQuota' => 1, 'lastLogin' => 1, 'Type' => 1, 'Status' => 1, 'id' => 1, 'lastReload' => 1]];
+$userAttributesProjection = ['projection' => ['email' => 1, 'Surname' => 1, 'Name' => 1, 'Inst' => 1, 'diskQuota' => 1, 'lastLogin' => 1, 'Type' => 1, 'Status' => 1, 'id' => 1]];
 $filterNamedUsers = array("Type" => array('$ne' => UserType::Guest->value));
 $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
 
@@ -115,12 +115,9 @@ $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
                                         <tbody>
                                             <?php
                                             foreach ($namedUsers as $userAttributes):
-                                                if (!$userAttributes["lastReload"]) {
-                                                    continue;
-                                                }
                                             ?>
                                                 <tr>
-                                                    <td><a href="mailto:<?php echo $userAttributes["email"]; ?>"><?php echo $userAttributes["email"]; ?></a><br /><?php echo $userAttributes["lastReload"]; ?></td>
+                                                    <td><a href="mailto:<?php echo $userAttributes["email"]; ?>"><?php echo $userAttributes["email"]; ?></a><br /></td>
                                                     <td><?php echo $userAttributes["Surname"]; ?></td>
                                                     <td><?php echo $userAttributes["Name"]; ?></td>
                                                     <td><?php echo $userAttributes["Inst"]; ?></td>
@@ -152,13 +149,13 @@ $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
                                                         ?>
                                                     </td>
                                                     <td><?php print returnHumanDate($userAttributes["lastLogin"]);
-                                                        $hoursLastReload = (time() - momentToTime($userAttributes["lastReload"])) / 3600;
+                                                        $hoursLastLogin = (time() - momentToTime($userAttributes["lastLogin"])) / 3600;
                                                         $daysLastLogin   = (time() - momentToTime($userAttributes["lastLogin"])) / (3600 * 24);
 
                                                         ?></td>
                                                     <td>
                                                         <?php
-                                                        if ($hoursLastReload < 0.6) {
+                                                        if ($hoursLastLogin < 0.6) {
                                                             print "<span class='font-green'>LOGGED IN</span>";
                                                         } elseif ($daysLastLogin < 30) {
                                                             print "<span class='font-green-meadow'>ACTIVE</span>";

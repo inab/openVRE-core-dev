@@ -3,6 +3,8 @@
 require __DIR__ . "/../../config/bootstrap.php";
 redirectOutside();
 
+use OpenVRE\UserType;
+
 $user = getUserById($_SESSION['userId']);
 
 ?>
@@ -79,9 +81,9 @@ $user = getUserById($_SESSION['userId']);
                                         <?php echo $user->getName() . ' ' . $user->getSurname(); ?>
                                     </div>
                                     <div class="profile-usertitle-job"> <?php echo $user->getInst(); ?> </div>
-                                    <?php if (isset($_SESSION['lastUserLogin'])) { ?>
+                                    <?php if (!is_null($user->getLastLogin())) { ?>
                                         <div class="profile-usertitle-lastlogin"> Last login:
-                                            <strong><?php echo returnHumanDateDashboard($_SESSION['lastUserLogin']); ?></strong>
+                                            <strong><?php echo returnHumanDateDashboard($user->getLastLogin()); ?></strong>
                                         </div>
                                     <?php } ?>
                                 </div>
@@ -146,7 +148,7 @@ $user = getUserById($_SESSION['userId']);
                                                 <!-- PERSONAL INFO TAB -->
                                                 <div class="tab-pane active" id="tab_1_1">
 
-                                                    <?php if (is_null($_SESSION['lastUserLogin'])) { ?>
+                                                    <?php if (is_null($user->getLastLogin())) { ?>
                                                         <p>As you have signed up the VRE from
                                                             <?php echo $user->getAuthProvider(); ?>, you should
                                                             complete some fields of your profile in this form.</p>
@@ -161,7 +163,7 @@ $user = getUserById($_SESSION['userId']);
                                                     <form role="form" action="javascript:;" id="form-change-profile">
                                                         <input type="hidden" id="base-url"
                                                             value="<?php echo $GLOBALS['BASEURL']; ?>" />
-                                                        <?php if (is_null($_SESSION['lastUserLogin'])) { ?>
+                                                        <?php if (is_null($user->getLastLogin())) { ?>
                                                             <input type="hidden" id="is-first-time" value="1" />
                                                         <?php } ?>
                                                         <div class="form-group">
@@ -215,7 +217,7 @@ $user = getUserById($_SESSION['userId']);
 
 
                                                         <div class="margin-top-10">
-                                                            <?php if (isset($_SESSION['lastUserLogin'])) { ?>
+                                                            <?php if (!is_null($user->getLastLogin())) { ?>
                                                                 <button type="submit" id="submit-changes"
                                                                     class="btn green">Save Changes</button>
                                                             <?php } else { ?>
@@ -316,188 +318,190 @@ $user = getUserById($_SESSION['userId']);
                                                 </div>
                                                 <!-- END CHANGE PASSWORD TAB -->
                                                 <!-- API KEYS TAB -->
-                                                <div class="tab-pane" id="tab_1_4">
-                                                    <?php
-                                                    if (isset($_SESSION['errorData'])) { ?>
-                                                        <div class="alert alert-warning">
-                                                            <?php foreach ($_SESSION['errorData'] as $subTitle => $txts) {
-                                                                print "$subTitle<br/>";
-                                                                foreach ($txts as $txt) {
-                                                                    print "<div style=\"margin-left:20px;\">$txt</div>";
+                                                <?php if ($user->getType() !== UserType::Guest->value) { ?>
+                                                    <div class="tab-pane" id="tab_1_4">
+                                                        <?php
+                                                        if (isset($_SESSION['errorData'])) { ?>
+                                                            <div class="alert alert-warning">
+                                                                <?php foreach ($_SESSION['errorData'] as $subTitle => $txts) {
+                                                                    print "$subTitle<br/>";
+                                                                    foreach ($txts as $txt) {
+                                                                        print "<div style=\"margin-left:20px;\">$txt</div>";
+                                                                    }
                                                                 }
-                                                            }
-                                                            unset($_SESSION['errorData']);
-                                                            ?>
-                                                        </div>
+                                                                unset($_SESSION['errorData']);
+                                                                ?>
+                                                            </div>
 
-                                                    <?php } ?>
-                                                    <p>These are your user credentials required for authenticating to
-                                                        any of the platform services. VRE manage them on your behalf for
-                                                        accessing to your data.</p>
-                                                    <div class="form-group mt-clipboard-container">
-                                                        <label class="control-label">Access Token <i
-                                                                class="icon-question tooltips" data-container="body"
-                                                                data-html="true" data-placement="right"
-                                                                data-original-title="<p align='left' style='margin:0'>Bearer token used to authenticate your access to any platform service.</p>"></i></label>
-                                                        <div class="input-group">
-                                                            <input id="mt-target-1" type="text" class="form-control"
-                                                                value="<?php echo $_SESSION['userToken']->getToken(); ?>"
-                                                                readonly style="background:#fff;">
-                                                            <span class="input-group-btn">
-                                                                <button class="btn green mt-clipboard"
-                                                                    data-clipboard-action="copy"
-                                                                    data-clipboard-target="#mt-target-1"
-                                                                    type="button"><i class="fa fa-copy"></i> Copy to
-                                                                    clipboard</button>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <input id="exp-token" type="hidden"
-                                                        value="<?php echo $_SESSION['userToken']->getExpires(); ?>">
-                                                    <input id="curr-time" type="hidden" value="<?php echo time(); ?>">
-                                                    <?php
-                                                    $ed = date('h:i:s A (jS \of F Y)', $_SESSION['userToken']->getExpires());
-                                                    /*$edd = date('h:i:s A (jS \of F Y)');
-                                                           print ">>>>>>>>> INI : $edd <br/>";
-                            print ">>>>>>>>> EXP : $ed <br/>";*/
-                                                    $expiresIn = $_SESSION['userToken']->getExpires() - time();
-                                                    if ($expiresIn > 0)
-                                                        $expDate = "Token will expire in " . intval($expiresIn / 60) . " minutes, at $ed";
-                                                    else
-                                                        $expDate = "This Token is expired...  It needs a refresh!";
-                                                    ?>
-
-                                                    <div class="form-group">
-                                                        <label class="control-label">Expiration date <i
-                                                                class="icon-question tooltips" data-container="body"
-                                                                data-html="true" data-placement="right"
-                                                                data-original-title="<p align='left' style='margin:0'>Access token expiration time. Its lifespan is short, so VRE refreshs it just before accessing the requested resource, if needed.</p>"></i></label>
-                                                        <div class="input-group">
-                                                            <input id="token-exp-date" type="text" value=""
-                                                                class="form-control" readonly
-                                                                style="background:#fff;" />
-                                                            <span class="input-group-btn">
-                                                                <a href="applib/refreshToken.php"
-                                                                    class="btn green button"><i
-                                                                        class="fa fa-refresh"></i> Refresh token</a>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-
-
-                                                    <div class="form-group mt-clipboard-container">
-                                                        <label class="control-label">Refresh Token <i
-                                                                class="icon-question tooltips" data-container="body"
-                                                                data-html="true" data-placement="right"
-                                                                data-original-title="<p align='left' style='margin:0'>Token used to refresh an expired access token. It is revoked when used, so access tokens are issued together with a new refresh token</p>"></i></label>
-                                                        <div class="input-group">
-                                                            <input id="mt-target-2" type="text" class="form-control"
-                                                                value="<?php echo $_SESSION['userToken']->getRefreshToken(); ?>"
-                                                                readonly style="background:#fff;">
-                                                            <span class="input-group-btn">
-                                                                <button class="btn green mt-clipboard"
-                                                                    data-clipboard-action="copy"
-                                                                    data-clipboard-target="#mt-target-2"
-                                                                    type="button"><i class="fa fa-copy"></i> Copy to
-                                                                    clipboard </button>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <input id="exp-refrtoken" type="hidden"
-                                                        value="<?php echo $_SESSION['userToken']->getExpires() + $_SESSION['userToken']->getValues()['refresh_expires_in']; ?>">
-                                                    <?php
-                                                    ?>
-                                                    <div class="form-group">
-                                                        <label class="control-label">Expiration date <i
-                                                                class="icon-question tooltips" data-container="body"
-                                                                data-html="true" data-placement="right"
-                                                                data-original-title="<p align='left' style='margin:0'>Refresh token expiration time. A new SSO session is required to obtain a new pair of tokens.</p>"></i></label>
-                                                        <input id="refrtoken-exp-date" type="text" value=""
-                                                            class="form-control" readonly style="background:#fff;" />
-                                                    </div>
-
-
-                                                    <div class="form-group">
-                                                        <label class="control-label">Token User information<i
-                                                                class="icon-question tooltips" data-container="body"
-                                                                data-html="true" data-placement="right"
-                                                                data-original-title="<p align='left' style='margin:0'>Information returned by Oauth2 provider when the user token is beared</p>"></i></label>
-                                                        <br />
-                                                        <pre><?php echo json_encode($_SESSION['tokenInfo'], JSON_PRETTY_PRINT); ?></pre>
-                                                    </div>
-
-                                                    <br />
-                                                    <br />
-                                                    <span
-                                                        class="caption-subject font-blue-madison bold uppercase">Linked
-                                                        Accounts</span>
-
-                                                    <!-- HPC ACCOUNT -->
-                                                    <div hidden>
-                                                        <hr>
-                                                        <img src="https://cdn-icons-png.flaticon.com/512/5225/5225347.png" /
-                                                            style="float: right; height: 50px; margin: 0 50px;">
-                                                        <h4>HPC resources access (via SSH)</h4>
-
-                                                        <div style="padding-left: 15px;border-left: 2px solid lightgray;">
-                                                            <p>
-                                                                <span style="color: #666;font-weight: bold;">
-                                                                    Do you have an account to an HPC facility?
+                                                        <?php } ?>
+                                                        <p>These are your user credentials required for authenticating to
+                                                            any of the platform services. VRE manage them on your behalf for
+                                                            accessing to your data.</p>
+                                                        <div class="form-group mt-clipboard-container">
+                                                            <label class="control-label">Access Token <i
+                                                                    class="icon-question tooltips" data-container="body"
+                                                                    data-html="true" data-placement="right"
+                                                                    data-original-title="<p align='left' style='margin:0'>Bearer token used to authenticate your access to any platform service.</p>"></i></label>
+                                                            <div class="input-group">
+                                                                <input id="mt-target-1" type="text" class="form-control"
+                                                                    value="<?php echo $_SESSION['userToken']->getToken(); ?>"
+                                                                    readonly style="background:#fff;">
+                                                                <span class="input-group-btn">
+                                                                    <button class="btn green mt-clipboard"
+                                                                        data-clipboard-action="copy"
+                                                                        data-clipboard-target="#mt-target-1"
+                                                                        type="button"><i class="fa fa-copy"></i> Copy to
+                                                                        clipboard</button>
                                                                 </span>
-                                                                Link it and you'll be able to launch jobs there. Data will
-                                                                be transferred via SSH, from/to your HPC home directory.
-                                                            </p>
-                                                            <div class="row" style="margin-left:30px;">
-                                                                <?php echo generateSSHButtons(); ?>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <!-- END MN ACCOUNT -->
-                                                    <hr>
-                                                    <!-- EGA ACCOUNT -->
-                                                    <div>
-                                                        <img src="https://static.ega-archive.org/img/logo.png" /
-                                                            style="float: right; height: 50px; margin: 0 50px;">
-                                                        <h4>European Genome-phenome Archive (EGA)</h4><br />
-                                                        <div style="padding-left: 15px;border-left: 2px solid lightgray;">
-                                                            <p>
-                                                                <span style="color: #666;font-weight: bold;">
-                                                                    Do you have an EGA account?
+                                                        <input id="exp-token" type="hidden"
+                                                            value="<?php echo $_SESSION['userToken']->getExpires(); ?>">
+                                                        <input id="curr-time" type="hidden" value="<?php echo time(); ?>">
+                                                        <?php
+                                                        $ed = date('h:i:s A (jS \of F Y)', $_SESSION['userToken']->getExpires());
+                                                        /*$edd = date('h:i:s A (jS \of F Y)');
+                                                           print ">>>>>>>>> INI : $edd <br/>";
+                            print ">>>>>>>>> EXP : $ed <br/>";*/
+                                                        $expiresIn = $_SESSION['userToken']->getExpires() - time();
+                                                        if ($expiresIn > 0)
+                                                            $expDate = "Token will expire in " . intval($expiresIn / 60) . " minutes, at $ed";
+                                                        else
+                                                            $expDate = "This Token is expired...  It needs a refresh!";
+                                                        ?>
+
+                                                        <div class="form-group">
+                                                            <label class="control-label">Expiration date <i
+                                                                    class="icon-question tooltips" data-container="body"
+                                                                    data-html="true" data-placement="right"
+                                                                    data-original-title="<p align='left' style='margin:0'>Access token expiration time. Its lifespan is short, so VRE refreshs it just before accessing the requested resource, if needed.</p>"></i></label>
+                                                            <div class="input-group">
+                                                                <input id="token-exp-date" type="text" value=""
+                                                                    class="form-control" readonly
+                                                                    style="background:#fff;" />
+                                                                <span class="input-group-btn">
+                                                                    <a href="applib/refreshToken.php"
+                                                                        class="btn green button"><i
+                                                                            class="fa fa-refresh"></i> Refresh token</a>
                                                                 </span>
-                                                                Link it and you'll have one-click access for all your EGA
-                                                                datasets
-                                                            </p>
-                                                            <div class="row" style="margin-left:30px;">
-                                                                <div class="col-md-6">
-                                                                    <a href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=EGA&action=new"
-                                                                        class="btn green"><i class="fa fa-plus"></i> &nbsp; Link
-                                                                        your account</a>
+                                                            </div>
+                                                        </div>
+
+
+                                                        <div class="form-group mt-clipboard-container">
+                                                            <label class="control-label">Refresh Token <i
+                                                                    class="icon-question tooltips" data-container="body"
+                                                                    data-html="true" data-placement="right"
+                                                                    data-original-title="<p align='left' style='margin:0'>Token used to refresh an expired access token. It is revoked when used, so access tokens are issued together with a new refresh token</p>"></i></label>
+                                                            <div class="input-group">
+                                                                <input id="mt-target-2" type="text" class="form-control"
+                                                                    value="<?php echo $_SESSION['userToken']->getRefreshToken(); ?>"
+                                                                    readonly style="background:#fff;">
+                                                                <span class="input-group-btn">
+                                                                    <button class="btn green mt-clipboard"
+                                                                        data-clipboard-action="copy"
+                                                                        data-clipboard-target="#mt-target-2"
+                                                                        type="button"><i class="fa fa-copy"></i> Copy to
+                                                                        clipboard </button>
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <input id="exp-refrtoken" type="hidden"
+                                                            value="<?php echo $_SESSION['userToken']->getExpires() + $_SESSION['userToken']->getValues()['refresh_expires_in']; ?>">
+                                                        <?php
+                                                        ?>
+                                                        <div class="form-group">
+                                                            <label class="control-label">Expiration date <i
+                                                                    class="icon-question tooltips" data-container="body"
+                                                                    data-html="true" data-placement="right"
+                                                                    data-original-title="<p align='left' style='margin:0'>Refresh token expiration time. A new SSO session is required to obtain a new pair of tokens.</p>"></i></label>
+                                                            <input id="refrtoken-exp-date" type="text" value=""
+                                                                class="form-control" readonly style="background:#fff;" />
+                                                        </div>
+
+
+                                                        <div class="form-group">
+                                                            <label class="control-label">Token User information<i
+                                                                    class="icon-question tooltips" data-container="body"
+                                                                    data-html="true" data-placement="right"
+                                                                    data-original-title="<p align='left' style='margin:0'>Information returned by Oauth2 provider when the user token is beared</p>"></i></label>
+                                                            <br />
+                                                            <pre><?php echo json_encode($_SESSION['tokenInfo'], JSON_PRETTY_PRINT); ?></pre>
+                                                        </div>
+
+                                                        <br />
+                                                        <br />
+                                                        <span
+                                                            class="caption-subject font-blue-madison bold uppercase">Linked
+                                                            Accounts</span>
+
+                                                        <!-- HPC ACCOUNT -->
+                                                        <div hidden>
+                                                            <hr>
+                                                            <img src="https://cdn-icons-png.flaticon.com/512/5225/5225347.png" /
+                                                                style="float: right; height: 50px; margin: 0 50px;">
+                                                            <h4>HPC resources access (via SSH)</h4>
+
+                                                            <div style="padding-left: 15px;border-left: 2px solid lightgray;">
+                                                                <p>
+                                                                    <span style="color: #666;font-weight: bold;">
+                                                                        Do you have an account to an HPC facility?
+                                                                    </span>
+                                                                    Link it and you'll be able to launch jobs there. Data will
+                                                                    be transferred via SSH, from/to your HPC home directory.
+                                                                </p>
+                                                                <div class="row" style="margin-left:30px;">
+                                                                    <?php echo generateSSHButtons(); ?>
                                                                 </div>
                                                             </div>
                                                         </div>
-                                                    </div>
-                                                    <!-- END EGA ACCOUNT -->
-                                                    <hr>
-                                                    <!-- START opnestack ACCOUnt -->
-
-                                                    <div hidden style="padding-top: 15px; padding-left: 15px;border-left: 2px solid lightgray;">
-                                                        <p>
-                                                            <span style="color: #666;font-weight: bold;">
-                                                                Do you have an OpenStack account?
-                                                            </span>
-                                                            Link it and you'll have one-click access for all your OpenStack Object Storage protected datasets, under <a href="<?php echo $GLOBALS['BASEURL']; ?>getdata/eush_bioimages/eush_projects.php" target="blank"> <i class="icon-cloud-upload"></i> Get Data <i class="fa fa-circle" style="font-size:5px; margin: 0 5px; position: relative;top: -3px;"></i> OPENSTACK </a>
-                                                        </p>
-                                                        <div class="row" style="margin-left:30px; padding-bottom:10px; ">
-                                                            <div class="col-md-6">
-                                                                <a href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=objectStorage&action=new" class="btn green"><i class="fa fa-plus"></i> &nbsp; Link your account</a>
-                                                            </div>
-                                                            <div class="col-md-6">
-                                                                <a href="javascript:void(0)"><i class="fa fa-sign-in"></i> How to apply to BSC OpenStack Object Storage access?</a>
+                                                        <!-- END MN ACCOUNT -->
+                                                        <hr>
+                                                        <!-- EGA ACCOUNT -->
+                                                        <div>
+                                                            <img src="https://static.ega-archive.org/img/logo.png" /
+                                                                style="float: right; height: 50px; margin: 0 50px;">
+                                                            <h4>European Genome-phenome Archive (EGA)</h4><br />
+                                                            <div style="padding-left: 15px;border-left: 2px solid lightgray;">
+                                                                <p>
+                                                                    <span style="color: #666;font-weight: bold;">
+                                                                        Do you have an EGA account?
+                                                                    </span>
+                                                                    Link it and you'll have one-click access for all your EGA
+                                                                    datasets
+                                                                </p>
+                                                                <div class="row" style="margin-left:30px;">
+                                                                    <div class="col-md-6">
+                                                                        <a href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=EGA&action=new"
+                                                                            class="btn green"><i class="fa fa-plus"></i> &nbsp; Link
+                                                                            your account</a>
+                                                                    </div>
+                                                                </div>
                                                             </div>
                                                         </div>
+                                                        <!-- END EGA ACCOUNT -->
+                                                        <hr>
+                                                        <!-- START opnestack ACCOUnt -->
+
+                                                        <div hidden style="padding-top: 15px; padding-left: 15px;border-left: 2px solid lightgray;">
+                                                            <p>
+                                                                <span style="color: #666;font-weight: bold;">
+                                                                    Do you have an OpenStack account?
+                                                                </span>
+                                                                Link it and you'll have one-click access for all your OpenStack Object Storage protected datasets, under <a href="<?php echo $GLOBALS['BASEURL']; ?>getdata/eush_bioimages/eush_projects.php" target="blank"> <i class="icon-cloud-upload"></i> Get Data <i class="fa fa-circle" style="font-size:5px; margin: 0 5px; position: relative;top: -3px;"></i> OPENSTACK </a>
+                                                            </p>
+                                                            <div class="row" style="margin-left:30px; padding-bottom:10px; ">
+                                                                <div class="col-md-6">
+                                                                    <a href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=objectStorage&action=new" class="btn green"><i class="fa fa-plus"></i> &nbsp; Link your account</a>
+                                                                </div>
+                                                                <div class="col-md-6">
+                                                                    <a href="javascript:void(0)"><i class="fa fa-sign-in"></i> How to apply to BSC OpenStack Object Storage access?</a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <!-- end openstack account -->
                                                     </div>
-                                                    <!-- end openstack account -->
-                                                </div>
+                                                <?php } ?>
                                             </div>
                                             <!-- END CHANGE PASSWORD TAB -->
                                         </div>

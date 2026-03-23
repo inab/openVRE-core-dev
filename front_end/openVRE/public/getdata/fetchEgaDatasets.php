@@ -15,7 +15,7 @@ $offset = ($currentPage - 1) * 10;
 
 $user = getUserById($_SESSION['userId']);
 $vaultClient = VaultClientFactory::create($user->getSecretsId());
-$data = $vaultClient->retrieveDatafromVault(Site::EGA);
+$data = $vaultClient->retrieveDatafromVault(Site::EGA->value);
 
 $egaUsername = $data['username'] ?? null;
 $egaPassword = $data['password'] ?? null;

@@ -23,12 +23,12 @@ $tool = $_REQUEST['tool'];
 $user = getUserById($_SESSION['userId']);
 
 if ((isset($user)
-		&& ($user['Status'] == UserStatus::Active->value)
-		&& (in_array($user['Type'], $GLOBALS['TOOLDEV']))
+		&& ($user->getStatus() == UserStatus::Active->value)
+		&& (in_array($user->getType(), $GLOBALS['TOOLDEV']))
 		&& (in_array($tool, $user->getDevelopedTools()))) ||
 	(isset($user)
-		&& ($user['Status'] == UserStatus::Active->value)
-		&& ($user['Type'] == UserType::Admin->value)
+		&& ($user->getStatus() == UserStatus::Active->value)
+		&& ($user->getType() == UserType::Admin->value)
 	)
 ) $developer = true;
 else $developer = false;

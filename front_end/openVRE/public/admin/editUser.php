@@ -9,7 +9,7 @@ redirectAdminOutside();
 
 $user = getUserById($_REQUEST['id']);
 
-if ($user['Type'] == UserType::Admin->value) {
+if ($user->getType() == UserType::Admin->value) {
     $_SESSION['errorData']['Error'][] = "You are trying to edit an admin user.";
     redirect($GLOBALS['URL'] . 'admin/adminUsers.php');
 }
@@ -48,13 +48,13 @@ sort($tlsvlzrs);
                             <i class="fa fa-circle"></i>
                         </li>
                         <li>
-                            <span>Edit user <?php echo $user["Name"] . ' ' . $user["Surname"]; ?></span>
+                            <span>Edit user <?php echo $user->getName() . ' ' . $user->getSurname(); ?></span>
                         </li>
                     </ul>
                 </div>
                 <!-- END PAGE BAR -->
                 <!-- BEGIN PAGE TITLE-->
-                <h1 class="page-title"> Edit user <?php echo $user["Name"] . ' ' . $user["Surname"]; ?> </h1>
+                <h1 class="page-title"> Edit user <?php echo $user->getName() . ' ' . $user->getSurname(); ?> </h1>
                 <!-- END PAGE TITLE-->
                 <!-- END PAGE HEADER-->
                 <div class="row">
@@ -98,13 +98,13 @@ sort($tlsvlzrs);
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Surname</label>
-                                                <input type="text" name="Surname" id="Surname" class="form-control" value="<?php echo $user["Surname"]; ?>">
+                                                <input type="text" name="Surname" id="Surname" class="form-control" value="<?php echo $user->getSurname(); ?>">
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Name</label>
-                                                <input type="text" name="Name" id="Name" class="form-control" value="<?php echo $user["Name"]; ?>">
+                                                <input type="text" name="Name" id="Name" class="form-control" value="<?php echo $user->getName(); ?>">
                                             </div>
                                         </div>
                                     </div>
@@ -112,13 +112,13 @@ sort($tlsvlzrs);
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Email</label>
-                                                <input type="text" name="Email" id="Email" class="form-control" value="<?php echo $user["email"]; ?>" readonly>
+                                                <input type="text" name="Email" id="Email" class="form-control" value="<?php echo $user->getEmail(); ?>" readonly>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Institution</label>
-                                                <input type="text" name="Inst" id="Inst" class="form-control" value="<?php echo $user["Inst"]; ?>">
+                                                <input type="text" name="Inst" id="Inst" class="form-control" value="<?php echo $user->getInst(); ?>">
                                             </div>
                                         </div>
                                     </div>
@@ -127,7 +127,7 @@ sort($tlsvlzrs);
                                             <div class="form-group">
                                                 <label class="control-label">Disk Quota</label>
                                                 <div class="input-group">
-                                                    <input type="number" name="diskQuota" id="diskQuota" class="form-control" min="1" max="100" step="1" value="<?php echo ((($user["diskQuota"] / 1024) / 1024) / 1024); ?>" placeholder="">
+                                                    <input type="number" name="diskQuota" id="diskQuota" class="form-control" min="1" max="100" step="1" value="<?php echo ((($user->getDiskQuota() / 1024) / 1024) / 1024); ?>" placeholder="">
                                                     <span class="input-group-addon">GB</span>
                                                 </div>
                                             </div>
@@ -139,11 +139,11 @@ sort($tlsvlzrs);
                                                 <label class="control-label">Type of user</label>
                                                 <select name="Type" id="Type" class="form-control">
                                                     <?php
-                                                    if (!$user['Type']) $_REQUEST['Type'] = UserType::Registered->value;
+                                                    if (!$user->getType()) $_REQUEST['Type'] = UserType::Registered->value;
 
                                                     foreach ($GLOBALS['ROLES'] as $k => $v) {
                                                         $selected = "";
-                                                        if ($user['Type'] == $k) $selected = "selected";
+                                                        if ($user->getType() == $k) $selected = "selected";
                                                     ?>
                                                         <option <?php echo $selected; ?> value=<?php echo $k; ?>><?php echo $v; ?></option>
                                                     <?php } ?>
@@ -158,7 +158,7 @@ sort($tlsvlzrs);
                                     <?php
                                     $dispTools = "";
                                     $stTools = "enabled";
-                                    if ($user['Type'] != UserType::ToolDev->value) {
+                                    if ($user->getType() != UserType::ToolDev->value) {
                                         $dispTools = "display-hide";
                                         $stTools = "disabled";
                                     }
