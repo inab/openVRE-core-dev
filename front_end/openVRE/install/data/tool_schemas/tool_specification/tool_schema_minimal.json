@@ -66,13 +66,6 @@
       },
       "default": "other"
     },
-    "keywords_tool": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      },
-      "default": "other"
-    },
     "infrastructure": {
       "type": "object",
       "properties": {
@@ -661,7 +654,6 @@
     "title",
     "owner",
     "keywords",
-    "keywords_tool",
     "infrastructure",
     "input_files",
     "input_files_public_dir",

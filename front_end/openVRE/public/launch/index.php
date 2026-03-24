@@ -95,42 +95,28 @@ sort($toolList);
 
 								<?php
 
-								$kw = array();
-								foreach ($toolList as $t) {
-									foreach ($t['keywords'] as $tk)
-										$kw[] = $tk;
+								$keywords = array();
+								foreach ($toolList as $tool) {
+									foreach ($tool['keywords'] as $keyword) {
+										$keywords[] = $keyword;
+									}
 								}
 
-								sort($kw);
-								$kw = array_count_values($kw);
+								sort($keywords);
+								$keywords = array_count_values($keywords);
 
 								?>
 
 								<div class="row">
 									<div class="col-md-12" id="main_keys">
 
-										<?php foreach ($kw as $k => $v) { ?>
+										<?php foreach ($keywords as $k => $v) { ?>
 											<button type="button" class="btn green btn-outline"><?php echo $k; ?>
 												(<?php echo $v; ?>)</button>
 										<?php } ?>
 
 									</div>
 								</div>
-
-								<?php
-
-								// TO MODIFY WITH NEW "secondary kws"	
-								$secondaryKeywords = [];
-								foreach ($toolList as $tool) {
-									foreach ($tool['keywords_tool'] as $toolKeywords)
-										$secondaryKeywords[] = $toolKeywords;
-								}
-
-								$secondaryKeywords = array_unique($secondaryKeywords);
-								sort($secondaryKeywords);
-
-								?>
-
 								<div class="row" style="margin-top:20px;">
 									<div class="col-md-6">
 										<div class="form-group">
@@ -145,7 +131,7 @@ sort($toolList);
 											<select class="form-control form-field-enabled valid" id="sel-keyword"
 												name="selKey[]" aria-invalid="false" multiple="multiple">
 												<option value=""></option>
-												<?php foreach ($secondaryKeywords as $k) { ?>
+												<?php foreach ($keywords as $k => $v) { ?>
 													<option value="<?php echo $k; ?>"><?php echo $k; ?></option>
 												<?php } ?>
 											</select>
@@ -180,22 +166,19 @@ sort($toolList);
 												<?php foreach ($toolList as $tool) {
 													$comb = getInputFilesCombinations($tool);
 													$style_disable = ($tool["status"] == 1 ? "" : "style=\"color:grey\" ");
-													//vaR_dump($tool["input_files_combinations"]["description"]); ?>
+												?>
 													<tr class="first-level-tr" <?php echo $style_disable; ?>>
 														<td></td>
 														<td><?php echo $tool["name"]; ?></td>
 														<td><?php echo $tool["short_description"]; ?></td>
 														<td><?php echo $tool["owner"]["author"]; ?></td>
 														<td><?php echo $comb; ?></td>
-														<!-- TO MODIFY WITH LONG DESCRIPTION -->
 														<td><?php echo $tool["long_description"]; ?></td>
-														<!-- TO MODIFY WITH NEW "secondary kws" -->
-														<td><?php echo implode(", ", $tool["keywords_tool"] ?? []); ?></td>
 														<td><?php echo implode(", ", $tool["keywords"] ?? []); ?></td>
 														<td><?php echo $tool["_id"]; ?></td>
 														<td><?php if (isset($tool['visualizers'])) {
-															echo $tool["visualizer"];
-														} ?>
+																echo $tool["visualizer"];
+															} ?>
 														</td>
 													</tr>
 												<?php } ?>
