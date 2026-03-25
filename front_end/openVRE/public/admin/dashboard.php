@@ -8,8 +8,8 @@ use OpenVRE\UserType;
 redirectAdminOutside();
 
 
-$userAttributesProjection = ['projection' => ['email' => 1, 'Surname' => 1, 'Name' => 1, 'Inst' => 1, 'diskQuota' => 1,  'Type' => 1, 'Status' => 1, 'registrationDate' => 1]];
-$filterNamedUsers = array("Type" => array('$ne' => UserType::Guest->value));
+$userAttributesProjection = ['projection' => ['email' => 1, 'surname' => 1, 'name' => 1, 'institution' => 1, 'diskQuota' => 1,  'type' => 1, 'Status' => 1, 'registrationDate' => 1]];
+$filterNamedUsers = array("type" => array('$ne' => UserType::Guest->value));
 $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
 
 // emails chart and data
@@ -57,19 +57,18 @@ for ($i = 0; $i <= 11; $i++) {
 }
 
 $types_of_user = array();
-foreach ($GLOBALS['ROLES'] as $k => $v) {
+foreach (UserType::cases() as $k => $v) {
     $types_of_user[$k] = 0;
 }
 
-foreach ($namedUsers as $userAttributes) {
-    if (isset($userAttributes["registrationDate"])) {
-        $monthyear = substr($userAttributes["registrationDate"], 0, 7);
-        if (array_key_exists($monthyear, $months_list)) {
-            $months_list[$monthyear]++;
-        }
+/** @var OpenVRE\User */
+foreach ($namedUsers as $user) {
+    $monthyear = substr($user->getRegistrationDate(), 0, 7);
+    if (array_key_exists($monthyear, $months_list)) {
+        $months_list[$monthyear]++;
     }
 
-    $types_of_user[$userAttributes["Type"]]++;
+    $types_of_user[$user->getType()]++;
 }
 
 $months_list = array_reverse($months_list);
@@ -253,16 +252,17 @@ $months_list = array_reverse($months_list);
 											<tbody>	
 											<?php
                                             $mock_disk = array();
-                                            foreach ($namedUsers as $userAttributes):
+                                            /** @var OpenVRE\User */
+                                            foreach ($namedUsers as $user) {
                                             ?>
 												<tr>
-													<td><a href="mailto:<?php echo $userAttributes["email"]; ?>"><?php echo $userAttributes["email"]; ?></a></td>
-													<td><?php echo $userAttributes["SurName"]; ?></td>
-													<td><?php echo $userAttributes["Name"]; ?></td>
-													<td><?php echo $userAttributes["Inst"]; ?></td>
+													<td><a href="mailto:<?php echo $user->getEmail(); ?>"><?php echo $user->getEmail(); ?></a></td>
+													<td><?php echo $user->getSurname(); ?></td>
+													<td><?php echo $user->getName(); ?></td>
+													<td><?php echo $user->getInstitution(); ?></td>
 													<td>
                                                       <div class="btn-group">
-                                                        <button class="btn btn-xs btn-default <?php echo $GLOBALS['ROLES_COLOR'][$userAttributes["Type"]]; ?> dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false" disabled="" style="opacity:1;"> <?php echo $GLOBALS['ROLES'][$userAttributes["Type"]]; ?> </button>
+                                                        <button class="btn btn-xs btn-default <?php echo $GLOBALS['ROLES_COLOR'][$user->getType()]; ?> dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false" disabled="" style="opacity:1;"> <?php echo UserType::from($user->getType())->name; ?> </button>
                                                       </div>
                                                     </td>
 													<td>
@@ -272,11 +272,11 @@ $months_list = array_reverse($months_list);
                                                         echo $value_disk;
                                                         ?>
                                                     </td>
-													<td><?php echo $userAttributes["Inst"]; ?></td>
+													<td><?php echo $user->getInstitution(); ?></td>
 													<td>
-													  <?php if ($userAttributes["Type"] != 0) { ?>
+													  <?php if ($user->getType() != 0) { ?>
 													  <div class="btn-group">
-														  <?php if ($userAttributes["Status"] == 0) { ?>
+														  <?php if ($user->getStatus() === 0) { ?>
 														  <button class="btn btn-xs red dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false" disabled style="opacity:1"> Disabled 
                                                               <i class="fa fa-ban"></i>
                                                           </button>
@@ -296,7 +296,7 @@ $months_list = array_reverse($months_list);
                                                     </td>
 												</tr>
 											<?php
-                                            endforeach;
+                                            }
                                             ?>
                                             </tbody>
                                         </table>

@@ -7,8 +7,8 @@ use OpenVRE\UserType;
 
 redirectAdminOutside();
 
-$userAttributesProjection = ['projection' => ['email' => 1, 'Surname' => 1, 'Name' => 1, 'Inst' => 1, 'diskQuota' => 1, 'lastLogin' => 1, 'Type' => 1, 'Status' => 1, 'id' => 1]];
-$filterNamedUsers = array("Type" => array('$ne' => UserType::Guest->value));
+$userAttributesProjection = ['projection' => ['email' => 1, 'surname' => 1, 'name' => 1, 'institution' => 1, 'diskQuota' => 1, 'lastLogin' => 1, 'type' => 1, 'Status' => 1, 'id' => 1]];
+$filterNamedUsers = array("type" => array('$ne' => UserType::Guest->value));
 $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
 
 ?>
@@ -114,38 +114,38 @@ $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
                                         </thead>
                                         <tbody>
                                             <?php
-                                            foreach ($namedUsers as $userAttributes):
+                                            foreach ($namedUsers as $user) {
                                             ?>
                                                 <tr>
-                                                    <td><a href="mailto:<?php echo $userAttributes["email"]; ?>"><?php echo $userAttributes["email"]; ?></a><br /></td>
-                                                    <td><?php echo $userAttributes["Surname"]; ?></td>
-                                                    <td><?php echo $userAttributes["Name"]; ?></td>
-                                                    <td><?php echo $userAttributes["Inst"]; ?></td>
+                                                    <td><a href="mailto:<?php echo $user->getEmail(); ?>"><?php echo $user->getEmail(); ?></a><br /></td>
+                                                    <td><?php echo $user->getSurname(); ?></td>
+                                                    <td><?php echo $user->getName(); ?></td>
+                                                    <td><?php echo $user->getInstitution(); ?></td>
                                                     <td>
                                                         <!--<div class="btn-group">
-														<?php if ($userAttributes["Type"] == 0) { ?>
-														<button disabled class="btn btn-xs blue dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false" style="opacity:1;"> <?php echo $GLOBALS['ROLES'][$userAttributes["Type"]]; ?>
+														<?php if ($user->getType() === UserType::Admin->value) { ?>
+														<button disabled class="btn btn-xs blue dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false" style="opacity:1;"> <?php echo UserType::from($user->getType())->name; ?>
                                                             <i class="fa fa-circle-thin"></i>
-                                                        </button>	
+                                                        </button>
 														<?php } else { ?>
-														<button class="btn btn-xs btn-default <?php echo $GLOBALS['ROLES_COLOR'][$userAttributes["Type"]]; ?> dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false"> <?php echo $GLOBALS['ROLES'][$userAttributes["Type"]]; ?>
+														<button class="btn btn-xs btn-default <?php echo $GLOBALS['ROLES_COLOR'][$user->getType()]; ?> dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false"> <?php echo UserType::from($user->getType())->name; ?>
                                                             <i class="fa fa-angle-down"></i>
                                                         </button>
 														<ul class="dropdown-menu" role="menu">
-														<?php foreach ($GLOBALS['ROLES'] as $k => $v): ?>
+														<?php foreach (UserType::cases() as $k => $v) { ?>
 														<li><a class="role-usr role<?php echo $k; ?>"  href="javascript:;"><?php echo $v; ?></a></li>
-														<?php endforeach; ?>
+														<?php } ?>
 														</ul>
-														<div style="display:none;">*<?php echo $userAttributes["Type"]; ?>*</div>
+														<div style="display:none;">*<?php echo $user->getType(); ?>*</div>
 														<?php } ?>
 														</div>-->
                                                         <?php
                                                         $colorRole = '';
-                                                        if ($userAttributes["Type"] == 0) {
+                                                        if ($user->getType() == 0) {
                                                             $colorRole = 'font-blue bold';
                                                         }
 
-                                                        echo "<span class='$colorRole'>" . $GLOBALS['ROLES'][$userAttributes["Type"]] . "</span>";
+                                                        echo "<span class='$colorRole'>" . UserType::from($user->getType())->name . "</span>";
                                                         ?>
                                                     </td>
                                                     <td><?php print returnHumanDate($userAttributes["lastLogin"]);
@@ -167,7 +167,7 @@ $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
 
                                                     <td><?php echo (($userAttributes["diskQuota"] / 1024) / 1024) / 1024; ?> GB</td>
                                                     <td>
-                                                        <?php if ($userAttributes["Type"] != 0) { ?>
+                                                        <?php if ($user->getType() != 0) { ?>
                                                             <div class="btn-group">
                                                                 <?php if ($userAttributes["Status"] == 0) { ?>
                                                                     <button class="btn btn-xs red dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false"> Actions
@@ -207,7 +207,7 @@ $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
                                                     </td>
                                                 </tr>
                                             <?php
-                                            endforeach;
+                                            }
                                             ?>
                                         </tbody>
                                     </table>

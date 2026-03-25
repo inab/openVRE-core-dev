@@ -143,12 +143,12 @@ class User implements Persistable
         $this->name = $name;
     }
 
-    public function getInst(): string
+    public function getInstitution(): string
     {
         return $this->institution;
     }
 
-    public function setInst(string $inst): void
+    public function setInstitution(string $inst): void
     {
         $this->institution = $inst;
     }
@@ -253,12 +253,6 @@ class User implements Persistable
         $this->lastJobs = $lastJobs;
     }
 
-    public function getLogger(): Logger
-    {
-        return $this->logger ??= LoggerFactory::getLogger('User');
-    }
-
-
     public function bsonSerialize(): array
     {
         $data = get_object_vars($this);
@@ -268,23 +262,10 @@ class User implements Persistable
 
     public function bsonUnserialize(array $data): void
     {
-        $this->_id = $data['_id'];
-        $this->email = $data['email'];
-        $this->secretsId = $data['secretsId'];
-        $this->surname = $data['surname'];
-        $this->name = $data['name'];
-        $this->institution = $data['institution'];
-        $this->type = $data['type'];
-        $this->diskQuota = $data['diskQuota'];
-        $this->dataDir = $data['dataDir'];
-        $this->authProvider = $data['authProvider'];
-        $this->activeProject = $data['activeProject'];
-        $this->status = $data['status'];
-        $this->lastLogin = $data['lastLogin'];
-        $this->registrationDate = $data['registrationDate'];
-        $this->internalId = $data['internalId'];
-        $this->developedTools = $data['developedTools'];
-        $this->lastJobs = $data['lastJobs'];
-        $this->termsAccepted = $data['termsAccepted'];
+        foreach ($data as $key => $value) {
+            if (property_exists($this, $key)) {
+                $this->$key = $value;
+            }
+        }
     }
 }

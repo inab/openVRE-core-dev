@@ -52,17 +52,17 @@ function createUserFromToken($token, $userInfo = array())
 {
     $userAttributes = array(
         "email"        => $userInfo['email'],
-        "Type"         => UserType::Registered->value
+        "type"         => UserType::Registered->value
     );
 
     $_SESSION['userToken'] = $token;
     if (isset($userInfo) && $userInfo) {
         if (isset($userInfo['family_name'])) {
-            $userAttributes['Surname'] = $userInfo['family_name'];
+            $userAttributes['surname'] = $userInfo['family_name'];
         }
 
         if (isset($userInfo['given_name'])) {
-            $userAttributes['Name'] = $userInfo['given_name'];
+            $userAttributes['name'] = $userInfo['given_name'];
         }
 
         if (isset($userInfo['provider'])) {
@@ -76,7 +76,7 @@ function createUserFromToken($token, $userInfo = array())
         $_SESSION['tokenInfo'] = $userInfo;
     }
 
-    $user = new User($userAttributes['email'], $userAttributes['secretsId'], $userAttributes['Surname'], $userAttributes['Name'], "", $userAttributes['Type'], 0, "", $userAttributes['AuthProvider'], "", []);
+    $user = new User($userAttributes['email'], $userAttributes['secretsId'], $userAttributes['surname'], $userAttributes['name'], "", $userAttributes['type'], 0, "", $userAttributes['AuthProvider'], "", []);
 
     $_SESSION['userId'] = $userAttributes['email']; // TODO: rename if email will not replace internalId attribute in User class (currently it is the same as _id but no as internalId)
     $_SESSION['internalUserId'] = $user->getInternalId();
@@ -92,14 +92,14 @@ function createUserAnonymous($sampleData)
     getUsersLogger()->info("Creating anonymous user");
     $userAttributes = array(
         "email"        => substr(md5(rand()), 0, 25) . "",
-        "Type"         => UserType::Guest->value,
-        "Name"         => "Guest",
-        "Surname"      => "User",
-        "Inst"         => "Institution",
+        "type"         => UserType::Guest->value,
+        "name"         => "Guest",
+        "surname"      => "User",
+        "institution"  => "institution",
         "AuthProvider" => "VRE"
     );
 
-    $objUser = new User($userAttributes['email'], "", $userAttributes['Surname'], $userAttributes['Name'], $userAttributes['Inst'], $userAttributes['Type'], 0, "", $userAttributes['AuthProvider'], "", []);
+    $objUser = new User($userAttributes['email'], "", $userAttributes['surname'], $userAttributes['name'], $userAttributes['institution'], $userAttributes['type'], 0, "", $userAttributes['AuthProvider'], "", []);
     if (!$objUser) {
         return false;
     }

@@ -191,11 +191,11 @@ var Profile = function () {
 						d = data.replace(/(\r\n|\n|\r|\t)/gm, "");
 						if (d == '1') {
 							$('#succ-chg-prf').fadeIn(300);
-							$('.profile-usertitle-name').html($('input[name="Name"]').val() + ' ' + $('input[name="Surname"]').val());
-							$('.profile-usertitle-job').html($('input[name="Inst"]').val());
-							$('.top-menu span.username').html($('input[name="Name"]').val());
-							$('.top-menu #avatar-no-picture').html($('input[name="Name"]').val().slice(0, 1) + $('input[name="Surname"]').val().slice(0, 1));
-							$('.profile-userpic #avatar-usr-profile').html($('input[name="Name"]').val().slice(0, 1) + $('input[name="Surname"]').val().slice(0, 1));
+							$('.profile-usertitle-name').html($('input[name="name"]').val() + ' ' + $('input[name="surname"]').val());
+							$('.profile-usertitle-job').html($('input[name="institution"]').val());
+							$('.top-menu span.username').html($('input[name="name"]').val());
+							$('.top-menu #avatar-no-picture').html($('input[name="name"]').val().slice(0, 1) + $('input[name="surname"]').val().slice(0, 1));
+							$('.profile-userpic #avatar-usr-profile').html($('input[name="name"]').val().slice(0, 1) + $('input[name="surname"]').val().slice(0, 1));
 							if (isFirstTime == 1) location.href = baseURL + 'home/';
 
 						} else {

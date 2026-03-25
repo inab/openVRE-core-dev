@@ -98,13 +98,13 @@ sort($tlsvlzrs);
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Surname</label>
-                                                <input type="text" name="Surname" id="Surname" class="form-control" value="<?php echo $user->getSurname(); ?>">
+                                                <input type="text" name="surname" id="surname" class="form-control" value="<?php echo $user->getSurname(); ?>">
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Name</label>
-                                                <input type="text" name="Name" id="Name" class="form-control" value="<?php echo $user->getName(); ?>">
+                                                <input type="text" name="name" id="name" class="form-control" value="<?php echo $user->getName(); ?>">
                                             </div>
                                         </div>
                                     </div>
@@ -118,7 +118,7 @@ sort($tlsvlzrs);
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Institution</label>
-                                                <input type="text" name="Inst" id="Inst" class="form-control" value="<?php echo $user->getInst(); ?>">
+                                                <input type="text" name="institution" id="institution" class="form-control" value="<?php echo $user->getInstitution(); ?>">
                                             </div>
                                         </div>
                                     </div>
@@ -137,13 +137,17 @@ sort($tlsvlzrs);
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Type of user</label>
-                                                <select name="Type" id="Type" class="form-control">
+                                                <select name="type" id="type" class="form-control">
                                                     <?php
-                                                    if (!$user->getType()) $_REQUEST['Type'] = UserType::Registered->value;
+                                                    if (!$user->getType()) {
+                                                        $_REQUEST['type'] = UserType::Registered->value;
+                                                    }
 
-                                                    foreach ($GLOBALS['ROLES'] as $k => $v) {
+                                                    foreach (UserType::cases() as $k => $v) {
                                                         $selected = "";
-                                                        if ($user->getType() == $k) $selected = "selected";
+                                                        if ($user->getType() == $k) {
+                                                            $selected = "selected";
+                                                        }
                                                     ?>
                                                         <option <?php echo $selected; ?> value=<?php echo $k; ?>><?php echo $v; ?></option>
                                                     <?php } ?>

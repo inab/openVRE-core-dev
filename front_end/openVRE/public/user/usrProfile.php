@@ -80,7 +80,7 @@ $user = getUserById($_SESSION['userId']);
                                     <div class="profile-usertitle-name">
                                         <?php echo $user->getName() . ' ' . $user->getSurname(); ?>
                                     </div>
-                                    <div class="profile-usertitle-job"> <?php echo $user->getInst(); ?> </div>
+                                    <div class="profile-usertitle-job"> <?php echo $user->getInstitution(); ?> </div>
                                     <?php if (!is_null($user->getLastLogin())) { ?>
                                         <div class="profile-usertitle-lastlogin"> Last login:
                                             <strong><?php echo returnHumanDateDashboard($user->getLastLogin()); ?></strong>
@@ -174,20 +174,20 @@ $user = getUserById($_SESSION['userId']);
                                                         </div>
                                                         <div class="form-group">
                                                             <label class="control-label">Name</label>
-                                                            <input name="Name" type="text"
+                                                            <input name="name" type="text"
                                                                 value="<?php echo $user->getName(); ?>"
                                                                 class="form-control" id="name-usr-profile" />
                                                         </div>
                                                         <div class="form-group">
                                                             <label class="control-label">Surname</label>
-                                                            <input name="Surname" type="text"
+                                                            <input name="surname" type="text"
                                                                 value="<?php echo $user->getSurname(); ?>"
                                                                 class="form-control" id="surname-usr-profile" />
                                                         </div>
                                                         <div class="form-group">
                                                             <label class="control-label">Institution</label>
-                                                            <input name="Inst" type="text"
-                                                                value="<?php echo $user->getInst(); ?>"
+                                                            <input name="institution" type="text"
+                                                                value="<?php echo $user->getInstitution(); ?>"
                                                                 class="form-control" />
                                                         </div>
                                                         <?php if (!in_array($_SESSION['userType'], $GLOBALS['TOOLDEV']) && (checkTermsOfUse($user))) { ?>

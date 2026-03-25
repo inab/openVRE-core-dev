@@ -87,13 +87,13 @@ redirectAdminOutside();
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Surname</label>
-                                                <input type="text" name="Surname" id="Surname" class="form-control" placeholder="">
+                                                <input type="text" name="surname" id="surname" class="form-control" placeholder="">
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Name</label>
-                                                <input type="text" name="Name" id="Name" class="form-control" placeholder="">
+                                                <input type="text" name="name" id="name" class="form-control" placeholder="">
                                             </div>
                                         </div>
                                     </div>
@@ -107,7 +107,7 @@ redirectAdminOutside();
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Institution</label>
-                                                <input type="text" name="Inst" id="Inst" class="form-control" placeholder="">
+                                                <input type="text" name="institution" id="institution" class="form-control" placeholder="">
                                             </div>
                                         </div>
                                     </div>
@@ -115,14 +115,16 @@ redirectAdminOutside();
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Type of user</label>
-                                                <select name="Type" id="Type" class="form-control">
+                                                <select name="type" id="type" class="form-control">
                                                     <?php
-                                                    if (!$_REQUEST['Type'])
-                                                        $_REQUEST['Type'] = UserType::Registered->value;
-                                                    foreach ($GLOBALS['ROLES'] as $k => $v) {
+                                                    if (!$_REQUEST['type']) {
+                                                        $_REQUEST['type'] = UserType::Registered->value;
+                                                    }
+                                                    foreach (UserType::cases() as $k => $v) {
                                                         $selected = "";
-                                                        if ($_REQUEST['Type'] == $k)
+                                                        if ($_REQUEST['type'] == $k) {
                                                             $selected = "selected";
+                                                        }
                                                     ?>
                                                         <option <?php echo $selected; ?> value=<?php echo $k; ?>><?php echo $v; ?></option>
                                                     <?php } ?>

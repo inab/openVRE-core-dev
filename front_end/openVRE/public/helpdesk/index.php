@@ -81,13 +81,13 @@ $tools = getTools_List($user);
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Your name</label>
-                                                <input type="text" name="Name" id="Name" value="<?php echo $_SESSION["User"]["Name"] . " " . $_SESSION["User"]["Surname"]; ?>" class="form-control" readonly>
+                                                <input type="text" name="name" id="name" value="<?php echo $user->getName() . " " . $user->getSurname(); ?>" class="form-control" readonly>
                                             </div>
                                         </div>
                                         <div class="col-md-6">
                                             <div class="form-group">
                                                 <label class="control-label">Your email</label>
-                                                <input type="text" name="Email" id="Email" value="<?php echo $_SESSION["User"]->getEmail(); ?>" class="form-control" readonly>
+                                                <input type="text" name="Email" id="Email" value="<?php echo $user->getEmail(); ?>" class="form-control" readonly>
                                             </div>
                                         </div>
                                     </div>

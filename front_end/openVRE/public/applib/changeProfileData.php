@@ -6,9 +6,9 @@ if ($_POST) {
 	$user = getUserById($_SESSION['userId']);
 
 	if ($user->get_id()) {
-		$user->setName(ucfirst($_POST['Name']));
-		$user->setSurname(ucfirst($_POST['Surname']));
-		$user->setInst($_POST['Inst']);
+		$user->setName(ucfirst($_POST['name']));
+		$user->setSurname(ucfirst($_POST['surname']));
+		$user->setInstitution($_POST['institution']);
 		$user->setTermsAccepted($_POST['terms']);
 		updateUser($user);
 		echo '1';

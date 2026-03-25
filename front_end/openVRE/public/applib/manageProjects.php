@@ -113,8 +113,7 @@ if ($_REQUEST['pr_id']) {
     $user->setDataDir($_REQUEST['pr_id']);
 
     // update User in mongo
-    modifyUser($_SESSION['userId'], "activeProject", $_REQUEST['pr_code']);
-    modifyUser($_SESSION['userId'], "dataDir", $_REQUEST['pr_id']);
+    modifyUser($user->get_id(), ["activeProject" => $_REQUEST['pr_code'], "dataDir" => $_REQUEST['pr_id']]);
 
     // print info message
     if ($user->getDataDir() != $dataDir_ant) {
