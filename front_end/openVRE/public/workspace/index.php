@@ -4,30 +4,23 @@ require __DIR__ . "/../../config/bootstrap.php";
 
 use OpenVRE\UserType;
 
-
 redirectOutside();
 
 // Print header
-
 require "../htmlib/header.inc.php";
 
 $user = getUserById($_SESSION['userId']);
 
-// Merge pending files and retrieved data compute data disk space
-$usedDisk = getUsedDiskSpace();
+// Retrieve data disk space
+$usedDisk = getUsedDiskSpace($_SESSION['internalUserId']);
 $diskLimit = $user->getDiskQuota();
 $usedDiskPerc = sprintf('%f', ($usedDisk / $diskLimit) * 100);
 $usedDiskPerc = number_format($usedDiskPerc, 1, '.', '');
 
-if ($usedDisk < $diskLimit) {
-	$_SESSION['accionsAllowed'] = "enabled";
-} else {
-	$_SESSION['accionsAllowed'] = "disabled";
-	$usedDiskPerc = 100;
-}
-
 // Tools list
-$dtlist = ((isset($_REQUEST["tool"]) && $_REQUEST["tool"] != "") ? getAvailableDTbyTool($_REQUEST["tool"]) : array());
+$tools = empty($_REQUEST["tool"])
+	? array()
+	: getAvailableDTbyTool($_REQUEST["tool"]);
 
 // project list
 $projects = getProjects_byOwner();
@@ -35,7 +28,7 @@ $projects = getProjects_byOwner();
 //update files workspace content (job and files)
 $userFiles = getFilesToDisplay($user->getActiveProject(), array('_id' => $user->getDataDir()), $user->getLastJobs());
 
-$files = (isset($dtlist['list']) ? filterFiles_by_dataType($userFiles, $dtlist["list"]) : $userFiles);
+$files = (isset($tools['list']) ? filterFiles_by_dataType($userFiles, $tools["list"]) : $userFiles);
 $files = addTreeTableNodesToFiles($files);
 
 ?>

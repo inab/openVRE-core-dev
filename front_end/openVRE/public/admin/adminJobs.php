@@ -5,19 +5,18 @@ require __DIR__ . "/../../config/bootstrap.php";
 redirectAdminOutside();
 
 
-#
 ## find active jobs
 
 // get users with jobs to examinate
-$jobs_per_user = getAllUserJobs();
-$users_withJobs = array_keys($jobs_per_user);
+$usersWithJobs = getAllUserJobs();
 
-// update job status
-foreach ($users_withJobs as $u) {
-    updatePendingFiles($u);
+/** @var OpenVRE\User */
+foreach ($usersWithJobs as $user) {
+    updatePendingFiles($user->get_id());
 }
-// get user's job updated
-$jobs_per_user = getAllUserJobs();
+
+// get user's jobs updated
+$usersWithJobs = getAllUserJobs();
 
 ?>
 
@@ -107,7 +106,10 @@ $jobs_per_user = getAllUserJobs();
                                         </thead>
                                         <tbody>
                                             <?php
-                                            foreach ($jobs_per_user as $login => $jobs) {
+                                            /** @var OpenVRE\User */
+                                            foreach ($usersWithJobs as $user) {
+                                                $login = $user->get_id();
+                                                $jobs = $user->getLastJobs();
                                                 foreach ($jobs as $pid => $job) {
                                             ?>
                                                     <tr>

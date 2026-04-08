@@ -1,5 +1,18 @@
 <?php
 
+use OpenVRE\LoggerFactory;
+
+function getRedirectLogger()
+{
+    static $logger = null;
+
+    if ($logger === null) {
+        $logger = LoggerFactory::getLogger('Redirect interface');
+    }
+
+    return $logger;
+}
+
 function redirect($url)
 {
 	header("Location:$url");
@@ -17,6 +30,8 @@ function redirectOutside()
 	if (checkLoggedIn()) {
 		$user = loadUser($_SESSION['userId'], false);
 	} else {
+		getRedirectLogger()->info("User not logged in, creating guest user");
+		getRedirectLogger()->debug("Session: " . print_r($_SESSION, true));
 		$user = createUserAnonymous(null);
 	}
 

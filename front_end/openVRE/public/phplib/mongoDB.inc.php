@@ -879,22 +879,6 @@ function deleteGSDirBNS($fn, $asRoot = 0)
 	);
 }
 
-
-function calcGSUsedSpace($userId)
-{
-	$files = $GLOBALS['filesCol']->find(['owner' => $userId])->toArray();
-	$size = 0;
-	foreach ($files as $file) {
-		if (isset($file['type']) && $file['type'] == "dir") {
-			continue;
-		}
-
-		$size += $file['size'];
-	}
-
-	return $size;
-}
-
 // sums file sizes down from a given dir
 
 function calcGSUsedSpaceDir($fn)

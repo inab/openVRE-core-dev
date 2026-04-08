@@ -48,16 +48,17 @@ function getTools_List(User $user, $status = 1)
 function getTools_ListComplete(User $user)
 {
 	getToolsLogger()->debug("Get list of tools");
+	getToolsLogger()->debug("User type: " . $user->getType());
 
-	if ($_SESSION['userType'] == UserType::Guest->value) {
+	if ($user->getType() === UserType::Guest->value) {
 		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => 1, 'owner.license' => array('$ne' => "free_for_academics")), array(), array('title' => 1));
-	} elseif ($_SESSION['userType'] == UserType::Admin->value || $_SESSION['userType'] == UserType::ToolDev->value) {
+	} elseif ($user->getType() === UserType::Admin->value || $user->getType() === UserType::ToolDev->value) {
 		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => array('$ne' => 2)), array(), array('title' => 1));
 	} else {
 		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => 1), array(), array('title' => 1));
 	}
 
-	if ($_SESSION['userType'] == UserType::ToolDev->value) {
+	if ($user->getType() == UserType::ToolDev->value) {
 		$tools_list = iterator_to_array($tools);
 		foreach ($tools_list as $key => $tool) {
 			if ($tool["status"] == 3 && !in_array($tool["_id"], $user->getDevelopedTools())) {

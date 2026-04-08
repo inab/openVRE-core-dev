@@ -15,7 +15,7 @@ echo '
 var rolesList = \'<ul class="dropdown-menu" role="menu">';
 foreach (UserType::cases() as $k => $v):
 	echo '<li>';
-	echo '<a class="role-usr role' . $k . '" href="javascript:;">' . $v . '</a>';
+	echo '<a class="role-usr role' . $k . '" href="javascript:;">' . $v->name . '</a>';
 	echo '</li>';
 endforeach;
 echo '</ul>\';';
@@ -25,7 +25,7 @@ echo '
 
 var rolesSelect = \'<select style="width: 100%!important;" class="selector form-control input-sm input-xsmall input-inline" id="select-type-user"><option value="">Role</option>';
 foreach (UserType::cases() as $k => $v):
-	echo '<option value="' . $k . '">' . $v . '</option>';
+	echo '<option value="' . $k . '">' . $v->name . '</option>';
 endforeach;
 echo '</select>\';';
 
@@ -95,7 +95,7 @@ echo '
 
 var labelsUsersPieChart = {';
 foreach (UserType::cases() as $k => $v):
-	echo $count_tou . ':\'' . $v . '\',';
+	echo $count_tou . ':\'' . $v->name . '\',';
 	$count_tou++;
 endforeach;
 echo '};';

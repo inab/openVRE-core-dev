@@ -70,7 +70,7 @@ function getData_fromLocal(User $user)
         throw new OverflowException("File size $size larger than UPLOAD_MAX_FILESIZE (" . ini_get('upload_max_filesize') . ") 0");
     }
 
-    $usedDisk = (int) getUsedDiskSpace();
+    $usedDisk = (int) getUsedDiskSpace($_SESSION['internalUserId']);
     $diskLimit = (int) $user->getDiskQuota();
     if ($size > ($diskLimit - $usedDisk)) {
         getDataLogger()->error("Cannot upload file. Not enough space left in the workspace");
@@ -174,7 +174,7 @@ function prepare_getData_fromURL(User $user, $url, $outdir, $referer, $meta = []
     }
 
     $size = curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
-    $usedDisk = (int) getUsedDiskSpace();
+    $usedDisk = (int) getUsedDiskSpace($_SESSION['internalUserId']);
     $diskLimit = (int) $user->getdiskQuota();
     if ($size == 0) {
         $msg = "Resource URL ('$url') is pointing to an empty resource (size = 0)";
@@ -311,7 +311,7 @@ function getData_fromTXT(User $user)
         throw new UnexpectedValueException("File size is zero");
     }
 
-    $usedDisk = (int) getUsedDiskSpace();
+    $usedDisk = (int) getUsedDiskSpace($_SESSION['internalUserId']);
     $diskLimit = $user->getDiskQuota();
     if ($size > ($diskLimit - $usedDisk)) {
         getDataLogger()->error("Not enough space left in the workspace");
@@ -419,7 +419,7 @@ function getData_fromRepository(User $user, $url, $datatype, $filetype, $descrip
     }
 
     $size = (int) $url_data['size'];
-    $usedDisk = (int) getUsedDiskSpace();
+    $usedDisk = (int) getUsedDiskSpace($_SESSION['internalUserId']);
     $diskLimit = $user->getDiskQuota();
     if ($size == 0) {
         getDataLogger()->error("Resource URL ('$url') is pointing to an empty resource (size = 0)");

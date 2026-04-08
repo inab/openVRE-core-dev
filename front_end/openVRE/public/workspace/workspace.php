@@ -19,8 +19,6 @@ function getWorkspaceLogger()
 }
 
 
-// Check operation and input files
-
 if (is_null($_REQUEST['op'])) {
 	header("location:../workspace/");
 }

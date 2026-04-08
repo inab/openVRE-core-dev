@@ -1072,6 +1072,9 @@ function processFinishedJobInfo($projectDir, $job, $pid, $title, &$filesPending)
 			$outs_data = array($outs_data[0]);
 		}
 
+		getProjectLogger()->debug("outs_files: " . json_encode($outs_files));
+		getProjectLogger()->debug("Processing output file: " . json_encode($outs_data));
+
 		// start
 		foreach ($outs_data as $out_data) {
 			//check requirement : required
@@ -1423,23 +1426,19 @@ function  build_outputs_list($tool, $stageout_job, $stageout_file)
 
 
 // return sum of FS or Mongo directory (in bytes)
-
-function getUsedDiskSpace($userId = '', $source = "fs")
+function getUsedDiskSpace($userId)
 {
-	if (!$userId) {
-		$userId = $_SESSION['internalUserId'];
-	}
-
-	if ($source != "fs") {
-		if (!preg_match('/^\//', $userId)) {
-			$userId = $GLOBALS['userDataDir'] . "/" . $userId;
+	$files = $GLOBALS['filesCol']->find(['owner' => $userId])->toArray();
+	$size = 0;
+	foreach ($files as $file) {
+		if (isset($file['type']) && $file['type'] == "dir") {
+			continue;
 		}
 
-		$data = explode("\t", exec("du -sb $userId"));
-		return $data[0];
+		$size += $file['size'];
 	}
 
-	return calcGSUsedSpace($userId);
+	return $size;
 }
 
 

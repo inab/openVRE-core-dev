@@ -125,15 +125,13 @@ function createUserAnonymous($sampleData)
 }
 
 
-function getUserById($id, $options = [
-    'typeMap' => ['array' => 'array', 'root' => 'MongoDB\Model\BSONDocument', 'document' => 'array']
-]): ?User
+function getUserById($id, $options = array()): ?User
 {
     return $GLOBALS['usersCol']->findOne(["_id" => $id], $options);
 }
 
 
-function getUsersByFilter($filter, $options = array())
+function getUsersByFilter($filter, $options = array()): array
 {
     return $GLOBALS['usersCol']->find($filter, $options);
 }
@@ -186,11 +184,11 @@ function updateUser($user)
 
 
 // update attribute user document in Mongo
-function modifyUser($login, $attribute, $value)
+function modifyUser(string $login, array $attributeValueSet)
 {
     $GLOBALS['usersCol']->updateOne(
         array('_id'   => $login),
-        array('$set'  => array($attribute => $value)),
+        array('$set'  => $attributeValueSet),
         array('upsert' => true)
     );
 }
@@ -224,6 +222,9 @@ function loadUserWithToken(User $user, $userInfo, $token)
     $user->setSecretsId($userInfo['sub']);
     $_SESSION['userToken'] = $token;
     $_SESSION['tokenInfo'] = $userInfo;
+    $_SESSION['userId'] = $user->get_id();
+    $_SESSION['userType'] = $user->getType();
+    $_SESSION['internalUserId'] = $user->getInternalId();
 
     updateUser($user);
 
@@ -270,19 +271,23 @@ function addUserJob($login, $data, $pid)
 }
 
 
-function getUserJobs($login)
+function getUserJobs($login) : array
 {
-    $userLastJobs = $GLOBALS['usersCol']->findOne(array(
+    /** @var OpenVRE\User */
+    $userWithJobs = $GLOBALS['usersCol']->findOne(array(
         '_id'  => $login,
         'lastJobs' => array('$exists' => true)
-    ));
+    ), array('lastJobs' => 1));
 
-    return $userLastJobs['lastJobs'] ?? [];
+    getUsersLogger()->debug("Jobs for user $login: " . json_encode($userWithJobs));
+
+    return $userWithJobs->getLastJobs();
 }
 
-function getAllUserJobs()
+function getAllUserJobs() : User
 {
-    $r = $GLOBALS['usersCol']->find(
+    /** @var OpenVRE\User */
+    $usersWithJobs = $GLOBALS['usersCol']->find(
         array(
             '$nor' => array(
                 array('lastJobs' => array('$exists' => false)),
@@ -292,27 +297,18 @@ function getAllUserJobs()
         array("_id" => 1, "lastJobs" => 1, "id" => 1)
     );
 
-    if (empty($r))
-        return array();
+    getUsersLogger()->debug("Jobs for all users: " . json_encode($usersWithJobs));
 
-    $r_arr = iterator_to_array($r);
-    // return [login] => array(jobId_1 => job1, jobId_2 => job2)
-    $result = array();
-    foreach ($r_arr as $login => $info) {
-        $result[$login] = $info["lastJobs"];
-        foreach ($info["lastJobs"] as $job_id => $job) {
-            $result[$login][$job_id]["userId"] = $info["id"];
-        }
-    }
-    return $result;
+    return $usersWithJobs;
 }
+
 
 function getUserJobPid($login, $pid)
 {
     $r = $GLOBALS['usersCol']->findOne(array(
         "_id"      => $login,
         "lastJobs.$pid" => array('$exists' => true)
-    ));
+    ), array("lastJobs.$pid" => 1));
 
     return $r['lastJobs'] ?? array();
 }

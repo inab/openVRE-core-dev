@@ -11,6 +11,7 @@ $tls = getTools_ListComplete($user);
 $vslzrs = array();
 
 $toolList = array_merge($tls, $vslzrs);
+error_log(json_encode($toolList));
 
 sort($toolList);
 ?>
@@ -157,9 +158,7 @@ sort($toolList);
 													<th>Operations</th>
 													<th>Long Description</th>
 													<th>Keywords</th>
-													<th>Metakeywords</th>
 													<th>id</th>
-													<th>visualizer</th>
 												</tr>
 											</thead>
 											<tbody>
@@ -176,10 +175,6 @@ sort($toolList);
 														<td><?php echo $tool["long_description"]; ?></td>
 														<td><?php echo implode(", ", $tool["keywords"] ?? []); ?></td>
 														<td><?php echo $tool["_id"]; ?></td>
-														<td><?php if (isset($tool['visualizers'])) {
-																echo $tool["visualizer"];
-															} ?>
-														</td>
 													</tr>
 												<?php } ?>
 											</tbody>
