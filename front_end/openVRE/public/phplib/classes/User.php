@@ -29,7 +29,7 @@ class User implements Persistable
     private array $lastJobs = [];
     private Logger $logger;
 
-    public function __construct(string $email, string $secretsId, string $surname, string $name, string $inst, int $type, int $diskQuota, string $dataDir, ?string $authProvider, string $activeProject, array $developedTools)
+    public function __construct(string $email, string $secretsId, string $surname, string $name, string $inst, int $type, int $diskQuota, string $dataDir, ?string $authProvider, string $internalId, string $activeProject, array $developedTools)
     {
         $this->logger = LoggerFactory::getLogger('User');
         if ($type != UserType::Guest->value && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -42,7 +42,7 @@ class User implements Persistable
             throw new UnexpectedValueException("User not logged in");
         }
 
-        $this->type = $type ?? UserType::Registered->value; // TODO: check if this is ok
+        $this->type = $type;
         $this->email = sanitizeString($email);
         $this->secretsId = sanitizeString($secretsId);
         $this->_id = sanitizeString($email);
@@ -51,16 +51,12 @@ class User implements Persistable
         $this->institution = sanitizeString($inst);
         $this->dataDir = sanitizeString($dataDir);
         $this->authProvider = sanitizeString($authProvider);
-        $this->internalId = $this->type == UserType::Guest->value
-            ? uniqid($GLOBALS['AppPrefix'] . "ANON")
-            : uniqid($GLOBALS['AppPrefix'] . "USER");
+        $this->internalId = $internalId;
         $this->activeProject = sanitizeString($activeProject) ?: createLabel_proj();
         $this->status = UserStatus::Active->value;
         $this->lastLogin = moment();
         $this->registrationDate = moment();
-        $this->diskQuota  = $diskQuota || $this->type == UserType::Guest->value // TODO: check if this is ok
-            ? $GLOBALS['DISKLIMIT_ANON']
-            : $GLOBALS['DISKLIMIT'];
+        $this->diskQuota  = $diskQuota;
 
         $this->surname = ucfirst($this->surname);
         $this->name    = ucfirst($this->name);

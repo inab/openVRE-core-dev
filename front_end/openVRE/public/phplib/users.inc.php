@@ -76,7 +76,8 @@ function createUserFromToken($token, $userInfo = array())
         $_SESSION['tokenInfo'] = $userInfo;
     }
 
-    $user = new User($userAttributes['email'], $userAttributes['secretsId'], $userAttributes['surname'], $userAttributes['name'], "", $userAttributes['type'], 0, "", $userAttributes['AuthProvider'], "", []);
+    $internalId = uniqid($GLOBALS['AppPrefix'] . "USER");
+    $user = new User($userAttributes['email'], $userAttributes['secretsId'], $userAttributes['surname'], $userAttributes['name'], "", $userAttributes['type'], $GLOBALS['DISKLIMIT'], "", $userAttributes['AuthProvider'], $internalId, "", []);
 
     $_SESSION['userId'] = $userAttributes['email']; // TODO: rename if email will not replace internalId attribute in User class (currently it is the same as _id but no as internalId)
     $_SESSION['internalUserId'] = $user->getInternalId();
@@ -99,7 +100,8 @@ function createUserAnonymous($sampleData)
         "AuthProvider" => "VRE"
     );
 
-    $objUser = new User($userAttributes['email'], "", $userAttributes['surname'], $userAttributes['name'], $userAttributes['institution'], $userAttributes['type'], 0, "", $userAttributes['AuthProvider'], "", []);
+    $internalId = uniqid($GLOBALS['AppPrefix'] . "ANON");
+    $objUser = new User($userAttributes['email'], "", $userAttributes['surname'], $userAttributes['name'], $userAttributes['institution'], $userAttributes['type'], $GLOBALS['DISKLIMIT_ANON'], "", $userAttributes['AuthProvider'], $internalId, "", []);
     if (!$objUser) {
         return false;
     }
