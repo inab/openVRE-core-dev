@@ -107,8 +107,8 @@ function createUserAnonymous($sampleData)
     }
 
     $objUser->setTermsAccepted(true);
-    $_SESSION['userId'] = $userAttributes['email']; // TODO: rename if email will not replace id attribute in User class
-    $_SESSION['internalUserId'] = $objUser->getInternalId();
+    $_SESSION['userId'] = $userAttributes['email']; // userId is the email and the _id of the mongo document (and the class attribute)
+    $_SESSION['internalUserId'] = $objUser->getInternalId(); // internalUserId built inside openVRE
     $_SESSION['userType'] = $objUser->getType();
 
     $dataDirId = prepUserWorkSpace($objUser->getActiveProject(), $objUser->getInternalId(), $sampleData);
@@ -273,7 +273,7 @@ function addUserJob($login, $data, $pid)
 }
 
 
-function getUserJobs($login) : array
+function getUserJobs($login): array
 {
     /** @var OpenVRE\User */
     $userWithJobs = $GLOBALS['usersCol']->findOne(array(
@@ -286,7 +286,7 @@ function getUserJobs($login) : array
     return $userWithJobs->getLastJobs();
 }
 
-function getAllUserJobs() : User
+function getAllUserJobs(): User
 {
     /** @var OpenVRE\User */
     $usersWithJobs = $GLOBALS['usersCol']->find(
