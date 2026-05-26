@@ -157,15 +157,13 @@ require "../htmlib/header.inc.php"; ?>
                                         $siteName = htmlspecialchars($site['name']);
                                         $siteAcronym = isset($site['sigla']) ? htmlspecialchars($site['sigla']) : 'N/A';
                                         $privKey = isset($site['launcher']['access_credentials']['private_key']) ? htmlspecialchars($site['launcher']['access_credentials']['private_key']) : '';
-                                        $pubKey = isset($site['launcher']['access_credentials']['public_key']) ? htmlspecialchars($site['launcher']['access_credentials']['public_key']) : '';
-                                        $userKey = isset($site['launcher']['access_credentials']['user_key']) ? htmlspecialchars($site['launcher']['access_credentials']['user_key']) : '';
+                                        $userKey = isset($site['launcher']['access_credentials']['username']) ? htmlspecialchars($site['launcher']['access_credentials']['username']) : '';
                                     }
                                 } else {
                                     // If no site_id is passed or site not found, handle this error accordingly
                                     echo "No valid site ID provided.";
                                     exit;
                                 }
-                                //echo generateSSHForm($siteId);
                             }
 
     ?>
@@ -205,16 +203,8 @@ require "../htmlib/header.inc.php"; ?>
                         <div class="row">
                             <div class="col-md-12">
                                 <div class="form-group">
-                                    <label class="control-label">Public Key</label>
-                                    <input type="text" name="public_key" id="public_key" class="form-control" value="<?php echo $pubKey; ?>">
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-12">
-                                <div class="form-group">
                                     <label class="control-label">HPC Account Username</label>
-                                    <input type="text" name="user_key" id="user_key" class="form-control" value="<?php echo $userKey; ?>">
+                                    <input type="text" name="username" id="username" class="form-control" value="<?php echo $userKey; ?>">
                                 </div>
                             </div>
                         </div>

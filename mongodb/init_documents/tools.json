@@ -75,6 +75,12 @@
           "text_file"
         ]
       }
+    ],
+    "sites": [
+      {
+        "site_id": "local",
+        "status": 1
+      }
     ]
   },
   {

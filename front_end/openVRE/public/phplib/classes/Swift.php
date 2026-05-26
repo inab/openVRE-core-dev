@@ -1,65 +1,46 @@
 <?php
 
-#require_once 'vendor/autoload.php';
-
-//use OpenStack\OpenStack;
-//
-
 namespace OpenVRE;
 
-use OpenStack\Identity\v3\Models\Token;
-
-// Access to Swift Object Storage to copy the data.
-// Inputs: 
-//  - Application Credential ID
-//  - Application Credential Secret 
-//  - Domain of the User 
-//  - Project Name
-//  - Auth Url and/or Type
-//
-//
-//  >> Define the conf for the template in the Swift case
-//  >> Fill up the template with the rest of the credentials needed
-//  >> Open the Swift Obj Storage session
-//  >> Check the content of the object storage 
-//  >> Download the file in a tmp dir 
-//
-//
+use Monolog\Logger;
 
 class SwiftClient
 {
-
-	private $interface;
-	private $keystoneSession;
-	private $authUrl;
 	private $app_id;
 	private $app_secret;
+	private Logger $logger;
 
 
-	public function __construct($app_id, $app_secret, $projectName, $userDomainName, $projectDomainName, $interface, $authUrl)
+	public function __construct($app_id, $app_secret)
 	{
+		$this->logger = LoggerFactory::getLogger("Swift interface");
 		$this->app_id = $app_id;
 		$this->app_secret = $app_secret;
-		$this->interface = $interface;
-		$this->authUrl = $authUrl;
-
-		return $this;
 	}
 
 
-	public function generateCredentialsCommand()
+	private function generateCredentialsCommand()
 	{
-
-		// Construct the credentials command with $app_secret
-		//
-		$credentialsCommand = "export OS_AUTH_TYPE=v3applicationcredential && " .
-			"export OS_AUTH_URL={$this->authUrl} && " .
+		return "export OS_AUTH_TYPE=v3applicationcredential && " .
+			"export OS_AUTH_URL=https://ncloud.bsc.es:5000/v3/ && " .
 			"export OS_IDENTITY_API_VERSION=3 && " .
-			"export OS_INTERFACE={$this->interface} && " .
+			"export OS_INTERFACE=public && " .
 			"export OS_APPLICATION_CREDENTIAL_ID={$this->app_id} && " .
 			"export OS_APPLICATION_CREDENTIAL_SECRET={$this->app_secret}";
+	}
 
-		return $credentialsCommand;
+
+	private function downlFileCommand($localPath, $containerName, $fileName)
+	{
+		$path = $localPath . basename($fileName);
+
+		return "openstack object save --file $path $containerName $fileName";
+	}
+
+
+	private function listContCommand($containerName)
+	{
+		return "openstack object list --all $containerName -f json";
 	}
 
 
@@ -67,17 +48,33 @@ class SwiftClient
 	{
 		$credentialsCommand = $this->generateCredentialsCommand();
 		$listCommand = "openstack container list";
-		$fullCommand = "$credentialsCommand && $listCommand"; // Final combined command
-		$output = shell_exec($fullCommand);
-		return $output;
+		$fullCommand = "$credentialsCommand && $listCommand";
+
+		return shell_exec($fullCommand);
 	}
 
 
-	public function __destruct()
+	public function runListContainer($containerName)
 	{
-		// Close SSH session when object is destroyed
-		if ($this->keystoneSession instanceof Token) {
-			$this->keystoneSession->getHttpClient()->close();
+		$credentialsCommand = $this->generateCredentialsCommand();
+		$listCommand = $this->listContCommand($containerName);
+		$fullCommand = "$credentialsCommand && $listCommand";
+
+		return shell_exec($fullCommand);
+	}
+
+
+	public function runDownloadFile($localPath, $containerName, $fileName)
+	{
+		$credentialsCommand = $this->generateCredentialsCommand();
+		$downloadCommand = $this->downlFileCommand($localPath, $containerName, $fileName);
+		$fullCommand = "$credentialsCommand && $downloadCommand";
+		$output = shell_exec("$fullCommand 2>&1");
+
+		$fullFilePath = $localPath . basename($fileName);
+		if (!file_exists($fullFilePath)) {
+			$this->logger->error("Failed to download file $fileName. File does not exist at: $fullFilePath. Command output: $output");
+			throw new NotFoundException("Failed to download file $fileName. File does not exist at: $fullFilePath. Command output: $output");
 		}
 	}
 }

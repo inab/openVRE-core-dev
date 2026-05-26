@@ -106,7 +106,6 @@ if (isset($_REQUEST['op'])) {
 			$tmpZip = $GLOBALS['userDataDir'] . "/" . $userPath . "/" . $GLOBALS['tmpUser_dir'] . "/" . basename($newName);
 
 			$cmd = "/bin/tar -czf $tmpZip -C $rfn . 2>&1";
-			logger("workspace/workspace.php:103 -- TAR CMD: " . $cmd);
 
 			exec($cmd, $output);
 			if (!is_file($tmpZip)) {

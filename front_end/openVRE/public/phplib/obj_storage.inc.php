@@ -1,9 +1,9 @@
 <?php
 
+use OpenVRE\LinkedAccount;
 use OpenVRE\LoggerFactory;
-use OpenVRE\RemoteSSH;
+use OpenVRE\Site;
 use OpenVRE\SwiftClient;
-use OpenVRE\VaultClientFactory;
 
 
 function getObjectStorageLogger()
@@ -18,87 +18,23 @@ function getObjectStorageLogger()
 }
 
 
-function getOpenstackUser()
+function getSwiftClient(string $userSecretsId)
 {
-	$vaultClient = VaultClientFactory::create();
-
-	$credentials = $vaultClient->retrieveDatafromVault('Swift');
-	if ($credentials) {
+	try {
+		$swiftAccount = new LinkedAccount(Site::Swift);
+		$credentials = $swiftAccount->getCredentials($userSecretsId);
 		$appId = $credentials['app_id'];
 		$appSecret = $credentials['app_secret'];
-		$projectName = $credentials['projectName'];
-		$userDomainName = $credentials['domainName'];
-		$projectDomainName = $credentials['projectId'];
 
-		$swiftClient = new SwiftClient($appId, $appSecret, $projectName, $userDomainName, $projectDomainName, 'public', 'https://ncloud.bsc.es:5000/v3/');
-		var_dump($swiftClient);
-		$lista = $swiftClient->runList();
+		return new SwiftClient($appId, $appSecret);
+	} catch (Throwable $e) {
+		http_response_code(500);
+		echo json_encode([
+			'error' => 'Failed to initialize Swift client: ' . $e->getMessage()
+		]);
+		exit;
 	}
 }
-
-
-function getSwiftClient()
-{
-
-	$vaultClient = VaultClientFactory::create();
-	$credentials = $vaultClient->retrieveDatafromVault('Swift');
-
-	if ($credentials) {
-		$appId = $credentials['app_id'];
-		$appSecret = $credentials['app_secret'];
-		$projectName = $credentials['projectName'];
-		$userDomainName = $credentials['domainName'];
-		$projectDomainName = $credentials['projectId'];
-
-		$swiftClient = new SwiftClient($appId, $appSecret, $projectName, $userDomainName, $projectDomainName, 'public', 'https://ncloud.bsc.es:5000/v3/');
-		return $swiftClient;
-	} else {
-		return array('error' => 'Failed to retrieve Swift credentials from Vault');
-	}
-}
-
-
-
-function getSSHClient($remote_dir, $siteId)
-{
-
-	$vaultClient = VaultClientFactory::create();
-	$credentials = $vaultClient->retrieveDatafromVault('SSH');
-
-	if ($credentials) {
-		$sshPrivateKey = $credentials['private_key'];
-		$sshPublicKey = $credentials['public_key'];
-		$sshUsername = $credentials['username'];
-		$sshId = $credentials['_id'];
-
-		// Set up the credentials array for the RemoteSSH class
-		$sshCredentials = [
-			'private_key' => $sshPrivateKey,
-			'public_key' => $sshPublicKey,
-			'username' => $sshUsername
-		];
-
-		// Retrieve site info from the sites collection
-		$siteDocument = $GLOBALS['sitesCol']->findOne(['_id' => $siteId]);
-		// Assuming the site document exists, update the launcher section with SSH credentials
-		if ($siteDocument) {
-			$siteDocument['launcher']['access_credentials']['username'] = $sshUsername;
-			$siteDocument['launcher']['access_credentials']['private_key'] = $sshPrivateKey;
-			$siteDocument['launcher']['access_credentials']['public_key'] = $sshPublicKey;
-
-			// Save the updated site document back to the collection
-			$GLOBALS['sitesCol']->updateOne(['_id' => $siteId], ['$set' => $siteDocument]);
-			// Initialize the SSH client with retrieved credentials and site details
-			$remoteSSH = new RemoteSSH($sshCredentials, $remote_dir, 22, $siteDocument['launcher']['http_server']);
-			return $remoteSSH;
-		} else {
-			return array('error' => 'Site document not found for site ID: ' . $siteId);
-		}
-	} else {
-		return array('error' => 'Failed to retrieve SSH credentials from Vault');
-	}
-}
-
 
 
 function getContainers($swiftClient)
@@ -109,33 +45,30 @@ function getContainers($swiftClient)
 		$error_message = json_last_error_msg();
 		return array('error' => "JSON encoding failed: $error_message");
 	}
-
 	return $lista;
 }
 
 
-
 function getContainerFiles($container, $swiftClient)
 {
-	if (is_null($container) || is_null($swiftClient)) {
-		return array('error' => 'Container or Swift client is null');
+	if ($container !== null && $swiftClient !== null) {
+		getObjectStorageLogger()->debug("getContainerFiles - container: $container");
+		$containerList = $swiftClient->runListContainer($container);
+		getObjectStorageLogger()->debug("getContainerFiles - containerList: " . print_r($containerList, true));
+		$containerList = json_encode($containerList);
+		if (json_last_error() !== JSON_ERROR_NONE) {
+			$error_message = json_last_error_msg();
+			return array('error' => "JSON encoding failed: $error_message");
+		}
+
+		return $containerList;
 	}
 
-	getObjectStorageLogger()->debug("getContainerFiles - container: $container");
-	$containerList = $swiftClient->runListContainer($container);
-	getObjectStorageLogger()->debug("getContainerFiles - containerList: " . print_r($containerList, true));
-	$containerList = json_encode($containerList);
-	if (json_last_error() !== JSON_ERROR_NONE) {
-		$error_message = json_last_error_msg();
-		return array('error' => "JSON encoding failed: $error_message");
-	}
-
-	return $containerList;
+	return array('error' => 'Container or Swift client is null');
 }
 
 
-
-function initiateFileDownload($swiftClient, $fileUrl, $container)
+function initiateFileDownload(SwiftClient $swiftClient, $fileUrl, $container)
 {
 	// Set destination working directory/uploads
 	$dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
@@ -143,7 +76,7 @@ function initiateFileDownload($swiftClient, $fileUrl, $container)
 	$wdP = $GLOBALS['userDataDir'] . "/" . $wd;
 
 	// Log paths for debugging
-	getObjectStorageLogger()->debug("Data directory: $dataDirPath");
+	getObjectStorageLogger()->debug("Data directory path: $dataDirPath");
 	getObjectStorageLogger()->debug("Working directory (wd): $wd");
 	getObjectStorageLogger()->debug("Working directory path (wdP): $wdP");
 	getObjectStorageLogger()->debug("File URL: $fileUrl");
@@ -154,30 +87,36 @@ function initiateFileDownload($swiftClient, $fileUrl, $container)
 		throw new UnexpectedValueException("Failed to create working directory: $wdP");
 	}
 
+	// Extract file name and relative path
 	$fileName = basename($fileUrl);
+
+	// Full path to save the file
 	$fullPath = $wdP . '/' . $fileName;
+
+	// Adjust fileUrl to remove any leading slashes if necessary
 	$fileUrl = ltrim($fileUrl, '/');
-	$downloadSuccess = $swiftClient->runDownloadFile($wdP . '/', $container, $fileUrl);
-	getObjectStorageLogger()->debug("Download success: $downloadSuccess");
-
-	if (!$downloadSuccess) {
-		getObjectStorageLogger()->error("Failed to download file: $fileName");
-		throw new UnexpectedValueException("Failed to download file: $fileName");
-	}
-
+	$swiftClient->runDownloadFile($wdP . '/', $container, $fileUrl);
+	// Handle successful download
+	getObjectStorageLogger()->debug("File downloaded successfully to $fullPath");
 	chmod($fullPath, 0666);
 	$insertData = array(
 		'owner' => $_SESSION['internalUserId'],
 		'size' => filesize($fullPath),
 		'mtime' => new MongoDB\BSON\UTCDateTime(filemtime($fullPath) * 1000)
 	);
-
 	$metaData = array(
 		'validated' => false
 	);
 
 	// Save the path with the directory structure in the database
-	$fnId = uploadGSFileBNS("$wd/$fileName", $fullPath, $insertData, $metaData);
-	getObjectStorageLogger()->info("File registered successfully with ID: $fnId");
-	return $fnId;
+	$fnId = uploadGSFileBNS("$wd/$fileName", $fullPath, $insertData, $metaData, false);
+
+	if ($fnId == "0") {
+		$errorMsg = "Error occurred while registering the downloaded file";
+		getObjectStorageLogger()->error($errorMsg);
+		return array('status' => 'error', 'message' => $errorMsg);
+	} else {
+		getObjectStorageLogger()->info("File registered successfully with ID: $fnId");
+		return json_encode(array('status' => 'success', 'fileId' => $fnId));
+	}
 }

@@ -4,8 +4,6 @@ require __DIR__ . "/../../config/globals.inc.php";
 
 use OpenVRE\EgaLinkedAccount;
 use OpenVRE\LoggerFactory;
-use OpenVRE\Site;
-use OpenVRE\VaultClientFactory;
 
 
 $logger = LoggerFactory::getLogger('Fetch EGA datasets');
@@ -14,8 +12,8 @@ $currentPage = isset($_GET['page']) ? (int) $_GET['page'] : 1;
 $offset = ($currentPage - 1) * 10;
 
 $user = getUserById($_SESSION['userId']);
-$vaultClient = VaultClientFactory::create($user->getSecretsId());
-$data = $vaultClient->retrieveDatafromVault(Site::EGA->value);
+$egaLinkedAccount = new EgaLinkedAccount();
+$data = $egaLinkedAccount->getCredentials($user->getSecretsId());
 
 $egaUsername = $data['username'] ?? null;
 $egaPassword = $data['password'] ?? null;
@@ -27,7 +25,7 @@ if ($egaUsername === null || $egaPassword === null) {
 
 $logger->info('EGA credentials loaded from Vault.');
 
-$egaLinkedAccount = new EgaLinkedAccount();
+
 $accessToken = $egaLinkedAccount->getAuthToken($egaPassword, $egaUsername);
 
 // Check if we're fetching files for a specific dataset

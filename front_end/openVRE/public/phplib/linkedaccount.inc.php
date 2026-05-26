@@ -20,11 +20,11 @@ function updateAccount(LinkedAccount $linkedAccount, string $userSecretsId, $cre
 {
 	try {
 		$linkedAccount->storeCredentials($userSecretsId, $credentials);
-		$_SESSION['errorData']['Info'][] = $linkedAccount->getSite() . " account successfully linked.";
+		$_SESSION['errorData']['Info'][] = $linkedAccount->getSite()->value . " account successfully linked.";
 		redirect($_SERVER['HTTP_REFERER']);
 	} catch (Exception $e) {
-		getLinkedAccountLogger()->error("Could not connect to" . $linkedAccount->getSite() . ": " . $e->getMessage());
-		throw new UnexpectedValueException("Could not connect to " . $linkedAccount->getSite() . ". Check your credentials and try again.");
+		getLinkedAccountLogger()->error("Could not connect to" . $linkedAccount->getSite()->value . ": " . $e->getMessage());
+		throw new UnexpectedValueException("Could not connect to " . $linkedAccount->getSite()->value . ". Check your credentials and try again.");
 	}
 }
 

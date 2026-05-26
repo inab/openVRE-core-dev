@@ -25,10 +25,8 @@ if ($accountSite === Site::SSH) {
 	$linkedAccount = new SshLinkedAccount();
 } elseif ($accountSite === Site::EGA) {
 	$linkedAccount = new EgaLinkedAccount();
-} elseif ($accountSite === Site::objectStorage) {
-	$linkedAccount = new LinkedAccount(Site::objectStorage);
 } else {
-	throw new UnexpectedValueException("Account site not recognized: " . $accountSite);
+	$linkedAccount = new LinkedAccount($accountSite);
 }
 
 if ($action === "updateAccount") {

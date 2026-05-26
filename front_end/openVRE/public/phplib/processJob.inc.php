@@ -4,6 +4,7 @@ use OpenVRE\Launcher;
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
 use OpenVRE\ProcessSGE;
+use OpenVRE\ProcessSlurm;
 
 
 function getJobProcessLogger()
@@ -18,7 +19,7 @@ function getJobProcessLogger()
 }
 
 
-function execJob($workDir, $shFile, $queue, $cpus = 1, $mem = 0)
+function execJob($workDir, $shFile, $queue, $jobManager, $cpus = 1, $mem = 0)
 {
     getJobProcessLogger()->info("Start job submission via SGE");
 
@@ -44,7 +45,23 @@ function execJob($workDir, $shFile, $queue, $cpus = 1, $mem = 0)
     }
 
     $jobname = $_SESSION['internalUserId'] . "#" . basename($shFile);
-    $process = new ProcessSGE($shFile, $workDir, $queue, $jobname, $cpus, $mem);
+
+    switch ($jobManager) {
+        case "docker_SGE":
+            getJobProcessLogger()->debug("Submitting job via docker_SGE. Parameters: shFile=$shFile, workDir=$workDir, queue=$queue, jobname=$jobname, cpus=$cpus, mem=$mem");
+            $process = new ProcessSGE($shFile, $workDir, $queue, $jobname, $cpus, $mem);
+            break;
+        case "Slurm_Singularity":
+            $remote_system = $_REQUEST['sites']['site_list'][0];
+            $user = getUserById($_SESSION['userId']);
+            $userSecretsId = $user->getSecretsId();
+            getJobProcessLogger()->debug("Submitting job via Slurm_Singularity to $remote_system. Parameters: shFile=$shFile, workDir=$workDir");
+            $process = new ProcessSlurm($shFile, $workDir, $userSecretsId, $remote_system);
+            break;
+        default:
+            $process = new ProcessSGE($shFile, $workDir, $queue, $jobname, $cpus, $mem);
+            break;
+    }
 
     if (!$process->status()) {
         $errMesg = "Job submission failed. ErrorSGE: '" . $process->getErr() . "'";

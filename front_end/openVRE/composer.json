@@ -11,7 +11,7 @@
     "mongodb/mongodb": "^2.1",
     "monolog/monolog": "^3.9",
     "phpmailer/phpmailer": "^7.0.0",
-    "phpseclib/phpseclib": "~3.0",
+    "phpseclib/phpseclib": "^3.0",
     "slim/extras": "*",
     "slim/http": "^1.3.0",
     "slim/psr7": "^1.6.0",

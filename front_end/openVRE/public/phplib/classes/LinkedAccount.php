@@ -22,26 +22,33 @@ class LinkedAccount
     }
 
 
+    public function getCredentials(string $userSecretsId)
+    {
+        $vaultClient = VaultClientFactory::create($userSecretsId);
+        return $vaultClient->retrieveDatafromVault($this->site);
+    }
+
+
     public function storeCredentials(string $userSecretsId, #[\SensitiveParameter] $credentials)
     {
-        $this->logger->info("Storing credentials for site: " . $this->site);
+        $this->logger->info("Storing credentials for site: " . $this->site->value);
 
         $vaultData = [];
-        $vaultData['data'][$this->site] = [];
+        $vaultData['data'][$this->site->value] = [];
         foreach ($credentials as $key => $value) {
-            $vaultData['data'][$this->site][$key] = $value;
+            $vaultData['data'][$this->site->value][$key] = $value;
         }
         
         $vaultClient = VaultClientFactory::create($userSecretsId);
         $vaultClient->uploadFileToVault($this->site, $vaultData);
 
-        $this->logger->info("Stored credentials for site: " . $this->site);
+        $this->logger->info("Stored credentials for site: " . $this->site->value);
     }
 
 
     public function removeCredentials()
     {
-        $this->logger->info("Removing credentials for site: " . $this->site);
+        $this->logger->info("Removing credentials for site: " . $this->site->value);
 
         // TODO: To be implemented
     }

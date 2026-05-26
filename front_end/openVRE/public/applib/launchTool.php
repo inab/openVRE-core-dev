@@ -4,6 +4,7 @@ require __DIR__ . "/../../config/bootstrap.php";
 
 use OpenVRE\DataTransfer;
 use OpenVRE\LoggerFactory;
+use OpenVRE\Site;
 use OpenVRE\Tooljob;
 
 redirectOutside();
@@ -110,7 +111,6 @@ foreach ($files as $fnId => $file) {
 
 	if (!is_file($rfn)) {
 		$logger->info("File '" . basename($fn) . "' is not found or has size zero.");
-		$jobData = new DataTransfer($tool, $filesId, $_REQUEST['execution'], $_REQUEST['project'], $_REQUEST['description']);
 	}
 }
 
@@ -135,11 +135,38 @@ try {
 
 $logger->debug("Working directory created at: " . $jobMeta->executionDirectories->executionDir);
 
+$dataLocations = [];
+$doSync = !empty($_REQUEST['sync_files']);
+$siteList = $_REQUEST['sites']['site_list'] ?? [];
+if ($doSync) {
+	if (in_array(Site::MareNostrum->value, $siteList)) {
+		$dataMeta = new DataTransfer(
+			$files,
+			$tool,
+			$jobMeta->executionDirectories->executionDir,
+			$_REQUEST['arguments_exec']
+		);
+		$dataLocations = $dataMeta->syncFiles($user->getSecretsId());
+		$logger->debug("Data transfer locations: ", ['dataLocations' => $dataLocations]);
+	} else {
+		$logger->debug("Skipping DataTransfer — 'MareNostrum' not in site_list.");
+	}
+}
+
 try {
-	$jobMeta->prepareExecution($tool, $files, $files_pub);
+	$jobMeta->prepareExecution($tool, $files, $dataLocations, $files_pub);
 } catch (Exception $e) {
 	$logger->error("Cannot prepare execution. " . $e->getMessage());
 	redirect($GLOBALS['BASEURL'] . "workspace/");
+}
+
+if ($doSync && in_array(Site::MareNostrum->value, $siteList)) {
+	try {
+		$dataMeta->syncWorkingDir($user->getSecretsId());
+	} catch (Exception $e) {
+		$logger->error("Cannot sync working directory. " . $e->getMessage());
+		redirect($GLOBALS['BASEURL'] . "workspace/");
+	}
 }
 
 try {
