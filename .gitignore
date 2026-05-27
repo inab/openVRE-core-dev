@@ -1,7 +1,6 @@
 composer.lock
 front_end/openVRE/config/globals.inc.php
 front_end/openVRE/config/*.conf
-front_end/openVRE/public/assets/global/plugins/*
 vault/config/public-key.pem
 vault/file/*
 vault/config/jwt-user-policies.hcl
