@@ -1,6 +1,6 @@
 <?php
 
-use OpenVRE\EgaLinkedAccount;
+use OpenVRE\EGALinkedAccount;
 use OpenVRE\LinkedAccount;
 use OpenVRE\Site;
 use OpenVRE\SshLinkedAccount;
@@ -24,7 +24,7 @@ $user = getUserById($_SESSION['userId']);
 if ($accountSite === Site::SSH) {
 	$linkedAccount = new SshLinkedAccount();
 } elseif ($accountSite === Site::EGA) {
-	$linkedAccount = new EgaLinkedAccount();
+	$linkedAccount = new EGALinkedAccount();
 } else {
 	$linkedAccount = new LinkedAccount($accountSite);
 }

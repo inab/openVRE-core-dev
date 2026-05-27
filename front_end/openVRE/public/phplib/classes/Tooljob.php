@@ -31,16 +31,14 @@ class Tooljob
 	public $pid             = 0;
 	public $hasExecutionFolder = true;
 
+	private array $site;
+
 	public Logger $logger;
 	public JobDirectories $jobDirectories;
 	public ExecutionDirectories $executionDirectories;
 
 
-	/**
-	 * Creates new toolExecutor instance
-	 * @param string $toolId Tool Id as appears in Mongo
-	 */
-	public function __construct($tool, $description, $project, $execution = "", $sites = [], $outputDir = "", $logFilename = null)
+	public function __construct($tool, $description, $project, $site, $execution = "", $outputDir = "", $logFilename = null)
 	{
 		$this->logger = LoggerFactory::getLogger("Tool job");
 
@@ -54,18 +52,11 @@ class Tooljob
 		}
 
 		$this->project = $project;
-
-		$this->cloudName = $this->extractCloudName($tool, $sites);
-		$this->jobDirectories = JobDirectoriesFactory::create($this->cloudName);
+		$this->site = $site;
+		$this->jobDirectories = JobDirectoriesFactory::create($this->site['_id']);
 		$this->executionDirectories = ExecutionDirectoriesFactory::create($this->jobDirectories, $project, $execution, $logFilename);
 
-		if (!empty($sites)) {
-			// The second element in site_list is the launcher
-			$this->launcher = Launcher::from(str_replace($this->cloudName . "_", "", $sites[1]));
-		} else {
-			// If not enough information is provided, fall back to default method
-			$this->launcher = Launcher::from($tool['infrastructure']['clouds'][$this->cloudName]['launcher']);
-		}
+		$this->launcher = Launcher::from($this->site['launcher']['job_manager']);
 
 		// Creating execution folder
 		if (empty($execution)) {
@@ -782,7 +773,6 @@ class Tooljob
 
 					break;
 				case "Slurm_Singularity":
-					$dataLocations = $dataLocations ?? $this->arguments_exec['dataLocations'];
 					if (empty($dataLocations)) {
 						$this->logger->error("Tool '$this->toolId' not properly registered. Launcher for '$this->toolId' is set to \"$this->launcher\". Case not implemented.");
 						throw new UnexpectedValueException("Tool '$this->toolId' not properly registered. Launcher for '$this->toolId' is set to \"$this->launcher\". Case not implemented.");
@@ -1167,7 +1157,7 @@ EOF;
 	protected function createSubmitFile_Slurm($cmd)
 	{
 		$bashFilename = $this->submission_file;
-		$siteDetails = $this->getLauncher_SlurmInfo($this->cloudName);
+		$siteDetails = $this->getLauncher_SlurmInfo($this->site['_id']);
 		try {
 			$fout = fopen($bashFilename, "w");
 			if ($fout === false) {
@@ -1231,7 +1221,7 @@ EOF;
 	 */
 	public function submit($tool)
 	{
-		$jobLauncher = $this->getLauncher_Info($this->cloudName)['launcher']['job_manager'] ?? $tool['infrastructure']['clouds'][$this->cloudName]['launcher'];
+		$jobLauncher = $this->getLauncher_Info($this->site['_id'])['launcher']['job_manager'] ?? $tool['infrastructure']['clouds'][$this->site['_id']]['launcher'];
 		switch (Launcher::from($jobLauncher)) {
 			case Launcher::SGE:
 			case Launcher::docker_SGE_EGA:
@@ -1240,24 +1230,24 @@ EOF;
 			case "Slurm_Singularity":
 				return $this->enqueue($tool);
 			default:
-				$this->logger->error("submit - Tool '$this->toolId' not properly registered. Launcher for '$this->toolId' is set to: \"" . $tool['infrastructure']['clouds'][$this->cloudName]['launcher'] . "\". Case not implemented.");
-				throw new UnexpectedValueException("submit - Tool '$this->toolId' not properly registered. Launcher for '$this->toolId' is set to: \"" . $tool['infrastructure']['clouds'][$this->cloudName]['launcher'] . "\". Case not implemented.");
+				$this->logger->error("submit - Tool '$this->toolId' not properly registered. Launcher for '$this->toolId' is set to: \"" . $tool['infrastructure']['clouds'][$this->site['_id']]['launcher'] . "\". Case not implemented.");
+				throw new UnexpectedValueException("submit - Tool '$this->toolId' not properly registered. Launcher for '$this->toolId' is set to: \"" . $tool['infrastructure']['clouds'][$this->site['_id']]['launcher'] . "\". Case not implemented.");
 		}
 	}
 
 
 	protected function enqueue($tool)
 	{
-		$launcherInfo = $this->getLauncher_Info($this->cloudName);
+		$launcherInfo = $this->getLauncher_Info($this->site['_id']);
 		if (is_null($launcherInfo)) {
 			$this->logger->error("Launcher information is incomplete or missing.");
 			throw new UnexpectedValueException("Launcher information is incomplete or missing.");
 		}
 
-		$jobManager = $launcherInfo['launcher']['job_manager'] ?? $tool['infrastructure']['clouds'][$this->cloudName]['launcher'];
+		$jobManager = $launcherInfo['launcher']['job_manager'] ?? $tool['infrastructure']['clouds'][$this->site['_id']]['launcher'];
 		$memory = $launcherInfo['memory'] ?? $tool['infrastructure']['memory'];
 		$cpus = $launcherInfo['cpus'] ?? $tool['infrastructure']['cpus'];
-		$queue = $launcherInfo['queue'] ?? $tool['infrastructure']['clouds'][$this->cloudName]['queue'];
+		$queue = $launcherInfo['queue'] ?? $tool['infrastructure']['clouds'][$this->site['_id']]['queue'];
 		$this->logger->info("Resolved Parameters: Queue=$queue, CPUs=$cpus, Memory=$memory");
 
 		$pid = execJob($this->executionDirectories->executionDir, $this->executionDirectories->executionSubmissionFile, $queue, $cpus, $memory);
@@ -1330,31 +1320,6 @@ EOF;
 		}
 
 		return $mugfile;
-	}
-
-
-	private function extractCloudName($tool, $sites)
-	{
-		if (!empty($sites)) {
-			return $sites[0];
-		}
-
-		$available_clouds = array_keys($GLOBALS['clouds']);
-		if (empty($available_clouds)) {
-			$this->logger->error("Internal Error: No cloud infrastructure available in the current VRE installation.");
-			throw new UnexpectedValueException("Internal Error: No cloud infrastructure available in the current VRE installation.");
-		}
-
-		if (isset($tool['infrastructure']['clouds'])) {
-			foreach ($tool['infrastructure']['clouds'] as $cloudName => $cloudInfo) {
-				if ($cloudInfo['default_cloud'] && in_array($cloudName, $available_clouds)) {
-					return $cloudName;
-				}
-			}
-		}
-
-		$this->logger->error("Internal Error: No cloud infrastructure available in the current VRE installation.");
-		throw new UnexpectedValueException("Internal Error: No cloud infrastructure available in the current VRE installation.");
 	}
 
 

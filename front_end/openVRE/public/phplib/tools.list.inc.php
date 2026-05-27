@@ -74,7 +74,7 @@ function getTools_ListComplete(User $user)
 
 
 // list tools
-function getTool_fromId($toolId, $indexByName = false)
+function getTool_fromId(string $toolId, $indexByName = false)
 {
 	$tool = $GLOBALS['toolsCol']->findOne(['_id' => $toolId]);
 	if (is_null($tool)) {
@@ -112,7 +112,7 @@ function getTool_fromId($toolId, $indexByName = false)
 function launchToolInternal($toolId, $projectDir, $args = [], $outs = [], $outputDir = "", $logName = "")
 {
 	getToolsLogger()->debug("launchToolInternal(" . $toolId . ", " . json_encode($args) . ", " . json_encode($outs) . ", " . $outputDir . ", " . $logName . ")");
-	
+
 	$tool = getTool_fromId($toolId, true);
 	if (is_null($tool)) {
 		getToolsLogger()->error("Tool '$toolId' not registered");
@@ -128,7 +128,7 @@ function launchToolInternal($toolId, $projectDir, $args = [], $outs = [], $outpu
 	$sites = $args
 		? $args['site_list']
 		: [];
-	$jobMeta = new Tooljob($tool, description: $description, project: $projectDir, sites: $sites, outputDir:  $outputDir, logFilename: $logName);
+	$jobMeta = new Tooljob($tool, description: $description, project: $projectDir, sites: $sites, outputDir: $outputDir, logFilename: $logName);
 
 	$args['working_dir'] = $jobMeta->executionDirectories->executionDir; // hardcoded at wget tool JSON
 	$jobMeta->setArguments($args, $tool);
@@ -180,32 +180,25 @@ function getInputFilesCombinations($tool)
 }
 
 
-function getSites_Info($toolId)
+function getSitesInfo(string $toolId)
 {
-	// Retrieve tool document from the tools collection
 	$toolDocument = $GLOBALS['toolsCol']->findOne(['_id' => $toolId]);
 	if (is_null($toolDocument)) {
 		return null;
 	}
 
+	$filterFields = ["_id" => 1, "name" => 1, "launcher" => 1];
 	$executionSitesData = $toolDocument['sites'];
 	$executionSites = [];
 
 	foreach ($executionSitesData as $siteData) {
 		if ($siteData['status'] === 1) {
 			$siteId = $siteData['site_id'];
-			$filterfields = array();
-			$siteDocument = $GLOBALS['sitesCol']->findOne(array('_id' => $siteId), $filterfields);
-			if (is_null($siteDocument)) {
+			$siteDetails = $GLOBALS['sitesCol']->findOne(array('_id' => $siteId), $filterFields);
+			if (is_null($siteDetails)) {
 				throw new NotFoundException("Site document not found for site ID: {$siteId}");
 			}
 
-			$siteDetails = [
-				'site_id' => $siteDocument['_id'],  // Assuming _id is site_id
-				'name' => $siteDocument['name'],
-				'launcher' => $siteDocument['launcher'],
-				'status' => $siteData['status'],
-			];
 			$executionSites[] = $siteDetails;
 		}
 	}

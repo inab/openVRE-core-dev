@@ -49,10 +49,8 @@ if (empty($tool['infrastructure']['interactive']) && empty($_REQUEST['input_file
 	internalErrorRedirect();
 }
 
-$sites = $_REQUEST['arguments_exec']
-	? $_REQUEST['arguments_exec']['site_list']
-	: [];
-$jobMeta  = new Tooljob($tool, $_REQUEST['description'], $_REQUEST['project'], $_REQUEST['execution'], $sites);
+$site = getSite($_REQUEST['site']);
+$jobMeta  = new Tooljob($tool, $_REQUEST['description'], $_REQUEST['project'], $site, $_REQUEST['execution']);
 
 $logger->debug("Tool job metadata: ", ['jobMeta' => $jobMeta]);
 
@@ -136,21 +134,16 @@ try {
 $logger->debug("Working directory created at: " . $jobMeta->executionDirectories->executionDir);
 
 $dataLocations = [];
-$doSync = !empty($_REQUEST['sync_files']);
-$siteList = $_REQUEST['sites']['site_list'] ?? [];
+$doSync = $_REQUEST['site'] === Site::MareNostrum->value;
 if ($doSync) {
-	if (in_array(Site::MareNostrum->value, $siteList)) {
-		$dataMeta = new DataTransfer(
-			$files,
-			$tool,
-			$jobMeta->executionDirectories->executionDir,
-			$_REQUEST['arguments_exec']
-		);
-		$dataLocations = $dataMeta->syncFiles($user->getSecretsId());
-		$logger->debug("Data transfer locations: ", ['dataLocations' => $dataLocations]);
-	} else {
-		$logger->debug("Skipping DataTransfer — 'MareNostrum' not in site_list.");
-	}
+	$dataMeta = new DataTransfer(
+		$files,
+		$tool,
+		$jobMeta->executionDirectories->executionDir,
+		$_REQUEST['arguments_exec']
+	);
+	$dataLocations = $dataMeta->syncFiles($user->getSecretsId());
+	$logger->debug("Data transfer locations: ", ['dataLocations' => $dataLocations]);
 }
 
 try {
@@ -160,7 +153,7 @@ try {
 	redirect($GLOBALS['BASEURL'] . "workspace/");
 }
 
-if ($doSync && in_array(Site::MareNostrum->value, $siteList)) {
+if ($doSync) {
 	try {
 		$dataMeta->syncWorkingDir($user->getSecretsId());
 	} catch (Exception $e) {

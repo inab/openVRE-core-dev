@@ -901,3 +901,15 @@ function createLabel()
 	}
 	return $label;
 }
+
+
+function getSite(string $siteId)
+{
+	$site = $GLOBALS['sitesCol']->findOne(array('_id' => $siteId));
+	if (is_null($site)) {
+		getMongoLogger()->error("Cannot find site with id '$siteId'.");
+		throw new NotFoundException("Cannot find site with id '$siteId'.");
+	}
+
+	return $site;
+}

@@ -2,8 +2,6 @@
 
 use OpenVRE\User;
 
-// UTILITIES
-//
 
 // get files from $fileList matching with given file type
 function matchFormat_File($type, $fileList)
@@ -451,25 +449,23 @@ function InputTool_printSettings($arguments, $rerun)
 }
 
 
-
-function InputTool_generateLocationOptions($sites)
+function inputToolGenerateLocationOptions(array $sites)
 {
 	$options = '';
 	foreach ($sites as $site) {
 		$op = ($site['status'] == '1') ? 'selected' : '';
-		$options .= "<option {$op} value=\"{$site['site_id']}\"> {$site['name']} </option>\n";
+		$options .= "<option {$op} value=\"{$site['_id']}\"> {$site['name']} </option>\n";
 	}
 	return $options;
 }
 
 
-
-function InputTool_generateLauncherOptions($sites)
+function inputToolGenerateLauncherOptions(array $sites)
 {
 	$options = '';
 	foreach ($sites as $site) {
 		$op = ($site['status'] == '1') ? 'selected' : '';
-		$options .= "<option {$op} value=\"{$site['site_id']}_{$site['launcher']['job_manager']}\"> {$site['launcher']['job_manager']} </option>\n";
+		$options .= "<option {$op} value=\"{$site['_id']}_{$site['launcher']['job_manager']}\"> {$site['launcher']['job_manager']} </option>\n";
 	}
 	return $options;
 }

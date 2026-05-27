@@ -1,8 +1,8 @@
 <?php
 
-require __DIR__ . "/../../config/globals.inc.php";
+require_once __DIR__ . "/../../config/globals.inc.php";
 
-use OpenVRE\EgaLinkedAccount;
+use OpenVRE\EGALinkedAccount;
 use OpenVRE\LoggerFactory;
 
 
@@ -12,7 +12,7 @@ $currentPage = isset($_GET['page']) ? (int) $_GET['page'] : 1;
 $offset = ($currentPage - 1) * 10;
 
 $user = getUserById($_SESSION['userId']);
-$egaLinkedAccount = new EgaLinkedAccount();
+$egaLinkedAccount = new EGALinkedAccount();
 $data = $egaLinkedAccount->getCredentials($user->getSecretsId());
 
 $egaUsername = $data['username'] ?? null;

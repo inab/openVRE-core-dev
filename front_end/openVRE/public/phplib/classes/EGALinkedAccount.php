@@ -5,7 +5,7 @@ namespace OpenVRE;
 use Monolog\Logger;
 use UnexpectedValueException;
 
-class EgaLinkedAccount extends LinkedAccount
+class EGALinkedAccount extends LinkedAccount
 {
     private Logger $logger;
 
