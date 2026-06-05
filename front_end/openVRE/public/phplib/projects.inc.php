@@ -1110,11 +1110,7 @@ function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$file
 	//set dummy id
 	$dummyId  = $job['pid'] . "_dummy";
 
-	//get dummy parentDir
-	if ($job['hasExecutionFolder']) {
-		// show job in execution dir
-		$parentDir = fromAbsPath_toPath($job['executionDirectories']['executionDir']);
-	} else {
+	if ($job['isInternal']) {
 		// show job in outputDir (infered from stageout_data)
 		$parentDir = 0;
 		if ($job['stageout_data']) {
@@ -1127,6 +1123,9 @@ function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$file
 		if (!$parentDir) {
 			$parentDir = $_SESSION['internalUserId'] . "/" . $job['project'] . "/uploads";
 		}
+	} else {
+		// show job in execution dir
+		$parentDir = fromAbsPath_toPath($job['executionDirectories']['executionDir']);
 	}
 
 	//set dummy file
@@ -1481,7 +1480,7 @@ function saveResults($projectDir, $filePath, $metaData = array(), $job = array()
 		}
 	} else {
 		$parentId = getGSFileId_fromPath($parentPath, $asRoot);
-		if (is_null($parentId) && isset($job['hasExecutionFolder']) &&  $job['hasExecutionFolder'] === false) {
+		if (is_null($parentId) && isset($job['isInternal']) &&  $job['isInternal']) {
 			$parentPath = fromAbsPath_toPath($job['outputDir']);
 			$parentId = getGSFileId_fromPath($parentPath, $asRoot);
 			if (is_null($parentId)) {

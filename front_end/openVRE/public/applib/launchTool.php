@@ -50,7 +50,7 @@ if (empty($tool['infrastructure']['interactive']) && empty($_REQUEST['input_file
 }
 
 $site = getSite($_REQUEST['site']);
-$jobMeta  = new Tooljob($tool, $_REQUEST['description'], $_REQUEST['project'], $site, $_REQUEST['execution']);
+$jobMeta  = new Tooljob($tool, $_REQUEST['description'], $_REQUEST['project'], $site, $_REQUEST['execution'], null, null, false);
 
 $logger->debug("Tool job metadata: ", ['jobMeta' => $jobMeta]);
 

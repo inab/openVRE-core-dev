@@ -108,7 +108,6 @@ function getTool_fromId(string $toolId, $indexByName = false)
 }
 
 
-// launch tool - used for internal tools
 function launchToolInternal($toolId, $projectDir, $args = [], $outs = [], $outputDir = "", $logName = "")
 {
 	getToolsLogger()->debug("launchToolInternal(" . $toolId . ", " . json_encode($args) . ", " . json_encode($outs) . ", " . $outputDir . ", " . $logName . ")");
@@ -125,10 +124,9 @@ function launchToolInternal($toolId, $projectDir, $args = [], $outs = [], $outpu
 	}
 
 	$description = "Internal job execution of " . $tool['name'];
-	$sites = $args
-		? $args['site_list']
-		: [];
-	$jobMeta = new Tooljob($tool, description: $description, project: $projectDir, sites: $sites, outputDir: $outputDir, logFilename: $logName);
+	$site = getSite($args['site_list']);
+	$execution = $tool['_id'] . "_" . rand(10000, 99999);
+	$jobMeta = new Tooljob($tool, description: $description, project: $projectDir, site: $site, execution: $execution, outputDir: $outputDir, logFilename: $logName, isInternal: true);
 
 	$args['working_dir'] = $jobMeta->executionDirectories->executionDir; // hardcoded at wget tool JSON
 	$jobMeta->setArguments($args, $tool);

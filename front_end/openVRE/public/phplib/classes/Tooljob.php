@@ -19,6 +19,7 @@ class Tooljob
 	public Launcher $launcher;
 	public $job_type;
 	public $containerName;
+	public $isInternal;
 
 	// Paths to files genereted during ToolJob execution
 
@@ -29,7 +30,6 @@ class Tooljob
 	public $arguments       = [];
 	public $metadata        = [];
 	public $pid             = 0;
-	public $hasExecutionFolder = true;
 
 	private array $site;
 
@@ -38,7 +38,7 @@ class Tooljob
 	public ExecutionDirectories $executionDirectories;
 
 
-	public function __construct($tool, $description, $project, $site, $execution = "", $outputDir = "", $logFilename = null)
+	public function __construct($tool, $description, $project, $site, $execution, $outputDir, $logFilename, $isInternal)
 	{
 		$this->logger = LoggerFactory::getLogger("Tool job");
 
@@ -57,35 +57,7 @@ class Tooljob
 		$this->executionDirectories = ExecutionDirectoriesFactory::create($this->jobDirectories, $project, $execution, $logFilename);
 
 		$this->launcher = Launcher::from($this->site['launcher']['job_manager']);
-
-		// Creating execution folder
-		if (empty($execution)) {
-			//internalTool
-			$this->hasExecutionFolder = false;
-			$this->outputDir = $outputDir;
-			$this->execution = $tool['_id'] . "_" . rand(10000, 99999);
-		} else {
-			//create Project Folder
-			$this->hasExecutionFolder = true;
-			$user = getUserById($_SESSION['userId']);
-			$dataDirPath = getAttr_fromGSFileId($user->getDataDir(), "path");
-			$localWorkingDir = "$dataDirPath/$execution";
-			$prevs = $GLOBALS['filesCol']->findOne(['path' => $localWorkingDir, 'owner' => $_SESSION['internalUserId']]);
-			if ($prevs) {
-				for ($n = 1; $n < 99; $n++) {
-					$executionN = $execution . "_" . $n;
-					$localWorkingDir = "$dataDirPath/$executionN";
-					$prevs = $GLOBALS['filesCol']->findOne(['path' => $localWorkingDir, 'owner' => $_SESSION['internalUserId']]);
-					if ($prevs) {
-						$execution = $executionN;
-						break;
-					}
-				}
-			}
-
-			$this->execution = $execution;
-			$this->outputDir = $this->executionDirectories->executionDir;
-		}
+		$this->outputDir = $isInternal ? $outputDir : $this->executionDirectories->executionDir;
 	}
 
 
@@ -103,7 +75,7 @@ class Tooljob
 		$this->logger->info("Creating execution folder from replacing '" . $GLOBALS['userDataDir'] . "' in ''" . $this->executionDirectories->executionDir . "' and getting '" . $dirPath . "'");
 		if (!is_dir($this->executionDirectories->executionDir)) {
 			$this->_id = 1;
-			if ($this->hasExecutionFolder) {
+			if (!$this->isInternal) {
 				try {
 					$this->_id = createGSDirBNS($projectDir, $dirPath);
 				} catch (UnexpectedValueException $e) {
@@ -120,7 +92,7 @@ class Tooljob
 			chmod($this->executionDirectories->executionDir, 0777);
 			// if exists, recover working dir id
 		} else {
-			if ($this->hasExecutionFolder) {
+			if (!$this->isInternal) {
 				$this->logger->error("Cannot set job. Requested execution folder (" . basename($dirPath) . ") already exists.");
 				throw new UnexpectedValueException("Cannot set job. Requested execution folder (" . basename($dirPath) . ") already exists.");
 			}
