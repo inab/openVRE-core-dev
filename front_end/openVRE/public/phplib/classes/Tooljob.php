@@ -1250,7 +1250,7 @@ EOF;
 		$queue = $launcherInfo['queue'] ?? $tool['infrastructure']['clouds'][$this->site['_id']]['queue'];
 		$this->logger->info("Resolved Parameters: Queue=$queue, CPUs=$cpus, Memory=$memory");
 
-		$pid = execJob($this->executionDirectories->executionDir, $this->executionDirectories->executionSubmissionFile, $queue, $cpus, $memory);
+		$pid = execJob($this->executionDirectories->executionDir, $this->executionDirectories->executionSubmissionFile, $queue, $jobManager, $cpus, $memory);
 		$this->logger->info("Tool job submitted to SGE queue '$queue' (PID=$pid)");
 
 		$this->pid = $pid;
