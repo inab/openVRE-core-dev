@@ -103,6 +103,9 @@ services:
     build:
       context: ./front_end/
     image: front_end
+    depends_on:
+      react-frontend:
+        condition: service_completed_successfully
     environment:
       FRONTEND_CERT_PEM: ${FRONTEND_CERT_PEM}
       FRONTEND_CERT_KEY: ${FRONTEND_CERT_KEY}
@@ -127,6 +130,7 @@ services:
       VAULT_CERT_CAFILE: ${VAULT_CERT_CAFILE}
       VAULT_ROLENAME: ${VAULT_ROLENAME}
       VAULT_SECRET_PATH: ${VAULT_SECRET_PATH}
+      OPENVRE_ENV: ${OPENVRE_ENV:-prod}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./front_end/openVRE/public/:/var/www/html/openVRE/public
@@ -146,6 +150,21 @@ services:
       net_vre:
         ipv4_address: 172.21.0.14
     restart: on-failure:2
+
+  react-frontend:
+    pull_policy: never
+    build:
+      context: ./react-frontend
+    image: react-frontend
+    container_name: react-frontend
+    environment:
+      OPENVRE_ENV: ${OPENVRE_ENV:-prod}
+    volumes:
+      - .:/workspace
+    networks:
+      net_vre:
+        ipv4_address: 172.21.0.16
+    restart: "no"
 
   sgecore:
     pull_policy: never
