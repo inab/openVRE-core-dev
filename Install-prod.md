@@ -42,6 +42,16 @@ After that, you will need to manually run some [steps to set up your Vault servi
 
 For advanced system administration, such as SGE fine-tuning, Keycloak integration, or Vault setup, see [Admin-Specific Configuration](https://github.com/inab/openVRE/wiki/Developing-and-Administering-OpenVRE).
 
+### React islands and `OPENVRE_ENV`
+
+Set in `.env` (default in `.env.sample-prod`):
+
+| Variable | Prod value | Effect |
+|---|---|---|
+| `OPENVRE_ENV` | `prod` | Builds React bundles once on startup; no watch process |
+
+See [react-frontend/README.md](react-frontend/README.md) for development workflow and adding new islands.
+
 ## Start the services
 
 Run the `docker-compose.yml` file once you have set up your OpenVRE instance with the following command: 
