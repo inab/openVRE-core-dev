@@ -42,6 +42,17 @@ cp front_end/openVRE/config/globals.inc.php.sample front_end/openVRE/config/glob
 
 For advanced system administration, such as SGE fine-tuning, Keycloak integration, or Vault setup, see [Admin-Specific Configuration](https://github.com/inab/openVRE/wiki/Developing-and-Administering-OpenVRE).
 
+### React islands and `OPENVRE_ENV`
+
+The platform includes a React frontend (`react-frontend/`) embedded as islands in PHP pages. Set the application environment in `.env`:
+
+| Variable | Dev value | Effect |
+|---|---|---|
+| `OPENVRE_ENV` | `dev` (default in `.env.sample`) | Vite dev server with hot reload |
+| `REACT_VITE_DEV_SERVER` | `http://localhost:5173` | Browser loads islands from the dev server |
+
+See [react-frontend/README.md](react-frontend/README.md) for the full guide (adding islands, PHP integration, production mode).
+
 ## Start the services
 
 Run the `docker-compose.yml` file once you have set up your OpenVRE instance with the following command: 
@@ -55,3 +66,10 @@ and check the status of the resulting containers:
 ```
 docker ps
 ```
+
+The `react-frontend` container starts automatically:
+
+- **Development** (`OPENVRE_ENV=dev`, default): Vite dev server with hot reload — edit files under `react-frontend/src/` and see changes instantly.
+- **Production** (`OPENVRE_ENV=prod`): runs a one-shot build on startup, then exits.
+
+Details: [react-frontend/README.md](react-frontend/README.md).

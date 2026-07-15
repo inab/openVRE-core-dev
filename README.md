@@ -14,7 +14,11 @@ includes a complete documentation of the platform at the respository [wiki](http
 
 This documentation may not correspond with the production version repository documentation.
 
-For installation, check the [Install](https://github.com/inab/openVRE-core-dev/tree/dev/Install.md) documentation. 
+For installation, check the [Install](https://github.com/inab/openVRE-core-dev/tree/dev/Install.md) documentation.
 
 After the installation is complete, you can access the platform at the following URL: [http://localhost:8088](http://localhost:8088).
+
+## Frontend development
+
+React UI islands live in [`react-frontend/`](react-frontend/). Configuration is via `OPENVRE_ENV` in `.env` (`dev` or `prod`). See [react-frontend/README.md](react-frontend/README.md).
 
