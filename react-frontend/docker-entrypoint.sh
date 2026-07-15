@@ -6,9 +6,9 @@ cd /workspace/react-frontend
 case "${OPENVRE_ENV:-dev}" in
   prod|production)
     echo "Installing React frontend dependencies..."
-    npm ci
+    pnpm install --frozen-lockfile
     echo "Building React islands for production..."
-    npm run build
+    pnpm run build
     echo "React islands ready (production mode)."
     exit 0
     ;;
