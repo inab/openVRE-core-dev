@@ -41,6 +41,7 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 			<script src="assets/global/plugins/bootstrap-toastr/toastr.min.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/clipboardjs/clipboard.min.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/select2/js/select2.full.min.js" type="text/javascript"></script>
+			<?php react_island_scripts('workspace-file-table'); ?>
 		<?php } elseif (basename(dirname($_SERVER['PHP_SELF'])) == 'launch') { ?>
 			<script src="assets/global/scripts/jquery.dataTables.min.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.js" type="text/javascript"></script>
