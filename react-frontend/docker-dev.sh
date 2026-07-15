@@ -4,22 +4,22 @@ set -e
 cd /workspace/react-frontend
 
 deps_fingerprint() {
-  stat -c '%Y' package.json package-lock.json 2>/dev/null | tr '\n' '-'
+  stat -c '%Y' package.json pnpm-lock.yaml pnpm-workspace.yaml 2>/dev/null | tr '\n' '-'
 }
 
 install_deps() {
   echo "Installing React frontend dependencies..."
-  npm ci
+  pnpm install --frozen-lockfile
 }
 
 build_static_fallback() {
   echo "Building static fallback bundles..."
-  npm run build
+  pnpm run build
 }
 
 start_vite() {
   echo "Starting Vite dev server with hot reload..."
-  npx vite &
+  pnpm exec vite &
   VITE_PID=$!
 }
 
@@ -47,7 +47,7 @@ while true; do
     continue
   fi
 
-  # Wait for npm install to finish writing package-lock.json
+  # Wait for pnpm install to finish writing pnpm-lock.yaml
   sleep 1
   CUR_FP=$(deps_fingerprint)
   LAST_FP=$CUR_FP

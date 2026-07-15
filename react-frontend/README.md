@@ -12,7 +12,7 @@ docker compose --profile local_auth up -d
 
 The `react-frontend` container starts the Vite dev server with **hot reload**. Edit files under `src/` and changes appear in the browser automatically — no manual refresh.
 
-After adding a package, run `npm install <package>` in `react-frontend/` — the container detects the change, runs `npm ci`, and restarts Vite automatically. No container restart needed.
+After adding a package, run `npm install <package>` in `react-frontend/` — the container detects the change, runs `pnpm ci`, and restarts Vite automatically. No container restart needed.
 
 ## Environment variables
 
