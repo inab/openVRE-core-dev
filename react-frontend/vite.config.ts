@@ -40,9 +40,7 @@ export default defineConfig({
       host: 'localhost',
       port: Number(process.env.REACT_VITE_PORT ?? 5173),
     },
-    watch: process.env.REACT_VITE_POLLING
-      ? { usePolling: true, interval: 300 }
-      : undefined,
+    watch: process.env.REACT_VITE_POLLING ? { usePolling: true, interval: 300 } : undefined,
   },
   build: {
     outDir,
