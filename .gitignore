@@ -19,3 +19,6 @@ volumes/
 # Python
 __pycache__/
 *.pyc
+
+# React island build output
+front_end/openVRE/public/assets/react/
