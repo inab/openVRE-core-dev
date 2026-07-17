@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite'
 import { readdirSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 
@@ -29,6 +30,7 @@ export default defineConfig({
     react({
       reactRefreshHost: process.env.REACT_VITE_DEV_SERVER ?? 'http://localhost:5173',
     }),
+    tailwindcss(),
   ],
   server: {
     host: '0.0.0.0',
@@ -47,10 +49,14 @@ export default defineConfig({
     emptyOutDir: true,
     modulePreload: false,
     rollupOptions: {
-      input: getIslandEntries(),
+      input: {
+        ...getIslandEntries(),
+        theme: resolve(root, 'src/styles/theme.css'),
+      },
       output: {
         entryFileNames: '[name].js',
         chunkFileNames: '[name].js',
+        assetFileNames: '[name][extname]',
         manualChunks(id) {
           if (isReactVendorModule(id)) {
             return 'react-vendor'

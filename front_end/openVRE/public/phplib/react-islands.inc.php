@@ -7,6 +7,8 @@
  * - dev (default): Vite dev server with hot reload (REACT_VITE_DEV_SERVER)
  * - prod: static built assets from assets/react/
  *
+ * Theme CSS is loaded once for all islands; component CSS ships inside each island JS.
+ *
  * Usage:
  *   <div id="workspace-file-table-root"></div>
  *   <?php react_island_scripts('workspace-file-table'); ?>
@@ -30,6 +32,7 @@ function react_island_scripts(string ...$islands): void
 			echo 'window.$RefreshSig$ = () => (type) => type;' . "\n";
 			echo '</script>' . "\n";
 			echo '<script type="module" src="' . htmlspecialchars($base . '/@vite/client', ENT_QUOTES) . '"></script>' . "\n";
+			echo '<link rel="stylesheet" href="' . htmlspecialchars($base . '/src/styles/theme.css', ENT_QUOTES) . '">' . "\n";
 			$prepared = true;
 		}
 
@@ -46,6 +49,12 @@ function react_island_scripts(string ...$islands): void
 	}
 
 	if (!$prepared && $islands !== []) {
+		$cssPath = dirname(__DIR__) . '/assets/react/theme.css';
+		if (is_readable($cssPath)) {
+			$cssSrc = react_island_asset_url('theme.css');
+			echo '<link rel="stylesheet" href="' . htmlspecialchars($cssSrc, ENT_QUOTES) . '">' . "\n";
+		}
+
 		$vendorSrc = react_island_asset_url('react-vendor.js');
 		echo '<link rel="modulepreload" href="' . htmlspecialchars($vendorSrc, ENT_QUOTES) . '">' . "\n";
 		$prepared = true;
