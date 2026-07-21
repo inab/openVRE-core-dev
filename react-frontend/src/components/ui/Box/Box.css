@@ -1,0 +1,31 @@
+.boxContainer {
+  background: var(--color-surface);
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+
+  .boxHeader {
+    align-items: center;
+    display: flex;
+    flex-direction: row;
+    gap: var(--space-xs);
+    justify-content: flex-start;
+    margin-bottom: var(--space-sm);
+  }
+
+  .boxTitle {
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    margin: 0;
+    text-transform: uppercase;
+  }
+  .boxSubtitle {
+    color: var(--color-text-muted);
+    font-size: var(--font-size-md);
+    font-weight: var(--font-weight-normal);
+    margin: 0;
+  }
+}
