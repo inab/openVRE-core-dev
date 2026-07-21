@@ -162,6 +162,7 @@ services:
       OPENVRE_ENV: ${OPENVRE_ENV:-prod}
     volumes:
       - .:/workspace
+      - react_frontend_node_modules:/workspace/react-frontend/node_modules
     networks:
       net_vre:
         ipv4_address: 172.21.0.16
@@ -209,6 +210,7 @@ volumes:
     name: ${KEYCLOAK_DB_VOLUME}
   vault_data:
     name: ${VAULT_DATA_VOLUME}
+  react_frontend_node_modules:
 
 networks:
   net_vre:

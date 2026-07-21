@@ -121,6 +121,7 @@ services:
       REACT_VITE_POLLING: "1"
     volumes:
       - .:/workspace
+      - react_frontend_node_modules:/workspace/react-frontend/node_modules
     ports:
       - "${REACT_VITE_PORT:-5173}:5173"
     networks:
@@ -176,6 +177,7 @@ services:
 volumes:
   mongo_data:
     name: ${MONGO_VOLUME}
+  react_frontend_node_modules:
 
 networks:
   net_vre:
