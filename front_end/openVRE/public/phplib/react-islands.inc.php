@@ -32,7 +32,7 @@ function react_island_scripts(string ...$islands): void
 			echo 'window.$RefreshSig$ = () => (type) => type;' . "\n";
 			echo '</script>' . "\n";
 			echo '<script type="module" src="' . htmlspecialchars($base . '/@vite/client', ENT_QUOTES) . '"></script>' . "\n";
-			echo '<link rel="stylesheet" href="' . htmlspecialchars($base . '/src/styles/theme.css', ENT_QUOTES) . '">' . "\n";
+			echo '<link rel="stylesheet" href="' . htmlspecialchars($base . '/src/styles/theme.css?direct', ENT_QUOTES) . '">' . "\n";
 			$prepared = true;
 		}
 

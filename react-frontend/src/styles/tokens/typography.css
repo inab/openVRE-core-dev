@@ -1,10 +1,15 @@
 :root {
-  --font-family-base: 'Inter', 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-family-base: Roboto, Helvetica, Arial, sans-serif;
   --font-family-mono: 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
-  --font-size-xs: 0.75rem;
-  --font-size-sm: 0.875rem;
-  --font-size-md: 1rem;
-  --font-size-lg: 1.125rem;
-  --font-size-xl: 1.25rem;
-  --font-size-2xl: 1.5rem;
+  
+  /* Bootstrap sets html { font-size: 10px }, so 1rem = 10px. */
+  --font-size-xs: 1.1rem; /* 11px */
+  --font-size-sm: 1.2rem; /* 12px */
+  --font-size-md: 1.35rem; /* 13.5px */
+  --font-size-lg: 1.6rem; /* 16px */
+  --font-size-xl: 1.8rem; /* 18px */
+  --font-size-2xl: 2.2rem; /* 22px */
+
+  --font-weight-normal: 400;
+  --font-weight-bold: 700;
 }
