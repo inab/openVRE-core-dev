@@ -1,1 +1,5 @@
-@import "tailwindcss";
+@import './tokens/colors.css';
+@import './tokens/typography.css';
+@import './tokens/spacing.css';
+@import './tokens/radii.css';
+@import './brands/default.css';
