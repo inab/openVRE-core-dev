@@ -131,6 +131,7 @@ services:
       VAULT_ROLENAME: ${VAULT_ROLENAME}
       VAULT_SECRET_PATH: ${VAULT_SECRET_PATH}
       OPENVRE_ENV: ${OPENVRE_ENV:-prod}
+      REACT_ISLAND_ENABLED: ${REACT_ISLAND_ENABLED:-false}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./front_end/openVRE/public/:/var/www/html/openVRE/public

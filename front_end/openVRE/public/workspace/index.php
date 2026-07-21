@@ -203,7 +203,7 @@ $files = sortFilesForTable(addTreeTableNodesToFiles($files));
 						<div class="row">
 							<div class="col-md-12 col-sm-12">
 
-								<div id="workspace-file-table-root"></div>
+								<?php react_island_root('workspace-file-table'); ?>
 
 								<div class="portlet light bordered">
 
