@@ -1,6 +1,5 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 import { readdirSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 
@@ -30,8 +29,10 @@ export default defineConfig({
     react({
       reactRefreshHost: process.env.REACT_VITE_DEV_SERVER ?? 'http://localhost:5173',
     }),
-    tailwindcss(),
   ],
+  css: {
+    transformer: 'lightningcss',
+  },
   server: {
     host: '0.0.0.0',
     port: 5173,
@@ -45,6 +46,7 @@ export default defineConfig({
     watch: process.env.REACT_VITE_POLLING ? { usePolling: true, interval: 300 } : undefined,
   },
   build: {
+    cssMinify: 'lightningcss',
     outDir,
     emptyOutDir: true,
     modulePreload: false,

@@ -1,9 +1,12 @@
 .workspace-file-table-banner {
-  margin: 0 0 1rem;
-  padding: 0.5rem 0.75rem;
-  border: 1px solid #b8d4f0;
-  border-radius: 0.25rem;
-  background: #eef6ff;
-  font-size: 1.125rem;
-  color: #3b82f6;
+  margin: 0 0 var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--color-surface);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-lg);
+  color: var(--color-text);
+
+  &.is-highlighted {
+    background: var(--color-surface);
+  }
 }
