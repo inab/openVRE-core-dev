@@ -12,4 +12,8 @@
 
   --font-weight-normal: 400;
   --font-weight-bold: 700;
+
+  p {
+    margin: 0;
+  }
 }

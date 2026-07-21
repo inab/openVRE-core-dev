@@ -7,14 +7,20 @@ injectCss('box-styles', css)
 export function Box({ 
   title,
   subtitle,
+  headerComponent,
   children,
   footer,
 }: BoxProps) {
   return (
     <div className="boxContainer">
       <div className="boxHeader">
-        {title && <h3 className="boxTitle">{title}</h3>}
-        {subtitle && <p className="boxSubtitle">{subtitle}</p>}
+        <div className="boxTitleContainer">
+          {title && 
+            <h3 className="boxTitle">{title}</h3>}
+          {subtitle && 
+            <p className="boxSubtitle">{subtitle}</p>}
+        </div>
+        {headerComponent}
       </div>
       <div className="boxContent"> 
         {children}

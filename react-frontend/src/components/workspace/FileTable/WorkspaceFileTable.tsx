@@ -9,6 +9,11 @@ export function WorkspaceFileTable() {
     <Box
       title="Select File(s)"
       subtitle="Please select the file or files you want to use"
+      headerComponent={
+        <div>
+          <p>Test</p>
+        </div>
+      }
     >
       Hello from React — workspace file table island
     </Box>
