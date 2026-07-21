@@ -27,5 +27,8 @@ foreach (glob(dirname(__FILE__) . "/../public/phplib/*.php") as $lib) {
     require_once $lib;
 }
 
+// Explicit for static analysis (glob requires are not resolved by IDEs)
+require_once dirname(__FILE__) . "/../public/phplib/react-islands.inc.php";
+
 // initialize session
 require_once dirname(__FILE__) . "/../public/phplib/session.inc";
