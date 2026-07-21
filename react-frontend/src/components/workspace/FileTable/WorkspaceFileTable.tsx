@@ -1,5 +1,5 @@
 import css from './WorkspaceFileTable.css?inline'
-import { injectCss } from '../lib/inject-css'
+import { injectCss } from '../../../lib/inject-css'
 
 injectCss('workspace-file-table-styles', css)
 
