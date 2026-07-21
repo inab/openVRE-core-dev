@@ -7,11 +7,12 @@ Update these colors to match the brand of the application.
   --color-secondary: #007399;
   --color-primary-bg: #eef1f5;
   --color-surface: #ffffff;
-  --color-text: #1f2937;
-  --color-text-muted: #6b7280;
+  --color-text: #2f353b;
+  --color-text-muted: #666666;
   --color-border: #c2cad8;
   --color-danger: #dc2626;
   --color-warning-bg: #f9e491;
   --color-warning-text: #c29d0b;
 }
+
 */
