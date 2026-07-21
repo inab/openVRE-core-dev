@@ -73,6 +73,7 @@ services:
       react-frontend:
         condition: service_healthy
     environment:
+      FRONTEND_HOST_PATH: ${FRONTEND_HOST_PATH}
       KEYCLOAK_CLIENT: ${KEYCLOAK_CLIENT}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_SECRET: ${KEYCLOAK_SECRET}
