@@ -5,6 +5,6 @@
  * 2. Create src/components/MyComponent.tsx
  * 3. Call react_island_scripts('my-component') before </body>
  */
-import { mountIsland } from '../lib/mount-island'
+import { mountIsland } from '../lib/mount-island';
 
-mountIsland('react-component-root', () => <p>React component island</p>)
+mountIsland('react-component-root', () => <p>React component island</p>);
