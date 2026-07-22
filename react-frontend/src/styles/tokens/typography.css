@@ -1,7 +1,8 @@
 :root {
   --font-family-base: Roboto, Helvetica, Arial, sans-serif;
-  --font-family-mono: 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
-  
+  --font-family-mono:
+    'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
+
   /* Bootstrap sets html { font-size: 10px }, so 1rem = 10px. */
   --font-size-xs: 1.1rem; /* 11px */
   --font-size-sm: 1.2rem; /* 12px */

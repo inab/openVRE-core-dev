@@ -1,4 +1,4 @@
-import { WorkspaceFileTable } from '../components/workspace/FileTable/WorkspaceFileTable'
-import { mountIsland } from '../lib/mount-island'
+import { WorkspaceFileTable } from '../components/workspace/FileTable/WorkspaceFileTable';
+import { mountIsland } from '../lib/mount-island';
 
-mountIsland('workspace-file-table-root', () => <WorkspaceFileTable />)
+mountIsland('workspace-file-table-root', () => <WorkspaceFileTable />);
