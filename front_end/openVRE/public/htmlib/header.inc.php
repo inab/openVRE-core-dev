@@ -220,6 +220,15 @@
 	<?php } ?>
 	<link href="assets/layouts/layout/css/custom.min.css?v=<?php echo rand(); ?>" rel="stylesheet" type="text/css" />
 	<!-- END THEME LAYOUT STYLES -->
+	<?php
+	react_island_theme();
+	if (
+		pathinfo($_SERVER['PHP_SELF'])['filename'] === 'index'
+		&& basename(dirname($_SERVER['PHP_SELF'])) === 'workspace'
+	) {
+		react_island_styles('workspace-file-table');
+	}
+	?>
 	<link rel="icon" href="assets/layouts/layout/img/icon.png" sizes="32x32" />
 
 </head>
