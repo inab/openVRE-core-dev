@@ -1,0 +1,15 @@
+.button {
+  align-items: center;
+  background-color: var(--color-primary);
+  border: none;
+  border-radius: var(--border-radius-sm);
+  color: var(--color-white);
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  padding: var(--space-sm) var(--space-md);
+}
+
+.buttonLabel {
+  font-size: var(--font-size-sm);
+}
