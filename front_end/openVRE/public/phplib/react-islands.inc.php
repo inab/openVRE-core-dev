@@ -9,9 +9,17 @@
  * - dev (default): Vite dev server with hot reload (REACT_VITE_DEV_SERVER)
  * - prod: static built assets from assets/react/
  *
- * Theme CSS is loaded once for all islands; component CSS ships inside each island JS.
+ * Load order (avoids FOUC):
+ *   1. react_island_theme() in <head> — design tokens
+ *   2. react_island_styles(...) in <head> — island CSS before paint
+ *   3. react_island_root(...) in body — mount node
+ *   4. react_island_scripts(...) before </body> — JS only
+ *
+ * Each island needs src/entries/{island}.css (imported by the .tsx entry too).
  *
  * Usage:
+ *   <?php react_island_theme(); ?>
+ *   <?php react_island_styles('workspace-file-table'); ?>
  *   <?php react_island_root('workspace-file-table'); ?>
  *   <?php react_island_scripts('workspace-file-table'); ?>
  */
@@ -31,6 +39,17 @@ function react_island_enabled(): bool
 }
 
 /**
+ * Whether islands should load from the Vite dev server.
+ */
+function react_island_use_vite_dev_server(): bool
+{
+	$env = getenv('OPENVRE_ENV') ?: 'dev';
+	$viteDevServer = getenv('REACT_VITE_DEV_SERVER') ?: '';
+
+	return $viteDevServer !== '' && !in_array($env, ['prod', 'production'], true);
+}
+
+/**
  * Emit the mount root for an island when React islands are enabled.
  */
 function react_island_root(string $island): void
@@ -39,7 +58,63 @@ function react_island_root(string $island): void
 		return;
 	}
 
-	echo '<div id="' . $island . '-root"></div>' . "\n";
+	echo '<div id="' . htmlspecialchars($island, ENT_QUOTES, 'UTF-8') . '-root"></div>' . "\n";
+}
+
+/**
+ * Emit theme (design tokens) stylesheet for React islands.
+ * Call once from <head> so CSS variables exist before islands paint.
+ */
+function react_island_theme(): void
+{
+	static $emitted = false;
+
+	if ($emitted || !react_island_enabled()) {
+		return;
+	}
+
+	$emitted = true;
+
+	if (react_island_use_vite_dev_server()) {
+		$base = rtrim(getenv('REACT_VITE_DEV_SERVER'), '/');
+		echo '<link rel="stylesheet" href="' . $base . '/src/styles/theme.css?direct">' . "\n";
+		return;
+	}
+
+	$cssPath = dirname(__DIR__) . '/assets/react/theme.css';
+	if (is_readable($cssPath)) {
+		echo '<link rel="stylesheet" href="' . react_island_asset_url('theme.css') . '">' . "\n";
+	}
+}
+
+/**
+ * Emit island component stylesheets from <head> so rules exist before JS mounts.
+ */
+function react_island_styles(string ...$islands): void
+{
+	static $emitted = [];
+
+	if (!react_island_enabled() || $islands === []) {
+		return;
+	}
+
+	foreach ($islands as $island) {
+		if (isset($emitted[$island]) || !preg_match('/^[a-z0-9-]+$/', $island)) {
+			continue;
+		}
+		$emitted[$island] = true;
+
+		if (react_island_use_vite_dev_server()) {
+			$base = rtrim(getenv('REACT_VITE_DEV_SERVER'), '/');
+			echo '<link rel="stylesheet" href="' . $base . '/src/entries/' . $island . '.css?direct">' . "\n";
+			continue;
+		}
+
+		$cssPath = dirname(__DIR__) . '/assets/react/' . $island . '.css';
+		if (is_readable($cssPath)) {
+			echo '<link rel="stylesheet" href="' . react_island_asset_url($island . '.css') . '">' . "\n";
+		}
+	}
 }
 
 /**
@@ -53,11 +128,8 @@ function react_island_scripts(string ...$islands): void
 		return;
 	}
 
-	$env = getenv('OPENVRE_ENV') ?: 'dev';
-	$viteDevServer = getenv('REACT_VITE_DEV_SERVER') ?: '';
-	$useViteDevServer = $viteDevServer !== '' && !in_array($env, ['prod', 'production'], true);
-
-	if ($useViteDevServer) {
+	if (react_island_use_vite_dev_server()) {
+		$viteDevServer = getenv('REACT_VITE_DEV_SERVER') ?: '';
 		if (!$prepared) {
 			$base = rtrim($viteDevServer, '/');
 			// Required when loading Vite entries from PHP pages (not Vite's index.html).
@@ -68,7 +140,6 @@ function react_island_scripts(string ...$islands): void
 			echo 'window.$RefreshSig$ = () => (type) => type;' . "\n";
 			echo '</script>' . "\n";
 			echo '<script type="module" src="' . $base . '/@vite/client"></script>' . "\n";
-			echo '<link rel="stylesheet" href="' . $base . '/src/styles/theme.css?direct">' . "\n";
 			$prepared = true;
 		}
 
@@ -81,12 +152,6 @@ function react_island_scripts(string ...$islands): void
 	}
 
 	if (!$prepared) {
-		$cssPath = dirname(__DIR__) . '/assets/react/theme.css';
-		if (is_readable($cssPath)) {
-			$cssSrc = react_island_asset_url('theme.css');
-			echo '<link rel="stylesheet" href="' . $cssSrc . '">' . "\n";
-		}
-
 		$vendorSrc = react_island_asset_url('react-vendor.js');
 		echo '<link rel="modulepreload" href="' . $vendorSrc . '">' . "\n";
 		$prepared = true;
