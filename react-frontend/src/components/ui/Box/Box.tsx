@@ -1,8 +1,5 @@
-import css from './Box.css?inline';
-import { injectCss } from '../../../lib/inject-css';
+import './Box.css';
 import { BoxProps } from './BoxProps';
-
-injectCss('box-styles', css);
 
 export function Box({
   title,
