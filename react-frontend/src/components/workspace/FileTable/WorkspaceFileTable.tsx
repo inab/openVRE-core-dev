@@ -3,6 +3,11 @@ import { Box } from '../../ui/Box/Box';
 import { Button } from '../../ui/Button/Button';
 
 export function WorkspaceFileTable() {
+
+  const reloadWorkspace = () => {
+    window.location.reload();
+  };
+
   return (
     <Box
       title="Select File(s)"
@@ -10,7 +15,7 @@ export function WorkspaceFileTable() {
       headerComponent={
         <Button
           label="Reload Workspace"
-          onClick={() => {}}
+          onClick={reloadWorkspace}
         />
       }
     >
