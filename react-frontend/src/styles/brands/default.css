@@ -3,13 +3,16 @@ Default brand colors for the application.
 Update these colors to match the brand of the application.
 
 :root {
-  --color-primary: #085176;
+  --color-primary: #333741;
   --color-secondary: #007399;
+  --color-tertiary: #0099cc;
   --color-primary-bg: #eef1f5;
   --color-surface: #ffffff;
   --color-text: #2f353b;
   --color-text-muted: #666666;
+  --color-white: #ffffff;
   --color-border: #c2cad8;
+  --color-separator: #eef1f5;
   --color-danger: #dc2626;
   --color-warning-bg: #f9e491;
   --color-warning-text: #c29d0b;
