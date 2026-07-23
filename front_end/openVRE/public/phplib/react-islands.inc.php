@@ -9,17 +9,15 @@
  * - dev (default): Vite dev server with hot reload (REACT_VITE_DEV_SERVER)
  * - prod: static built assets from assets/react/
  *
- * Load order (avoids FOUC):
- *   1. react_island_theme() in <head> — design tokens
- *   2. react_island_styles(...) in <head> — island CSS before paint
- *   3. react_island_root(...) in body — mount node
- *   4. react_island_scripts(...) before </body> — JS only
- *
- * Each island needs src/entries/{island}.css (imported by the .tsx entry too).
+ * CSS model:
+ * - Each component imports only its own CSS (import './Button.css').
+ * - Vite bundles those into assets/react/{island}.css in production.
+ * - Dev: Vite injects CSS once via those imports (do not also <link> them — duplicates).
+ * - Prod: react_island_styles() <link>s the built {island}.css from <head> before JS runs.
  *
  * Usage:
- *   <?php react_island_theme(); ?>
- *   <?php react_island_styles('workspace-file-table'); ?>
+ *   <?php react_island_theme(); ?>                         // <head> — tokens
+ *   <?php react_island_styles('workspace-file-table'); ?> // <head> — prod island CSS
  *   <?php react_island_root('workspace-file-table'); ?>
  *   <?php react_island_scripts('workspace-file-table'); ?>
  */
@@ -88,13 +86,16 @@ function react_island_theme(): void
 }
 
 /**
- * Emit island component stylesheets from <head> so rules exist before JS mounts.
+ * Emit built island CSS from <head> (production only).
+ *
+ * In Vite dev, component `import './X.css'` already injects styles once — linking
+ * the same files here would duplicate every rule in DevTools.
  */
 function react_island_styles(string ...$islands): void
 {
 	static $emitted = [];
 
-	if (!react_island_enabled() || $islands === []) {
+	if (!react_island_enabled() || $islands === [] || react_island_use_vite_dev_server()) {
 		return;
 	}
 
@@ -103,12 +104,6 @@ function react_island_styles(string ...$islands): void
 			continue;
 		}
 		$emitted[$island] = true;
-
-		if (react_island_use_vite_dev_server()) {
-			$base = rtrim(getenv('REACT_VITE_DEV_SERVER'), '/');
-			echo '<link rel="stylesheet" href="' . $base . '/src/entries/' . $island . '.css?direct">' . "\n";
-			continue;
-		}
 
 		$cssPath = dirname(__DIR__) . '/assets/react/' . $island . '.css';
 		if (is_readable($cssPath)) {

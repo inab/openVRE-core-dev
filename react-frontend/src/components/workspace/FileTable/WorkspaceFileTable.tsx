@@ -1,8 +1,6 @@
-import css from './WorkspaceFileTable.css?inline';
-import { injectCss } from '../../../lib/inject-css';
+import './WorkspaceFileTable.css';
 import { Box } from '../../ui/Box/Box';
-
-injectCss('workspace-file-table-styles', css);
+import { Button } from '../../ui/Button/Button';
 
 export function WorkspaceFileTable() {
   return (
@@ -10,9 +8,10 @@ export function WorkspaceFileTable() {
       title="Select File(s)"
       subtitle="Please select the file or files you want to use"
       headerComponent={
-        <div>
-          <p>Test</p>
-        </div>
+        <Button
+          label="Reload Workspace"
+          onClick={() => {}}
+        />
       }
     >
       Hello from React — workspace file table island
