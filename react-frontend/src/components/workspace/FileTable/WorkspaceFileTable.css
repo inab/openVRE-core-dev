@@ -1,12 +1,1 @@
-.workspace-file-table-banner {
-  margin: 0 0 var(--space-md);
-  padding: var(--space-sm) var(--space-md);
-  background: var(--color-surface);
-  font-family: var(--font-family-base);
-  font-size: var(--font-size-lg);
-  color: var(--color-text);
-
-  &.is-highlighted {
-    background: var(--color-surface);
-  }
-}
+/* Styles for WorkspaceFileTable only. */
