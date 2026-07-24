@@ -1,0 +1,27 @@
+.hasTooltip {
+  position: relative;
+}
+
+.hasTooltip::after {
+  background: var(--color-primary);
+  border-radius: var(--radius-sm);
+  color: var(--color-white);
+  content: attr(data-tooltip);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-sm);
+  left: 50%;
+  opacity: 0;
+  padding: var(--space-xs) var(--space-sm);
+  pointer-events: none;
+  position: absolute;
+  top: calc(100% + var(--space-xs));
+  transform: translateX(-50%);
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+  z-index: 1;
+}
+
+.hasTooltip:hover::after,
+.hasTooltip:focus-visible::after {
+  opacity: 1;
+}
