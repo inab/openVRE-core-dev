@@ -31,6 +31,7 @@
     margin: 0;
     text-transform: uppercase;
   }
+
   .boxSubtitle {
     color: var(--color-text-muted);
     font-size: var(--font-size-md);

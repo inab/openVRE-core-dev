@@ -1,7 +1,8 @@
 export interface BoxProps {
-  title?: string;
-  subtitle?: string;
-  headerComponent?: React.ReactNode;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  isCollapsable?: boolean;
+  headerComponent?: React.ReactNode;
+  subtitle?: string;
+  title?: string;
 }
