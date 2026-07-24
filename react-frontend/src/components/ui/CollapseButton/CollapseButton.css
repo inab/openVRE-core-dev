@@ -1,0 +1,16 @@
+.collapseButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  margin: 0;
+  padding: 0;
+}
+
+.collapseButtonIcon {
+  color: var(--color-text-muted);
+  transition: transform 0.2s ease;
+}
+
+.collapseButtonIcon--collapsed {
+  transform: rotate(-180deg);
+}
