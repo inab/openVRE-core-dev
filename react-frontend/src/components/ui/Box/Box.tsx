@@ -37,4 +37,4 @@ export const Box = ({
       )}
     </div>
   );
-}
+};
