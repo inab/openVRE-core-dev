@@ -1,1 +1,17 @@
-/* Styles for WorkspaceFileTable only. */
+.workspaceFileTableToolbar {
+  align-items: stretch;
+  display: flex;
+  gap: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+
+.workspaceFileTableToolbar .filterByTool {
+  flex: 3;
+  min-width: 0;
+}
+
+.workspaceFileTableToolbar .searchField,
+.workspaceFileTableToolbar .searchFieldWithIcon {
+  flex: 2;
+  min-width: 0;
+}
