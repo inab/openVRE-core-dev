@@ -1,4 +1,8 @@
-.filterByTool {
-  margin-bottom: var(--space-md);
-  width: 100%;
+/* Spacing and width for .filterByTool are set in WorkspaceFileTable.css */
+
+.filterByToolIcon {
+  height: var(--size-icon-xs);
+  width: var(--size-icon-xs);
+  fill: var(--color-white);
+  stroke: none;
 }

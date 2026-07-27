@@ -6,7 +6,7 @@ import { FilterByToolProps } from './FilterByToolProps';
 import './FilterByTool.css';
 
 export const FilterByTool = ({
-  tools,  
+  tools,
   value = null,
   onChange,
   placeholder = 'Filter files by tool',
@@ -20,6 +20,7 @@ export const FilterByTool = ({
     <div className="filterByTool">
       <ComboBox
         icon={Wrench}
+        iconClassName="filterByToolIcon"
         items={items}
         value={value}
         onChange={onChange}
@@ -28,4 +29,4 @@ export const FilterByTool = ({
       />
     </div>
   );
-}
+};
