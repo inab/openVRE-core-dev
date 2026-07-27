@@ -1,7 +1,7 @@
 import './Button.css';
 import { ButtonProps } from './ButtonProps';
 
-export function Button({ label, onClick }: ButtonProps) {
+export const Button = ({ label, onClick }: ButtonProps) => {
   return (
     <button
       className="button"
