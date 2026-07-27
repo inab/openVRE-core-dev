@@ -1,0 +1,19 @@
+{
+  "tools": [
+    {
+      "id": "mock_tool",
+      "name": "Mock tool",
+      "dataTypes": ["id_list"]
+    },
+    {
+      "id": "mock_tool_qc",
+      "name": "Mock QC",
+      "dataTypes": ["fastq"]
+    },
+    {
+      "id": "mock_tool_aligner",
+      "name": "Mock Aligner",
+      "dataTypes": ["fastq", "fasta"]
+    }
+  ]
+}
