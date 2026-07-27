@@ -4,14 +4,14 @@ import { CollapseButton } from '../CollapseButton/CollapseButton';
 
 import './Box.css';
 
-export function Box({
+export const Box = ({
   title,
   subtitle,
   headerComponent,
   isCollapsable,
   children,
   footer,
-}: BoxProps) {
+}: BoxProps) => {
   const [isCollapsed, setIsCollapsed] = useState(Boolean(isCollapsable));
 
   return (
