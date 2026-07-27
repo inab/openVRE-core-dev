@@ -1,11 +1,36 @@
-import './WorkspaceFileTable.css';
+import { useState } from 'react';
+import { reloadCurrentPage } from '../../../lib/navigation';
+
 import { Box } from '../../ui/Box/Box';
 import { Button } from '../../ui/Button/Button';
+import { FilterByTool } from './FilterByTool/FilterByTool';
+import toolsMock from './mocks/tools.json';
 
-export function WorkspaceFileTable() {
+import './WorkspaceFileTable.css';
 
-  const reloadWorkspace = () => {
-    window.location.reload();
+const getToolParam = (): string | null => {
+  const tool = new URLSearchParams(window.location.search).get('tool');
+  return tool && tool.length > 0 ? tool : null;
+};
+
+const setToolParam = (toolId: string | null): void => {
+  const url = new URL(window.location.href);
+  if (toolId) {
+    url.searchParams.set('tool', toolId);
+  } else {
+    url.searchParams.delete('tool');
+  }
+  window.history.replaceState(null, '', url);
+};
+
+export const WorkspaceFileTable = () => {
+  const [selectedToolId, setSelectedToolId] = useState<string | null>(
+    getToolParam,
+  );
+
+  const handleToolChange = (toolId: string | null) => {
+    setSelectedToolId(toolId);
+    setToolParam(toolId);
   };
 
   return (
@@ -15,11 +40,15 @@ export function WorkspaceFileTable() {
       headerComponent={
         <Button
           label="Reload Workspace"
-          onClick={reloadWorkspace}
+          onClick={reloadCurrentPage}
         />
       }
     >
-      Hello from React — workspace file table island
+      <FilterByTool
+        tools={toolsMock.tools}
+        value={selectedToolId}
+        onChange={handleToolChange}
+      />
     </Box>
   );
 }
