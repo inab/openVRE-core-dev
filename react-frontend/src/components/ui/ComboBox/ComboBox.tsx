@@ -40,6 +40,7 @@ const getSelectedLabel = (
 export const ComboBox = ({
   'aria-label': ariaLabel,
   icon: Icon,
+  iconClassName,
   items,
   isDisabled,
   label,
@@ -125,7 +126,7 @@ export const ComboBox = ({
         className="comboBoxAddon"
         aria-hidden
       >
-        <Icon className="comboBoxAddonIcon" />
+        <Icon className={iconClassName} />
       </span>
       <div className="comboBoxControl">{comboBox}</div>
     </div>

@@ -8,6 +8,7 @@ export interface ComboBoxOption {
 export interface ComboBoxProps {
   'aria-label'?: string;
   icon?: LucideIcon;
+  iconClassName?: string;
   items: ComboBoxOption[];
   isDisabled?: boolean;
   label?: string;
