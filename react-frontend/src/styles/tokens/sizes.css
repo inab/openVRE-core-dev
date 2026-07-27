@@ -1,0 +1,7 @@
+:root {
+  /* Fixed control dimensions (legacy Bootstrap input-group is ~34×38px). */
+  --size-control-height: 34px;
+  --size-input-addon-width: 38px;
+  --size-icon-xs: 16px;
+  --size-icon-sm: 20px;
+}
