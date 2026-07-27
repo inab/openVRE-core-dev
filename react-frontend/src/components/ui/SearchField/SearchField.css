@@ -1,0 +1,110 @@
+.searchField {
+  color: var(--color-text);
+  display: block;
+  font-family: var(--font-family-base);
+  width: 100%;
+}
+
+.searchFieldField {
+  align-items: stretch;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  height: var(--size-control-height);
+  overflow: hidden;
+  width: 100%;
+}
+
+.searchFieldField:focus-within {
+  border-color: var(--color-secondary);
+}
+
+.searchFieldInput {
+  background: var(--color-surface);
+  border: none;
+  color: var(--color-text);
+  flex: 1;
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  min-width: 0;
+  padding: var(--space-xs) var(--space-md);
+}
+
+.searchFieldInput::placeholder {
+  color: var(--color-text-muted);
+}
+
+.searchFieldInput:focus {
+  outline: none;
+}
+
+.searchFieldClear {
+  align-items: center;
+  background: var(--color-surface);
+  border: none;
+  border-left: 1px solid var(--color-border);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  display: flex;
+  flex-shrink: 0;
+  justify-content: center;
+  padding: 0 var(--space-sm);
+}
+
+.searchFieldField:focus-within .searchFieldClear {
+  border-left-color: var(--color-border);
+}
+
+.searchFieldClear:hover {
+  color: var(--color-text);
+}
+
+.searchFieldClear:focus {
+  outline: none;
+}
+
+.searchFieldClearIcon {
+  height: var(--size-icon-xs);
+  width: var(--size-icon-xs);
+}
+
+.searchField[data-disabled] .searchFieldField {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.searchFieldWithIcon {
+  align-items: stretch;
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+}
+
+.searchFieldWithIcon .searchFieldField {
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+}
+
+.searchFieldAddon {
+  align-items: center;
+  background: var(--color-input-addon);
+  border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+  color: var(--color-white);
+  display: flex;
+  flex-shrink: 0;
+  height: var(--size-control-height);
+  justify-content: center;
+  width: var(--size-input-addon-width);
+}
+
+.searchFieldIcon {
+  height: var(--size-icon-xs);
+  width: var(--size-icon-xs);
+  color: var(--color-white);
+  stroke: currentColor;
+  fill: none;
+}
+
+.searchFieldControl {
+  flex: 1;
+  min-width: 0;
+}
