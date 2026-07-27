@@ -10,4 +10,4 @@ export const Button = ({ label, onClick }: ButtonProps) => {
       <span className="buttonLabel">{label}</span>
     </button>
   );
-}
+};
