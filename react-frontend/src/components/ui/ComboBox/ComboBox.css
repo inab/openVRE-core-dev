@@ -143,13 +143,6 @@
   width: var(--size-input-addon-width);
 }
 
-.comboBoxAddonIcon {
-  height: var(--size-icon-xs);
-  width: var(--size-icon-xs);
-  fill: var(--color-white);
-  stroke: none;
-}
-
 .comboBoxControl {
   flex: 1;
   min-width: 0;
