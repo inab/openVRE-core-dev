@@ -3,6 +3,7 @@ import { reloadCurrentPage } from '../../../lib/navigation';
 
 import { Box } from '../../ui/Box/Box';
 import { Button } from '../../ui/Button/Button';
+import { SearchField } from '../../ui/SearchField/SearchField';
 import { FilterByTool } from './FilterByTool/FilterByTool';
 import toolsMock from './mocks/tools.json';
 
@@ -24,6 +25,7 @@ const setToolParam = (toolId: string | null): void => {
 };
 
 export const WorkspaceFileTable = () => {
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedToolId, setSelectedToolId] = useState<string | null>(
     getToolParam,
   );
@@ -44,11 +46,19 @@ export const WorkspaceFileTable = () => {
         />
       }
     >
-      <FilterByTool
-        tools={toolsMock.tools}
-        value={selectedToolId}
-        onChange={handleToolChange}
-      />
+      <div className="workspaceFileTableToolbar">
+        <FilterByTool
+          tools={toolsMock.tools}
+          value={selectedToolId}
+          onChange={handleToolChange}
+        />
+        <SearchField
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search files"
+          aria-label="Search files"
+        />
+      </div>
     </Box>
   );
-}
+};
