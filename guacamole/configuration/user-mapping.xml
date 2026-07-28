@@ -1,0 +1,9 @@
+<user-mapping>
+    <authorize username="admin" password="admin">
+        <connection name="Stata PoC">
+            <protocol>vnc</protocol>
+            <param name="hostname">stata19web</param>
+            <param name="port">5900</param>
+        </connection>
+    </authorize>
+</user-mapping>

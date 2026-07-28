@@ -125,7 +125,8 @@ services:
     environment:
       GUACD_HOSTNAME: guacd
       GUACD_PORT: 4822
-
+    volumes:
+     - ./guacamole/configuration:/etc/guacamole:ro
     networks:
       net_vre:
         ipv4_address: 172.21.0.21
@@ -133,13 +134,13 @@ services:
     restart: on-failure:2
 
   sgecore:
-    #pull_policy: never
-    image: registry.gitlab.bsc.es/impact-cohorte/impd-openvre:sgecore
-    #build:
-     # context: ./sge
-      #args:
-       # SUBMITTER_HOSTNAME: "${FRONTEND_HOSTNAME}"
-        #DOCKER_GROUP: "${DOCKER_GROUP}"
+    pull_policy: never
+    #image: registry.gitlab.bsc.es/impact-cohorte/impd-openvre:sgecore
+    build:
+      context: ./sge
+      args:
+        SUBMITTER_HOSTNAME: "${FRONTEND_HOSTNAME}"
+        DOCKER_GROUP: "${DOCKER_GROUP}"
     container_name: sgecore
     hostname: sgecore
     environment:

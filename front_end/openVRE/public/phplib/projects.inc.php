@@ -117,6 +117,19 @@ function setUserWorkSpace($homeDir, $projectDir, $projectData, $sampleData, $ver
 				mkdir("$dataDirP/repository", 0775);
 			}
 
+			
+			//creating repository directory
+			$repDirId  = createGSDirBNS($dataDir . "/userdata", 1);
+			getProjectLogger()->info("Creating userdata directory: $dataDir/userdata ($repDirId)");
+			addMetadataToFile($repDirId, array(
+				"expiration" => -1,
+				"description" => "Remote personal data"
+			));
+
+			if (!is_dir("$dataDirP/userdata")) {
+				mkdir("$dataDirP/userdata", 0775);
+			}
+
 			// injecting sample data
 			setUserWorkSpace_sampleData($sampleData, $dataDir, $verbose);
 		}
