@@ -3,6 +3,6 @@
 .filterByToolIcon {
   height: var(--size-icon-xs);
   width: var(--size-icon-xs);
-  fill: var(--color-white);
+  fill: var(--color-surface);
   stroke: none;
 }
