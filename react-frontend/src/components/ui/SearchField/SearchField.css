@@ -88,7 +88,7 @@
   align-items: center;
   background: var(--color-input-addon);
   border-radius: var(--radius-sm) 0 0 var(--radius-sm);
-  color: var(--color-white);
+  color: var(--color-surface);
   display: flex;
   flex-shrink: 0;
   height: var(--size-control-height);
@@ -99,7 +99,7 @@
 .searchFieldIcon {
   height: var(--size-icon-xs);
   width: var(--size-icon-xs);
-  color: var(--color-white);
+  color: var(--color-surface);
   stroke: currentColor;
   fill: none;
 }
