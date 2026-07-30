@@ -4,8 +4,8 @@ import { reloadCurrentPage } from '../../../lib/navigation';
 import { Box } from '../../ui/Box/Box';
 import { Button } from '../../ui/Button/Button';
 import { SearchField } from '../../ui/SearchField/SearchField';
+import { useToolsQuery } from '../../../hooks/useToolsQuery';
 import { FilterByTool } from './FilterByTool/FilterByTool';
-import toolsMock from './mocks/tools.json';
 
 import './WorkspaceFileTable.css';
 
@@ -29,6 +29,8 @@ export const WorkspaceFileTable = () => {
   const [selectedToolId, setSelectedToolId] = useState<string | null>(
     getToolParam,
   );
+  const toolsQuery = useToolsQuery();
+  const tools = toolsQuery.data?.tools ?? [];
 
   const handleToolChange = (toolId: string | null) => {
     setSelectedToolId(toolId);
@@ -48,7 +50,7 @@ export const WorkspaceFileTable = () => {
     >
       <div className="workspaceFileTableToolbar">
         <FilterByTool
-          tools={toolsMock.tools}
+          tools={tools}
           value={selectedToolId}
           onChange={handleToolChange}
         />
@@ -59,6 +61,9 @@ export const WorkspaceFileTable = () => {
           aria-label="Search files"
         />
       </div>
+      {toolsQuery.isError ? (
+        <p className="workspaceFileTableStatus">Could not load tools.</p>
+      ) : null}
     </Box>
   );
 };
