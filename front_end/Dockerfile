@@ -43,6 +43,7 @@ RUN npm ci
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 RUN composer self-update
 RUN composer update --ignore-platform-req=ext-mongodb --ignore-platform-req=ext-mongodb
+RUN composer run docs
 RUN mkdir logs
 RUN touch logs/application.log
 RUN chmod -R 777 logs/application.log
