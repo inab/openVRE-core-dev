@@ -22,7 +22,8 @@
   },
   "autoload": {
     "psr-4": {
-      "OpenVRE\\": "public/phplib/classes/"
+      "OpenVRE\\": "public/phplib/classes/",
+      "OpenVREAPI\\": "public/api/"
     }
   },
   "autoload-dev": {
