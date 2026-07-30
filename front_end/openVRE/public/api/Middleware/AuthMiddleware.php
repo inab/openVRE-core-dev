@@ -26,7 +26,8 @@ use Exception;
 final class AuthMiddleware implements MiddlewareInterface
 {
     public function __construct(
-        private readonly string $jwksFilePath = __DIR__ . '/../../.jwks'
+        private readonly string $jwksFilePath = __DIR__ . '/../../.jwks',
+        private readonly string $userIdClaim = 'sub'
     ) {
     }
 
@@ -35,18 +36,27 @@ final class AuthMiddleware implements MiddlewareInterface
         try {
             $token = $this->getBearerToken($request->getHeaderLine('Authorization'));
         } catch (Exception $e) {
-            return $this->jsonError(401, $e->getMessage());
+            return $this->jsonError(401, 'UNAUTHORIZED', $e->getMessage());
         }
 
         try {
             $decoded = $this->validateToken($token);
         } catch (Exception $e) {
-            return $this->jsonError(403, 'Forbidden: ' . $e->getMessage());
+            return $this->jsonError(403, 'FORBIDDEN', $e->getMessage());
         }
 
-        // Make the decoded token payload available to downstream handlers.
+        $userId = $decoded->{$this->userIdClaim} ?? null;
+
+        if ($userId === null) {
+            return $this->jsonError(403, 'FORBIDDEN', sprintf('Token is missing required claim "%s"', $this->userIdClaim));
+        }
+
+        // Make the decoded token payload — and the userId derived from it —
+        // available to downstream handlers. Routes no longer take userId
+        // from the URL; it always comes from the authenticated token.
         $request = $request->withAttribute('authToken', $token);
         $request = $request->withAttribute('authClaims', $decoded);
+        $request = $request->withAttribute('userId', (string) $userId);
 
         return $handler->handle($request);
     }
@@ -93,10 +103,14 @@ final class AuthMiddleware implements MiddlewareInterface
         }
     }
 
-    private function jsonError(int $status, string $message): Response
+    private function jsonError(int $status, string $code, string $message): Response
     {
         $response = new SlimResponse();
-        $payload = json_encode(['error' => $message], JSON_UNESCAPED_SLASHES);
+        $payload = json_encode([
+            'code' => $code,
+            'status' => $status,
+            'message' => $message,
+        ], JSON_UNESCAPED_SLASHES);
 
         $response->getBody()->write($payload);
 

@@ -1,0 +1,309 @@
+openapi: 3.0.0
+info:
+  title: 'User Files API'
+  version: 1.0.0
+servers:
+  -
+    url: /api/v1
+paths:
+  /files:
+    get:
+      tags:
+        - Files
+      operationId: 1b77d10e10ff7d36f752b0e39f03e362
+      parameters:
+        -
+          name: offset
+          in: query
+          description: 'Number of items to skip before starting to return results'
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        -
+          name: limit
+          in: query
+          description: 'Maximum number of items to return'
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+      responses:
+        '200':
+          description: 'List of files and directories belonging to the user'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetUserFilesResponse'
+        '401':
+          description: 'Missing or malformed Authorization header'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Token present but invalid or expired'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'User not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/files/{fileId}':
+    delete:
+      tags:
+        - Files
+      operationId: 9bb948a4e46125f2b51d010a32119a1c
+      parameters:
+        -
+          $ref: '#/components/parameters/FileIdParam'
+      responses:
+        '204':
+          description: 'File deleted successfully'
+        '401':
+          description: 'Missing or malformed Authorization header'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Token present but invalid or expired'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'User or file not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/files/{fileId}/rename':
+    patch:
+      tags:
+        - Files
+      operationId: e7610e39a2c65c4af3f6e0041e3ea5ec
+      parameters:
+        -
+          $ref: '#/components/parameters/FileIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RenameFileRequest'
+      responses:
+        '200':
+          description: 'File renamed successfully'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileItem'
+        '401':
+          description: 'Missing or malformed Authorization header'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Token present but invalid or expired'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'User or file not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'A file with the new name already exists at this location'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/files/{fileId}/move':
+    patch:
+      tags:
+        - Files
+      operationId: 8c4663c979a75444b82cd486652658bf
+      parameters:
+        -
+          $ref: '#/components/parameters/FileIdParam'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveFileRequest'
+      responses:
+        '200':
+          description: 'File moved successfully'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileItem'
+        '401':
+          description: 'Missing or malformed Authorization header'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Token present but invalid or expired'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'User, file, or destination path not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'A file already exists at the destination path'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/files/{fileId}/download':
+    get:
+      tags:
+        - Files
+      operationId: 37fc950357a2af1c7e21b06fe7566721
+      parameters:
+        -
+          $ref: '#/components/parameters/FileIdParam'
+      responses:
+        '200':
+          description: 'File content stream'
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+        '401':
+          description: 'Missing or malformed Authorization header'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Token present but invalid or expired'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'User or file not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/files/{fileId}/compress':
+    post:
+      tags:
+        - Files
+      operationId: 19a577940978c51a13459c998dd2b257
+      parameters:
+        -
+          $ref: '#/components/parameters/FileIdParam'
+      responses:
+        '202':
+          description: 'Compression started/completed; returns the resulting file'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FileItem'
+        '401':
+          description: 'Missing or malformed Authorization header'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Token present but invalid or expired'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'User or file not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'File is already compressed'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/files/{fileId}/uncompress':
+    post:
+      tags:
+        - Files
+      operationId: 8c85d284f80f87e154fa65bff5a139f4
+      parameters:
+        -
+          $ref: '#/components/parameters/FileIdParam'
+      responses:
+        '202':
+          description: 'Uncompression started/completed; returns the resulting file(s)'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/FileItem'
+        '401':
+          description: 'Missing or malformed Authorization header'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '403':
+          description: 'Token present but invalid or expired'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: 'User or file not found'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: 'File is not a compressed archive'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  parameters:
+    FileIdParam:
+      name: fileId
+      in: path
+      description: 'Identifier of the target file'
+      required: true
+      schema:
+        type: string
+  securitySchemes:
+    BearerAuth:
+      type: http
+      bearerFormat: JWT
+      scheme: bearer
+security:
+  -
+    BearerAuth: []
+tags:
+  -
+    name: Files
+    description: Files
