@@ -15,6 +15,7 @@
     "check": "npm run lint && npm run format:check && tsc -b"
   },
   "dependencies": {
+    "@tanstack/react-query": "^5.101.4",
     "lucide-react": "^1.26.0",
     "react": "^19.1.0",
     "react-aria-components": "^1.19.0",

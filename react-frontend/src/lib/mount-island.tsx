@@ -1,5 +1,7 @@
+import { QueryClientProvider } from '@tanstack/react-query';
 import type { ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { queryClient } from './query-client';
 
 const roots = new WeakMap<Element, Root>();
 
@@ -15,6 +17,8 @@ export function mountIsland(rootId: string, render: () => ReactNode): boolean {
     roots.set(el, root);
   }
 
-  root.render(render());
+  root.render(
+    <QueryClientProvider client={queryClient}>{render()}</QueryClientProvider>,
+  );
   return true;
 }
