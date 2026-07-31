@@ -36,7 +36,7 @@ RUN chmod +x /usr/local/bin/setup.sh
 RUN mkdir -p /var/log/apache
 
 WORKDIR /var/www/html
-ADD openVRE /var/www/html/openVRE
+COPY openVRE /var/www/html/openVRE
 RUN cd openVRE
 WORKDIR /var/www/html/openVRE
 RUN npm ci

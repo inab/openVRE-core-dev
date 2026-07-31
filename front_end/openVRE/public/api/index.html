@@ -12,8 +12,7 @@
     <script>
         window.onload = () => {
             window.ui = SwaggerUIBundle({
-                // Served by the /openapi.yaml route defined in src/routes.php
-                url: '/openapi.yaml',
+                url: '/api/v1/openapi.yaml',
                 dom_id: '#swagger-ui',
                 presets: [
                     SwaggerUIBundle.presets.apis

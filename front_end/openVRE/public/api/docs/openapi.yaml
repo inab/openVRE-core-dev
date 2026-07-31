@@ -287,6 +287,112 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
 components:
+  schemas:
+    Error:
+      required:
+        - code
+        - status
+        - message
+      properties:
+        code:
+          description: 'Machine-readable error code'
+          type: string
+          example: UNAUTHORIZED
+        status:
+          description: 'HTTP status code, echoed in the body for convenience'
+          type: integer
+          example: 401
+        message:
+          description: 'Human-readable explanation'
+          type: string
+          example: 'Authorization header not found'
+      type: object
+    FileItem:
+      required:
+        - fileId
+        - filename
+        - format
+        - type
+        - dataType
+        - date
+        - size
+      properties:
+        fileId:
+          description: 'Unique identifier of the file or directory'
+          type: string
+        filename:
+          description: 'Name of the file or directory'
+          type: string
+        format:
+          description: "File format/extension (e.g. 'pdf', 'jpg')"
+          type: string
+        type:
+          description: 'Whether the item is a file or a directory'
+          type: string
+          enum:
+            - file
+            - dir
+        dataType:
+          description: 'Content/data type of the file (e.g. MIME type or category)'
+          type: string
+        date:
+          description: 'Mongo-style ISO 8601 date-time string with milliseconds and UTC offset'
+          type: string
+          format: date-time
+          example: '2026-07-17T11:41:19.000+00:00'
+        size:
+          description: 'Size of the file in bytes'
+          type: integer
+          minimum: 0
+        path:
+          description: "Current path of the file within the user's storage"
+          type: string
+      type: object
+    GetUserFilesResponse:
+      required:
+        - userId
+        - offset
+        - limit
+        - total
+        - files
+      properties:
+        userId:
+          description: 'Identifier of the authenticated user (from the bearer token), whose files these are'
+          type: string
+        offset:
+          description: 'Number of items skipped for this page of results'
+          type: integer
+          minimum: 0
+        limit:
+          description: 'Maximum number of items returned for this page'
+          type: integer
+          minimum: 1
+        total:
+          description: 'Total number of files available for this user'
+          type: integer
+          minimum: 0
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/FileItem'
+      type: object
+    MoveFileRequest:
+      required:
+        - path
+      properties:
+        path:
+          description: 'New destination path for the file'
+          type: string
+          example: /documents/archive
+      type: object
+    RenameFileRequest:
+      required:
+        - filename
+      properties:
+        filename:
+          description: 'New name for the file (without changing its path)'
+          type: string
+      type: object
   parameters:
     FileIdParam:
       name: fileId
