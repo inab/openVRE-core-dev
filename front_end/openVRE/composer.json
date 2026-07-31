@@ -35,7 +35,7 @@
     }
   },
   "scripts": {
-    "docs": "openapi public/api/ -o docs/openapi.yaml"
+    "docs": "openapi public/api/ -o public/api/docs/openapi.yaml"
   },
   "config": {
     "sort-packages": true,
