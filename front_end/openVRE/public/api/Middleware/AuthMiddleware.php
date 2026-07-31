@@ -27,7 +27,7 @@ final class AuthMiddleware implements MiddlewareInterface
 {
     public function __construct(
         private readonly string $jwksFilePath = __DIR__ . '/../../.jwks',
-        private readonly string $userIdClaim = 'sub'
+        private readonly string $userIdClaim = 'email'
     ) {
     }
 

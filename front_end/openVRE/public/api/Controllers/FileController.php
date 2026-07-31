@@ -8,6 +8,8 @@ use OpenApi\Attributes as OA;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
+require_once __DIR__ . "/../../phplib/db.inc.php";
+
 /**
  * Handles all file-related endpoints under /files.
  *
@@ -51,9 +53,27 @@ final class FileController
     )]
     public function list(Request $request, Response $response, array $args): Response
     {
-        $userId = $request->getAttribute('userId'); // set by AuthMiddleware from the token's subject claim
+        $queryParams = $request->getQueryParams();
+        $offset = max(0, (int) ($queryParams['offset'] ?? 0));
+        $limit = max(1, (int) ($queryParams['limit'] ?? 50));
 
-        return $this->notImplemented($response, 'getUserFiles');
+        $userId = $request->getAttribute('userId'); // set by AuthMiddleware from the token's subject claim
+        $userDoc = $GLOBALS['usersCol']->findOne(['_id' => $userId], ['projection' => ['id' => 1]]);
+        $filesDoc = $GLOBALS['filesCol']->find(['owner' => $userDoc['id']], ['projection' => ['atime' => 1, 'files' => 1, 'path' => 1, 'size' => 1, 'type' => 1]]);
+
+        $payload = json_encode([
+            'userId' => $userId,
+            'offset' => $offset,
+            'limit' => $limit,
+            //'total' => $total,
+            'files' => $filesDoc->toArray(),
+        ], JSON_UNESCAPED_SLASHES);
+
+        $response->getBody()->write($payload);
+
+        return $response
+            ->withHeader('Content-Type', 'application/json')
+            ->withStatus(200);
     }
 
     #[OA\Delete(
