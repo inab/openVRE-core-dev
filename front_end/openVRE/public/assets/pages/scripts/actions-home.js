@@ -698,7 +698,10 @@ function closeModalTool() {
 }
 
 
-function goInteractiveTool(toolContainerName) {
-	location.href = "interactive-tool/" + toolContainerName + "/";
+function goInteractiveTool(toolContainerName , interactiveBackend) {
+    if (interactiveBackend === "guacamole") {
+        location.href = "interactive-tool/guacamole/";
+    } else {
+        location.href = "interactive-tool/" + toolContainerName + "/";
+    }
 }
-

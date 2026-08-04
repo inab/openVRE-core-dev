@@ -1047,18 +1047,64 @@ class Tooljob
 		return null;
 	}
 
+	protected function getInteractiveAccessMode($tool): string
+	{
+		return $tool['infrastructure']['interactive_access']['mode'] ?? 'http';
+	}
+
+	protected function usesGuacamole($tool): bool
+	{
+		return $this->getInteractiveAccessMode($tool) === 'guacamole';
+	}
 
 	protected function setBashCommandDockerSgeInteractive($tool, $cmd_envs)
 	{
 		$this->job_type = "interactive";
-		$container_port = $tool['infrastructure']['container_port'];
-		$hostPort = $this->getFreePort();
-		if ($hostPort === null) {
-			$this->logger->error("No free ports available to run the interactive tool.");
-			throw new UnexpectedValueException("No free ports available to run the interactive tool.");
-		}
-		$this->containerName = $tool['infrastructure']['container_image'];
+		
 
+		$usesGuacamole = $this->usesGuacamole($tool); 
+		
+		$this->interactive_backend = $this->usesGuacamole($tool)
+			? "guacamole"
+			: "direct";
+
+
+		#$container_port = $tool['infrastructure']['container_port'];
+		#$hostPort = $this->getFreePort();
+		#$this->containerName = $tool['infrastructure']['container_image'];
+		#if ($hostPort === null) {
+		#	$this->logger->error("No free ports available to run the interactive tool.");
+		#	throw new UnexpectedValueException("No free ports available to run the interactive tool.");
+		#}
+
+		if (!$usesGuacamole) {
+			$hostPort = $this->getFreePort();
+			$containerName = $tool['infrastructure']['container_image'];
+			if ($hostPort === null) {
+				$this->logger->error("No free ports available to run the interactive tool.");
+				throw new UnexpectedValueException(
+					"No free ports available to run the interactive tool."
+				);
+        	}
+    	}
+
+		#$containerName = $this->containerName;
+		
+		if ($usesGuacamole) {
+			$containerName = $tool['infrastructure']['container_image'];
+			$accessPort = $tool['infrastructure']['interactive_access']['port'] ?? null;
+
+			if (empty($accessPort)) {
+				$this->logger->error(
+					"Guacamole interactive tool '$this->toolId' is missing interactive_access.port."
+				);
+
+				throw new UnexpectedValueException(
+					"Guacamole interactive tool is missing interactive_access.port."
+				);
+			}
+		}
+		
 		$checkEnvironment = <<<EOF
 			FREE_PORT=$hostPort
 
@@ -1091,18 +1137,36 @@ class Tooljob
 			fi
 		EOF;
 
-		$runContainer = <<<EOF
-			CONTAINER_ID=\$(docker run \
-			--rm \
-			--privileged \
-			-v /var/run/docker.sock:/var/run/docker.sock -d \
-			--net={$GLOBALS['network_name']} --name $this->containerName \
-			$cmd_envs \
-			-v {$this->pub_dir_volumes}:{$GLOBALS['shared']}public_tmp/ \
-			-v {$this->root_dir_volumes}:{$GLOBALS['shared']}userdata_tmp/{$_SESSION['User']['id']} \
-			--hostname $this->containerName \
-			-p \$FREE_PORT:{$tool['infrastructure']['container_port']} {$tool['infrastructure']['container_image']});
+		if ($usesGuacamole) {
+				$runContainer = <<<EOF
+					CONTAINER_ID=\$(docker run \
+					--rm \
+					--privileged \
+					-v /var/run/docker.sock:/var/run/docker.sock \
+					-d \
+					--net={$GLOBALS['network_name']} \
+					--name $containerName \
+					$cmd_envs \
+					-v {$this->pub_dir_volumes}:{$GLOBALS['shared']}public_tmp/ \
+					-v {$this->root_dir_volumes}:{$GLOBALS['shared']}userdata_tmp/{$_SESSION['User']['id']} \
+					--hostname $containerName \
+					{$tool['infrastructure']['container_image']});
 		EOF;
+		} else {
+
+			$runContainer = <<<EOF
+				CONTAINER_ID=\$(docker run \
+				--rm \
+				--privileged \
+				-v /var/run/docker.sock:/var/run/docker.sock -d \
+				--net={$GLOBALS['network_name']} --name $this->containerName \
+				$cmd_envs \
+				-v {$this->pub_dir_volumes}:{$GLOBALS['shared']}public_tmp/ \
+				-v {$this->root_dir_volumes}:{$GLOBALS['shared']}userdata_tmp/{$_SESSION['User']['id']} \
+				--hostname $this->containerName \
+				-p \$FREE_PORT:{$tool['infrastructure']['container_port']} {$tool['infrastructure']['container_image']});
+			EOF;
+		}
 
 		$checkContainerStatus = <<<EOF
 	if ! docker top \$CONTAINER_ID &>/dev/null; then
@@ -1115,29 +1179,66 @@ class Tooljob
 		exit 1;
 	fi
 EOF;
+		if ($usesGuacamole) {
+			$reportContainerInfo = <<<EOF
+				CONTAINER_URL="vnc://$containerName:$accessPort"
 
-		$reportContainerInfo = <<<EOF
-	CONTAINER_URL="http://$this->containerName:$container_port"
-	printf '%s | %s\n' "\$(date)" "ContainerID: \$CONTAINER_ID";
-	printf '%s | %s\n' "\$(date)" "ExposedPort: \$FREE_PORT";
-	printf '%s | %s\n' "\$(date)" "ContainerURL: \$CONTAINER_URL";
+				printf '%s | %s\n' "\$(date)" "ContainerID: \$CONTAINER_ID";
+				printf '%s | %s\n' "\$(date)" "AccessMode: guacamole";
+				printf '%s | %s\n' "\$(date)" "VNC endpoint: \$CONTAINER_URL";
+	EOF;
+		} else {
+			$containerPort = $tool['infrastructure']['container_port'];
+			$reportContainerInfo = <<<EOF
+				CONTAINER_URL="http://$this->containerName:$container_port"
+				printf '%s | %s\n' "\$(date)" "ContainerID: \$CONTAINER_ID";
+				printf '%s | %s\n' "\$(date)" "ExposedPort: \$FREE_PORT";
+				printf '%s | %s\n' "\$(date)" "ContainerURL: \$CONTAINER_URL";
+		EOF; 
+				}
+
+		if ($usesGuacamole) {
+			/*
+			* We don't have wget/http to test because this is VNC.
+			* Just wait for the TCP port to become available.
+			*/
+			$monitorContainer = <<<EOF
+				docker logs -f \$CONTAINER_ID &> $this->log_file_virtual &
+
+				printf '%s | %s\n' "\$(date)" "Waiting for VNC service on $containerName:$accessPort...";
+
+				if timeout 420 bash -c 'until (echo > /dev/tcp/$containerName/$accessPort) 2>/dev/null; do sleep 2; done'; then
+					printf '%s | %s\n' "\$(date)" "VNC service UP";
+				else
+					printf '%s | %s\n' "\$(date)" "VNC service TIMEOUT (7 minutes)";
+				fi
+
+				printf '%s | %s\n' "\$(date)" "Waiting while container is running...";
+
+				exit_code="\$(docker wait \$CONTAINER_ID)";
+
+				printf '%s | Container has stopped (exit code = %s) \n' "\$(date)" "\$exit_code";
+
+				echo '# End time:' \$(date) >> $this->log_file_virtual;
+	EOF;
+		} else {
+
+			$monitorContainer = <<<EOF
+			docker logs -f \$CONTAINER_ID &> $this->log_file_virtual &
+			printf '%s | %s\n' "\$(date)" "Waiting for the service URL to become available in the internal network...";
+			if timeout 420 wget --retry-connrefused --tries=10 --waitretry=100 -O /dev/null \$CONTAINER_URL; then
+				printf '%s | %s\n' "\$(date)" "Service UP";
+			else
+				printf '%s | %s\n' "\$(date)" "Service TIMEOUT (7 minutes)";
+			fi
+
+			printf '%s | %s\n' "\$(date)" "Wait while container is running...";
+			exit_code="\$(docker wait \$CONTAINER_ID)";
+			printf '%s | Container has stopped (exit code = %s) \n' "\$(date)" "\$exit_code";
+
+			echo '# End time:' \$(date) >> $this->log_file_virtual;
 EOF;
-
-		$monitorContainer = <<<EOF
-		docker logs -f \$CONTAINER_ID &> $this->log_file_virtual &
-		printf '%s | %s\n' "\$(date)" "Waiting for the service URL to become available in the internal network...";
-		if timeout 420 wget --retry-connrefused --tries=10 --waitretry=100 -O /dev/null \$CONTAINER_URL; then
-			printf '%s | %s\n' "\$(date)" "Service UP";
-		else
-			printf '%s | %s\n' "\$(date)" "Service TIMEOUT (7 minutes)";
-		fi
-
-		printf '%s | %s\n' "\$(date)" "Wait while container is running...";
-		exit_code="\$(docker wait \$CONTAINER_ID)";
-		printf '%s | Container has stopped (exit code = %s) \n' "\$(date)" "\$exit_code";
-
-		echo '# End time:' \$(date) >> $this->log_file_virtual;
-EOF;
+		}
 
 		return $checkEnvironment . "\n" . $configureDockerGroup . "\n" . $runContainer . "\n" . $checkContainerStatus . "\n" . $reportContainerInfo . "\n" . $monitorContainer;
 	}
@@ -1186,7 +1287,7 @@ EOF;
 		}
 
 		$timestamp = date('Y-m-d_H-i-s');
-		$this->containerName = $tool['infrastructure']['container_image'] . "_" . $_SESSION['User']['id'] . "_" . $timestamp;
+		$this->containerName = $tool['infrastructure']['container_image']; #. "_" . $_SESSION['User']['id'] . "_" . $timestamp;
 		$cmd_envs = "";
 		foreach ($tool['infrastructure']['container_env'] as $env_key => $env_value) {
 			$cmd_envs .= "-e $env_key=$env_value ";

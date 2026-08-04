@@ -1355,6 +1355,7 @@ function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$file
 	if ($jobProcess['state'] == "RUNNING" && $job['job_type'] == "interactive") {
 		$fileDummy['pending'] = "ACTIVE SESSION";
 		$fileDummy['toolContainerName'] = $_SESSION['User']['lastjobs'][$pid]['containerName'];
+		$fileDummy['interactiveBackend'] = $job['interactive_backend'];
 	}
 
 	//list job in workspace
