@@ -8,6 +8,7 @@ vault/config/public-key.pem
 vault/file/*
 vault/config/jwt-user-policies.hcl
 vendor/
+guacamole/configuration/extensions
 
 #Volumes environment
 volumes/

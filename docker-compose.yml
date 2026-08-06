@@ -125,6 +125,8 @@ services:
     environment:
       GUACD_HOSTNAME: guacd
       GUACD_PORT: 4822
+      OPENID_CLIENT_SECRET: "${GUACAMOLE_CLIENT_SECRET}"
+
     volumes:
      - ./guacamole/configuration:/etc/guacamole:ro
     networks:
