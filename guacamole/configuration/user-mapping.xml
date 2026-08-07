@@ -1,5 +1,5 @@
 <user-mapping>
-    <authorize username="mferri@bsc.es" password="bsc123">
+    <authorize username="admin" password="admin">
         <connection name="Stata PoC">
             <protocol>vnc</protocol>
             <param name="hostname">stata19web</param>
