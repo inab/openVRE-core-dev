@@ -25,10 +25,20 @@ use Exception;
  */
 final class AuthMiddleware implements MiddlewareInterface
 {
-    public function __construct(
-        private readonly string $jwksFilePath = __DIR__ . '/../../.jwks',
-        private readonly string $userIdClaim = 'email'
-    ) {
+    private const DEFAULT_JWKS_PATH = __DIR__ . '/../../.jwks';
+
+    private readonly string $jwksFilePath;
+    private readonly string $userIdClaim;
+
+    /**
+     * Slim instantiates class-name middleware as `new $class($container)`.
+     * With no DI container that first argument is null, so treat null as
+     * "use the default JWKS path" rather than a typed constructor default.
+     */
+    public function __construct(?string $jwksFilePath = null, string $userIdClaim = 'email')
+    {
+        $this->jwksFilePath = $jwksFilePath ?? self::DEFAULT_JWKS_PATH;
+        $this->userIdClaim = $userIdClaim;
     }
 
     public function process(Request $request, RequestHandler $handler): Response
