@@ -34,5 +34,5 @@ return function (App $app): void {
         $group->get('/{fileId}/download', [FileController::class, 'download']);
         $group->post('/{fileId}/compress', [FileController::class, 'compress']);
         $group->post('/{fileId}/uncompress', [FileController::class, 'uncompress']);
-    })->add(new AuthMiddleware()); // Auth is mandatory for every route in this group
+    })->add(AuthMiddleware::class); // Auth is mandatory for every route in this group
 };
