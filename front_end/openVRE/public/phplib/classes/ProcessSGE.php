@@ -179,7 +179,6 @@ class ProcessSGE
 		exec($command, $r);
 		$res = join(" ", $r);
 		$this->logger->info("Job stopped: " . $res);
-		LoggerFactory::getPersistentLogger()->info("Job {pid} stopped", array("pid" => $pid));
 		if (preg_match('/has deleted/i', $res) || preg_match('/registered the job \d+ for deletion/', $res)) {
 			return array(true, $res);
 		} else {
