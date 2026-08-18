@@ -168,6 +168,7 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 			<script src="assets/global/scripts/datatable.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/datatables/datatables.min.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.js" type="text/javascript"></script>
+			<script src="tools/front/tool_skeleton/assets/js/output.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 		<?php }
 		break;
 	case 'help':
