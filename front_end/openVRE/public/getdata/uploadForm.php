@@ -82,9 +82,11 @@ $includeEgaFiles = false;
 										<li class="uppercase">
 											<a href="#load_from_url" data-toggle="tab"> Load file from an external URL </a>
 										</li>
-										<!-- <li class="uppercase">
-											<a href="#load_from_ega" data-toggle="tab"> Load file from EGA </a>
-										</li> -->
+										<?php if ($includeEgaFiles): ?>
+											<li class="uppercase">
+												<a href="#load_from_ega" data-toggle="tab"> Load file from EGA </a>
+											</li>
+										<?php endif; ?>
 									</ul>
 									<div class="tab-content">
 										<div class="tab-pane active" id="upload_files">
