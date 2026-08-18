@@ -3,8 +3,7 @@
 require_once __DIR__ . "/../../config/bootstrap.php";
 
 redirectOutside();
-$includeEgaFiles = getenv('INCLUDE_EGA_DATASETS') === 'true';
-
+$includeEgaFiles = false;
 
 ?>
 
@@ -83,11 +82,17 @@ $includeEgaFiles = getenv('INCLUDE_EGA_DATASETS') === 'true';
 										<li class="uppercase">
 											<a href="#load_from_url" data-toggle="tab"> Load file from an external URL </a>
 										</li>
+<<<<<<< HEAD
 										<?php if ($includeEgaFiles): ?>
 											<li class="uppercase">
 												<a href="#load_from_ega" data-toggle="tab"> Load file from EGA </a>
 											</li>
 										<?php endif; ?>
+=======
+										<!-- <li class="uppercase">
+											<a href="#load_from_ega" data-toggle="tab"> Load file from EGA </a>
+										</li> -->
+>>>>>>> b36f274 (fix: disable EGA files tab by default)
 									</ul>
 									<div class="tab-content">
 										<div class="tab-pane active" id="upload_files">
