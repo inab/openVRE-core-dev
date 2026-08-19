@@ -1190,7 +1190,7 @@ class Tooljob
 
 		foreach ($tool['infrastructure']['volumes'] as $hostDir => $containerDir) {
 			$userHomeDir = $this->root_dir_volumes . "/" . $this->project;
-			$cmd_envs .= "-v $userHomeDir" . "$hostDir:$containerDir ";
+			$customToolParameters .= "-v $userHomeDir" . "$hostDir:$containerDir ";
 
 			$user = getUserById($_SESSION['User']['_id']);
 			$dataDir = $user['id'] . "/" . $user['activeProject'];
@@ -1205,6 +1205,10 @@ class Tooljob
 			if (!is_dir("$dataDirP" . $hostDir)) {
 				mkdir("$dataDirP" . $hostDir, 0775);
 			}
+		}
+
+		if (!empty($tool['infrastructure']['user'])) {
+			$customToolParameters .= "--user " . escapeshellarg($tool['infrastructure']['user'] . " ");
 		}
 
 		if ($tool['infrastructure']['interactive']) {
@@ -1228,8 +1232,7 @@ class Tooljob
 
 			$cmd =  "docker run --privileged -v /var/run/docker.sock:/var/run/docker.sock -d" .
 				" " . $customToolParameters .
-				" --net " . $GLOBALS['NETWORK_NAME'] .
-				" --memory=" . $tool['infrastructure']['memory'] . "g" .
+				"--memory=" . $tool['infrastructure']['memory'] . "g" .
 				" -v " . $this->pub_dir_volumes . ":" . $GLOBALS['shared'] . "public_tmp/ " .
 				" -v " . $this->root_dir_volumes . ":" . $GLOBALS['shared'] . "userdata_tmp/{$_SESSION['User']['id']}" .
 				" " . $tool['infrastructure']['container_image'] . " $cmd_vre";
