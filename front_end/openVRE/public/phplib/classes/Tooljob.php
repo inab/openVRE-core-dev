@@ -1190,7 +1190,7 @@ class Tooljob
 
 		foreach ($tool['infrastructure']['volumes'] as $hostDir => $containerDir) {
 			$userHomeDir = $this->root_dir_volumes . "/" . $this->project;
-			$cmd_envs .= "-v $userHomeDir" . "$hostDir:$containerDir ";
+			$customToolParameters .= "-v $userHomeDir" . "$hostDir:$containerDir ";
 
 			$user = getUserById($_SESSION['User']['_id']);
 			$dataDir = $user['id'] . "/" . $user['activeProject'];
@@ -1205,6 +1205,10 @@ class Tooljob
 			if (!is_dir("$dataDirP" . $hostDir)) {
 				mkdir("$dataDirP" . $hostDir, 0775);
 			}
+		}
+
+		if (!empty($tool['infrastructure']['user'])) {
+			$customToolParameters .= "--user " . escapeshellarg($tool['infrastructure']['user'] . " ");
 		}
 
 		if ($tool['infrastructure']['interactive']) {
