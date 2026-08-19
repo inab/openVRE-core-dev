@@ -64,6 +64,7 @@ class Tooljob
 	public $hasExecutionFolder = true;
 
 	private Logger $logger;
+	private Logger $persistentLogger;
 
 
 	/**
@@ -73,6 +74,7 @@ class Tooljob
 	public function __construct($tool, $execution = "", $project = "", $descrip = "", $arguments_exec = [], $output_dir = "")
 	{
 		$this->logger = LoggerFactory::getLogger("Tool job");
+		$this->persistentLogger = LoggerFactory::getPersistentLogger();
 
 		// Setting Tooljob
 		$this->toolId    = $tool['_id'];
@@ -1499,7 +1501,7 @@ class Tooljob
 
 		$pid = execJob($this->working_dir, $this->submission_file, $queue, $cpus, $memory,  $this->stdout_file, $this->stderr_file, $jobManager, $this->toolId, $jobOptions);
 		$this->logger->info("Tool job submitted to SGE queue '$queue' (PID=$pid)");
-		LoggerFactory::getPersistentLogger()->info("Job {pid} for tool {toolId} submitted to SGE queue {queue}", array("toolId" => $this->toolId, "queue" => $queue, "pid" => $pid));
+		$this->persistentLogger->info("Tool job submitted to SGE queue {queue} with PID={pid}", array("queue" => $queue, "pid" => $pid));
 
 		$this->pid = $pid;
 		return $pid;
