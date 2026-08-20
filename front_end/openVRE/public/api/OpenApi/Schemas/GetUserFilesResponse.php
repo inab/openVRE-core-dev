@@ -25,7 +25,7 @@ class GetUserFilesResponse
     #[OA\Property(description: 'Total number of files available for this user', type: 'integer', minimum: 0)]
     public int $total;
 
-    /** @var FileItem[] */
+    /** @var FileDto[] */
     #[OA\Property(type: 'array', items: new OA\Items(ref: '#/components/schemas/FileItem'))]
     public array $files;
 }
