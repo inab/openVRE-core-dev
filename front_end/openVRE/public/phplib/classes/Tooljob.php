@@ -1057,7 +1057,7 @@ class Tooljob
 		return $this->getInteractiveAccessMode($tool) === 'guacamole';
 	}
 
-	protected function setBashCommandDockerSgeInteractive($tool, $cmd_envs)
+	protected function setBashCommandDockerSgeInteractive($tool, $customToolParameters)
 	{
 		$this->job_type = "interactive";
 		
@@ -1223,28 +1223,39 @@ EOF;
 	EOF;
 		} else {
 
-			$monitorContainer = <<<EOF
+		$monitorContainer = <<<EOF
 			docker logs -f \$CONTAINER_ID &> $this->log_file_virtual &
+			CONTAINER_URL="http://$this->containerName:$container_port";
+			EXIT_CODE_FILE="/tmp/exit_code_$this->containerName"
 			printf '%s | %s\n' "\$(date)" "Waiting for the service URL to become available in the internal network...";
-			if timeout 420 wget --retry-connrefused --tries=10 --waitretry=100 -O /dev/null \$CONTAINER_URL; then
+			if timeout 420 wget --retry-connrefused --tries=0 --wait=7 -O /dev/null \$CONTAINER_URL; then
 				printf '%s | %s\n' "\$(date)" "Service UP";
 			else
 				printf '%s | %s\n' "\$(date)" "Service TIMEOUT (7 minutes)";
 			fi
 
+			cleanup() {
+				printf '%s | %s\n' "\$(date)" "Stop container...";
+				docker stop $this->containerName 2>/dev/null
+				wait $!  2>/dev/null
+				exit_code=$(cat \$EXIT_CODE_FILE)
+				rm -f \$EXIT_CODE_FILE
+				printf '%s | Container has stopped (exit code = %s) \n' "\$(date)" "\$exit_code";
+				exit 0
+			}
+
+			trap cleanup SIGTERM SIGUSR1 SIGUSR2
+
 			printf '%s | %s\n' "\$(date)" "Wait while container is running...";
-			exit_code="\$(docker wait \$CONTAINER_ID)";
-			printf '%s | Container has stopped (exit code = %s) \n' "\$(date)" "\$exit_code";
+			docker wait $this->containerName > \$EXIT_CODE_FILE &
+			wait $!
+		EOF;
 
-			echo '# End time:' \$(date) >> $this->log_file_virtual;
-EOF;
-		}
-
-		return $checkEnvironment . "\n" . $configureDockerGroup . "\n" . $runContainer . "\n" . $checkContainerStatus . "\n" . $reportContainerInfo . "\n" . $monitorContainer;
+		return $cmd . "\n" . $monitorContainer;
 	}
 
 
-	protected function setBashCommandDockerCompose($tool, $cmd_envs)
+	protected function setBashCommandDockerCompose($tool, $customToolParameters)
 	{
 		$this->job_type = "interactive";
 		$dockerComposeFile = $GLOBALS['toolsPath'] . $tool['infrastructure']['docker_path'];
@@ -1275,7 +1286,28 @@ EOF;
 		echo '# End time:' \$(date) >> $this->log_file_virtual;
 		EOF;
 
-		return $cmd . "\n" . $monitorContainer . $cmd_envs;
+		return $cmd . "\n" . $monitorContainer . $customToolParameters;
+	}
+
+
+	protected function isToolRunning()
+	{
+		$ch = curl_init();
+		$defaultInternalPort = 8787;
+		curl_setopt_array($ch, [
+			CURLOPT_URL            => $this->containerName . ":" . $defaultInternalPort,
+			CURLOPT_NOBODY         => true,
+			CURLOPT_TIMEOUT        => 5,
+			CURLOPT_CONNECTTIMEOUT => 5,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_FOLLOWLOCATION => false,
+		]);
+
+		curl_exec($ch);
+		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		curl_close($ch);
+
+		return $httpCode !== 0;
 	}
 
 
@@ -1286,23 +1318,47 @@ EOF;
 			throw new UnexpectedValueException("Tool '$this->toolId' not properly registered.");
 		}
 
-		$timestamp = date('Y-m-d_H-i-s');
-		$this->containerName = $tool['infrastructure']['container_image']; #. "_" . $_SESSION['User']['id'] . "_" . $timestamp;
-		$cmd_envs = "";
+		$this->containerName = $tool['infrastructure']['container_image'] . "_" . $_SESSION['User']['activeProject'];
+		$customToolParameters = "";
+		$envReplacements = ['$this->containerName' => $this->containerName];
 		foreach ($tool['infrastructure']['container_env'] as $env_key => $env_value) {
-			$cmd_envs .= "-e $env_key=$env_value ";
+			$env_value = str_replace(array_keys($envReplacements), array_values($envReplacements), $env_value);
+			$customToolParameters .= "-e $env_key=$env_value ";
 		}
 
 		foreach ($tool['infrastructure']['volumes'] as $hostDir => $containerDir) {
-			$userHomeDir = $GLOBALS['shared'] . "userdata_tmp/{$_SESSION['User']['id']}" . "/" . $this->project;
-			$cmd_envs .= "-v $userHomeDir" . "$hostDir:$containerDir ";
+			$userHomeDir = $this->root_dir_volumes . "/" . $this->project;
+			$customToolParameters .= "-v $userHomeDir" . "$hostDir:$containerDir ";
+
+			$user = getUserById($_SESSION['User']['_id']);
+			$dataDir = $user['id'] . "/" . $user['activeProject'];
+			$upDirId  = createGSDirBNS($dataDir . $hostDir, 1);
+			getProjectLogger()->info("Creating directory:" . $dataDir . $hostDir . "($upDirId)");
+			addMetadataToFile($upDirId, array(
+				"expiration" => -1,
+				"description" => "Uploaded personal data"
+			));
+
+			$dataDirP  = $GLOBALS['dataDir'] . "/$dataDir";
+			if (!is_dir("$dataDirP" . $hostDir)) {
+				mkdir("$dataDirP" . $hostDir, 0775);
+			}
+		}
+
+		if (!empty($tool['infrastructure']['user'])) {
+			$customToolParameters .= "--user " . escapeshellarg($tool['infrastructure']['user'] . " ");
 		}
 
 		if ($tool['infrastructure']['interactive']) {
 			if ($tool['infrastructure']['docker_type'] == "compose") {
-				$cmd = $this->setBashCommandDockerCompose($tool, $cmd_envs);
+				$cmd = $this->setBashCommandDockerCompose($tool, $customToolParameters);
 			} else {
-				$cmd = $this->setBashCommandDockerSgeInteractive($tool, $cmd_envs);
+				if ($this->isToolRunning()) {
+					$toolUrl = $GLOBALS['URL'] . "interactive-tool/" . $this->containerName . "/";
+					$_SESSION['errorData']['Error'][] = "There is already a running instance of this tool at: <a href='$toolUrl' target='_blank'>" . $toolUrl . "</a>";
+				}
+
+				$cmd = $this->setBashCommandDockerSgeInteractive($tool, $customToolParameters);
 			}
 		} else {
 			$cmd_vre = $tool['infrastructure']['executable'] .
@@ -1313,7 +1369,7 @@ EOF;
 
 
 			$cmd =  "docker run --privileged -v /var/run/docker.sock:/var/run/docker.sock -d" .
-				" " . $cmd_envs .
+				" " . $customToolParameters .
 				"--memory=" . $tool['infrastructure']['memory'] . "g" .
 				" -v " . $this->pub_dir_volumes . ":" . $GLOBALS['shared'] . "public_tmp/ " .
 				" -v " . $this->root_dir_volumes . ":" . $GLOBALS['shared'] . "userdata_tmp/{$_SESSION['User']['id']}" .
@@ -1382,9 +1438,9 @@ EOF;
 			" --out_metadata " . $this->stageout_file_virtual .
 			" --log_file "     . $this->log_file_virtual;
 
-		$cmd_envs = "";
+		$customToolParameters = "";
 		foreach ($tool['infrastructure']['container_env'][0] as $env_key => $env_value) {
-			$cmd_envs .= "-e $env_key=$env_value ";
+			$customToolParameters .= "-e $env_key=$env_value ";
 		}
 
 		$vaultKey = $_SESSION['userVaultInfo']['vaultKey'];
@@ -1399,7 +1455,7 @@ EOF;
 		}
 
 		$cmd = "docker run --device /dev/fuse --security-opt apparmor:unconfined --cap-add SYS_ADMIN -v /var/run/docker.sock:/var/run/docker.sock " .
-			" " . $cmd_envs .
+			" " . $customToolParameters .
 			" -v " . $this->pub_dir_host .                            ":" . $GLOBALS['shared'] . "public_tmp/ " .
 			" -v " . $this->root_dir_host . "/" . $_SESSION['User']['id'] . ":" . $GLOBALS['shared'] . "userdata_tmp/" . $_SESSION['User']['id'] .
 			" --tmpfs " . "/clean_files:rw,uid=1000,gid=1000" .
@@ -1581,6 +1637,7 @@ EOF;
 
 		$pid = execJob($this->working_dir, $this->submission_file, $queue, $cpus, $memory,  $this->stdout_file, $this->stderr_file, $jobManager, $this->toolId, $jobOptions);
 		$this->logger->info("Tool job submitted to SGE queue '$queue' (PID=$pid)");
+		LoggerFactory::getPersistentLogger()->info("Job {pid} for tool {toolId} submitted to SGE queue {queue}", array( "toolId" => $this->toolId, "queue" => $queue, "pid" => $pid));
 
 		$this->pid = $pid;
 		return $pid;

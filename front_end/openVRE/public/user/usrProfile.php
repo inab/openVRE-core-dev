@@ -3,6 +3,10 @@
 require __DIR__ . "/../../config/bootstrap.php";
 redirectOutside();
 
+$includeHpc = false;
+$includeEgaFiles = false;
+$includeOpenStack = false;
+
 ?>
 
 <?php require "../htmlib/header.inc.php"; ?>
@@ -339,7 +343,7 @@ redirectOutside();
                                                                 data-original-title="<p align='left' style='margin:0'>Bearer token used to authenticate your access to any platform service.</p>"></i></label>
                                                         <div class="input-group">
                                                             <input id="mt-target-1" type="text" class="form-control"
-                                                                value="<?php echo $_SESSION['userToken']->getToken(); ?>"
+                                                                value="<?php echo $_SESSION['userToken']?->getToken(); ?>"
                                                                 readonly style="background:#fff;">
                                                             <span class="input-group-btn">
                                                                 <button class="btn green mt-clipboard"
@@ -351,14 +355,14 @@ redirectOutside();
                                                         </div>
                                                     </div>
                                                     <input id="exp-token" type="hidden"
-                                                        value="<?php echo $_SESSION['userToken']->getExpires(); ?>">
+                                                        value="<?php echo $_SESSION['userToken']?->getExpires(); ?>">
                                                     <input id="curr-time" type="hidden" value="<?php echo time(); ?>">
                                                     <?php
-                                                    $ed = date('h:i:s A (jS \of F Y)', $_SESSION['userToken']->getExpires());
+                                                    $ed = date('h:i:s A (jS \of F Y)', $_SESSION['userToken']?->getExpires());
                                                     /*$edd = date('h:i:s A (jS \of F Y)');
                                                            print ">>>>>>>>> INI : $edd <br/>";
                             print ">>>>>>>>> EXP : $ed <br/>";*/
-                                                    $expiresIn = $_SESSION['userToken']->getExpires() - time();
+                                                    $expiresIn = $_SERVER['OIDC_access_token_expires'] - time();
                                                     if ($expiresIn > 0)
                                                         $expDate = "Token will expire in " . intval($expiresIn / 60) . " minutes, at $ed";
                                                     else
@@ -375,46 +379,12 @@ redirectOutside();
                                                                 class="form-control" readonly
                                                                 style="background:#fff;" />
                                                             <span class="input-group-btn">
-                                                                <a href="applib/refreshToken.php"
+                                                                <a href="applib/refreshToken.php?force=1"
                                                                     class="btn green button"><i
                                                                         class="fa fa-refresh"></i> Refresh token</a>
                                                             </span>
                                                         </div>
                                                     </div>
-
-
-                                                    <div class="form-group mt-clipboard-container">
-                                                        <label class="control-label">Refresh Token <i
-                                                                class="icon-question tooltips" data-container="body"
-                                                                data-html="true" data-placement="right"
-                                                                data-original-title="<p align='left' style='margin:0'>Token used to refresh an expired access token. It is revoked when used, so access tokens are issued together with a new refresh token</p>"></i></label>
-                                                        <div class="input-group">
-                                                            <input id="mt-target-2" type="text" class="form-control"
-                                                                value="<?php echo $_SESSION['userToken']->getRefreshToken(); ?>"
-                                                                readonly style="background:#fff;">
-                                                            <span class="input-group-btn">
-                                                                <button class="btn green mt-clipboard"
-                                                                    data-clipboard-action="copy"
-                                                                    data-clipboard-target="#mt-target-2"
-                                                                    type="button"><i class="fa fa-copy"></i> Copy to
-                                                                    clipboard </button>
-                                                            </span>
-                                                        </div>
-                                                    </div>
-                                                    <input id="exp-refrtoken" type="hidden"
-                                                        value="<?php echo $_SESSION['userToken']->getExpires() + $_SESSION['userToken']->getValues()['refresh_expires_in']; ?>">
-                                                    <?php
-                                                    ?>
-                                                    <div class="form-group">
-                                                        <label class="control-label">Expiration date <i
-                                                                class="icon-question tooltips" data-container="body"
-                                                                data-html="true" data-placement="right"
-                                                                data-original-title="<p align='left' style='margin:0'>Refresh token expiration time. A new SSO session is required to obtain a new pair of tokens.</p>"></i></label>
-                                                        <input id="refrtoken-exp-date" type="text" value=""
-                                                            class="form-control" readonly style="background:#fff;" />
-                                                    </div>
-
-
                                                     <div class="form-group">
                                                         <label class="control-label">Token User information<i
                                                                 class="icon-question tooltips" data-container="body"
@@ -430,78 +400,104 @@ redirectOutside();
                                                         class="caption-subject font-blue-madison bold uppercase">Linked
                                                         Accounts</span>
 
-                                                    <!-- HPC ACCOUNT 
-                                                    <hr>
-                                                    <img src="https://cdn-icons-png.flaticon.com/512/5225/5225347.png" /
-                                                        style="float: right; height: 50px; margin: 0 50px;">
-                                                    <h4>HPC resources access (via SSH)</h4>
+                                                    <div class="alert alert-info" style="margin-top:20px;">
+                                                        <h4><i class="fa fa-info-circle"></i> Linked Accounts Integration</h4>
 
-                                                    <div style="padding-left: 15px;border-left: 2px solid lightgray;">
-                                                        <?php
-                                                        if (!isset($_SESSION['User']['linked_accounts']['mn'])) { ?>
-                                                            <p>
-                                                                <span style="color: #666;font-weight: bold;">
-                                                                    Do you have an account to an HPC facility?
-                                                                </span>
-                                                                Link it and you'll be able to launch jobs there. Data will
-                                                                be transferred via SSH, from/to your HPC home directory.
-                                                            </p>
-                                                            <div class="row" style="margin-left:30px;">
-                                                                <?php echo generateSSHButtons(); ?>
-                                                            </div>
-                                                        <?php } else {
-                                                        ?>
-                                                            <div class="form-group">
-                                                                <label class="control-label">HPC system Username</label>
-                                                                <br />
-                                                                <input type="text"
-                                                                    value="<?php echo $_SESSION['User']['linked_accounts']['mn']['hpc_username'] ?>"
-                                                                    class="form-control" readonly
-                                                                    style="background:#fff;" />
-                                                            </div>
+                                                        <p>
+                                                            Integration of new external facilities and linked account providers
+                                                            is managed by the main development team.
+                                                        </p>
 
-                                                            <div class="form-group">
-                                                                <label class="control-label">SSH Public Key</label>
-                                                                <br />
-                                                                <input type="text"
-                                                                    value="<?php echo $_SESSION['User']['linked_accounts']['mn']['hpc_pub_key'] ?>"
-                                                                    class="form-control" readonly
-                                                                    style="background:#fff;" />
-                                                            </div>
+                                                        <p>
+                                                            If you would like to connect a new HPC facility, data repository,
+                                                            cloud platform, or any other external service to the VRE, please
+                                                            contact the main developer team to discuss the integration process
+                                                            and technical requirements.
+                                                        </p>
 
-                                                            <div class="form-group">
-                                                                <label class="control-label">SSH Private key</label>
+                                                        <p>
+                                                            The development team will evaluate the request and provide guidance
+                                                            on the supported authentication and connectivity mechanisms.
+                                                        </p>
 
-                                                                <i onclick="this.classList.toggle('fa-eye-slash');x=document.getElementById('priv_key');if (x.style.display === 'none') {x.style.display = 'block';} else {x.style.display = 'none';}"
-                                                                    class="fa fa-eye font-green"
-                                                                    style="margin:10px; font-size:18px"></i>
-                                                                <br />
-                                                                <div style="height:150px;display:none;" id="ssh_priv_key">
-                                                                    <pre><?php echo $_SESSION['User']['linked_accounts']['SSH']['hpc_priv_key'] ?></pre>
-                                                                </div>
-                                                            </div>
-
-                                                            <div class="form-group">
-                                                                <label class="control-label">Creation Time</label>
-                                                                <br />
-                                                                <span class="form-control" readonly
-                                                                    style="background:#fff;"><?php echo $_SESSION['User']['linked_accounts']['SSH']['creation_time']; ?></span>
-                                                            </div>
-
-                                                            <div class="form-group">
-                                                                <a href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=MN&action=update"
-                                                                    class="btn btn-xs green"><i class="fa fa-refresh"></i>
-                                                                    &nbsp; Generate new pair of Keys</a>
-                                                                <a href="<?php echo $GLOBALS['BASEURL']; ?>applib/linkedAccount.php?account=MN&action=delete"
-                                                                    class="btn btn-xs green"><i class="fa fa-trash"></i>
-                                                                    &nbsp; Delete Account</a>
-                                                            </div>
                                                     </div>
-                                                <?php } ?>
-                                                </div> -->
-                                                <!-- END MN ACCOUNT -->
+
+                                                    <!-- HPC ACCOUNT -->
+                                                    <?php if ($includeHpc): ?>
+                                                        <hr>
+                                                        <img src="https://cdn-icons-png.flaticon.com/512/5225/5225347.png" /
+                                                            style="float: right; height: 50px; margin: 0 50px;">
+                                                        <h4>HPC resources access (via SSH)</h4>
+
+                                                        <div style="padding-left: 15px;border-left: 2px solid lightgray;">
+                                                            <?php
+                                                            if (!isset($_SESSION['User']['linked_accounts']['mn'])) { ?>
+                                                                <p>
+                                                                    <span style="color: #666;font-weight: bold;">
+                                                                        Do you have an account to an HPC facility?
+                                                                    </span>
+                                                                    Link it and you'll be able to launch jobs there. Data will
+                                                                    be transferred via SSH, from/to your HPC home directory.
+                                                                </p>
+                                                                <div class="row" style="margin-left:30px;">
+                                                                    <?php echo generateSSHButtons(); ?>
+                                                                </div>
+                                                            <?php } else {
+                                                            ?>
+                                                                <div class="form-group">
+                                                                    <label class="control-label">HPC system Username</label>
+                                                                    <br />
+                                                                    <input type="text"
+                                                                        value="<?php echo $_SESSION['User']['linked_accounts']['mn']['hpc_username'] ?>"
+                                                                        class="form-control" readonly
+                                                                        style="background:#fff;" />
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label class="control-label">SSH Public Key</label>
+                                                                    <br />
+                                                                    <input type="text"
+                                                                        value="<?php echo $_SESSION['User']['linked_accounts']['mn']['hpc_pub_key'] ?>"
+                                                                        class="form-control" readonly
+                                                                        style="background:#fff;" />
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label class="control-label">SSH Private key</label>
+
+                                                                    <i onclick="this.classList.toggle('fa-eye-slash');x=document.getElementById('priv_key');if (x.style.display === 'none') {x.style.display = 'block';} else {x.style.display = 'none';}"
+                                                                        class="fa fa-eye font-green"
+                                                                        style="margin:10px; font-size:18px"></i>
+                                                                    <br />
+                                                                    <div style="height:150px;display:none;" id="ssh_priv_key">
+                                                                        <pre><?php echo $_SESSION['User']['linked_accounts']['SSH']['hpc_priv_key'] ?></pre>
+                                                                    </div>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <label class="control-label">Creation Time</label>
+                                                                    <br />
+                                                                    <span class="form-control" readonly
+                                                                        style="background:#fff;"><?php echo $_SESSION['User']['linked_accounts']['SSH']['creation_time']; ?></span>
+                                                                </div>
+
+                                                                <div class="form-group">
+                                                                    <a href="<?php echo $GLOBALS['BASEURL']; ?>user/linkedAccount.php?account=MN&action=update"
+                                                                        class="btn btn-xs green"><i class="fa fa-refresh"></i>
+                                                                        &nbsp; Generate new pair of Keys</a>
+                                                                    <a href="<?php echo $GLOBALS['BASEURL']; ?>applib/linkedAccount.php?account=MN&action=delete"
+                                                                        class="btn btn-xs green"><i class="fa fa-trash"></i>
+                                                                        &nbsp; Delete Account</a>
+                                                                </div>
+                                                        </div>
+                                                    <?php } ?>
+                                                </div>
+                                            <?php endif; ?>
+                                            <!-- END MN ACCOUNT -->
+
+                                            <!-- EGA ACCOUNT -->
+                                            <?php if ($includeEgaFiles): ?>
                                                 <hr>
-                                                <!-- EGA ACCOUNT -->
                                                 <div>
                                                     <img src="https://static.ega-archive.org/img/logo.png" /
                                                         style="float: right; height: 50px; margin: 0 50px;">
@@ -523,10 +519,12 @@ redirectOutside();
                                                         </div>
                                                     </div>
                                                 </div>
-                                                <!-- END EGA ACCOUNT -->
-                                                <hr>
-                                                <!-- START opnestack ACCOUnt -->
+                                            <?php endif; ?>
+                                            <!-- END EGA ACCOUNT -->
 
+                                            <!-- START opnestack ACCOUnt -->
+                                            <?php if ($includeOpenStack): ?>
+                                                <hr>
                                                 <div hidden style="padding-top: 15px; padding-left: 15px;border-left: 2px solid lightgray;">
                                                     <?php
                                                     if (! isset($_SESSION['User']['linked_accounts']['openstack'])) { ?>
@@ -598,7 +596,8 @@ redirectOutside();
                                                 </div>
                                             <?php } ?>
                                             </div>
-                                            <!-- end openstack account -->
+                                        <?php endif; ?>
+                                        <!-- end openstack account -->
                                         </div>
                                     </div>
                                     <!-- END CHANGE PASSWORD TAB -->
