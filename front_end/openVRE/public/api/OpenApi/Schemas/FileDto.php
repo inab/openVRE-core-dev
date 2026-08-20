@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace OpenVREAPI\OpenApi\Schemas;
 
+use JsonSerializable;
 use OpenApi\Attributes as OA;
 
 #[OA\Schema(
@@ -11,7 +12,7 @@ use OpenApi\Attributes as OA;
     type: 'object',
     required: ['fileId', 'filename', 'format', 'type', 'dataType', 'date', 'size']
 )]
-class FileItem
+final readonly class FileDto implements JsonSerializable
 {
     #[OA\Property(description: 'Unique identifier of the file or directory', type: 'string')]
     public string $fileId;
@@ -41,4 +42,40 @@ class FileItem
 
     #[OA\Property(description: "Current path of the file within the user's storage", type: 'string')]
     public string $path;
+
+    #[OA\Property(description: 'Unique identifier of the parent directory', type: 'string')]
+    public ?string $parentId;
+
+    #[OA\Property(description: 'Tag for a subtype of file/folder', type: 'string', enum: ['file', 'file_unvalidated', 'folder', 'folder_empty', 'folder_uploads', 'folder_repository'])]
+    public string $kind;
+
+
+    public function __construct(
+        string $fileId,
+        string $filename,
+        string $format,
+        string $type,
+        string $dataType,
+        string $date,
+        int $size,
+        string $path,
+        ?string $parentId,
+        string $kind
+    ) {
+        $this->fileId = $fileId;
+        $this->filename = $filename;
+        $this->format = $format;
+        $this->type = $type;
+        $this->dataType = $dataType;
+        $this->date = $date;
+        $this->size = $size;
+        $this->path = $path;
+        $this->parentId = $parentId;
+        $this->kind = $kind;
+    }
+
+    public function jsonSerialize(): array
+    {
+        return get_object_vars($this);
+    }
 }
