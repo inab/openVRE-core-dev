@@ -1089,7 +1089,8 @@ class Tooljob
     	}
 
 		#$containerName = $this->containerName;
-		
+		$networkName = $GLOBALS['NETWORK_NAME'];
+
 		if ($usesGuacamole) {
 			$containerName = $tool['infrastructure']['container_image'];
 			$accessPort = $tool['infrastructure']['interactive_access']['port'] ?? null;
@@ -1144,7 +1145,7 @@ class Tooljob
 					--privileged \
 					-v /var/run/docker.sock:/var/run/docker.sock \
 					-d \
-					--net={$GLOBALS['network_name']} \
+					--net $networkName\
 					--name $containerName \
 					$cmd_envs \
 					-v {$this->pub_dir_volumes}:{$GLOBALS['shared']}public_tmp/ \
@@ -1159,7 +1160,8 @@ class Tooljob
 				--rm \
 				--privileged \
 				-v /var/run/docker.sock:/var/run/docker.sock -d \
-				--net={$GLOBALS['network_name']} --name $this->containerName \
+				--net $networkName\
+				--name $this->containerName \
 				$cmd_envs \
 				-v {$this->pub_dir_volumes}:{$GLOBALS['shared']}public_tmp/ \
 				-v {$this->root_dir_volumes}:{$GLOBALS['shared']}userdata_tmp/{$_SESSION['User']['id']} \
@@ -1250,11 +1252,21 @@ EOF;
 			docker wait $this->containerName > \$EXIT_CODE_FILE &
 			wait $!
 		EOF;
+		}
 
-		return $cmd . "\n" . $monitorContainer;
+		return $checkEnvironment
+    . "\n"
+    . $configureDockerGroup
+    . "\n"
+    . $runContainer
+    . "\n"
+    . $checkContainerStatus
+    . "\n"
+    . $reportContainerInfo
+    . "\n"
+    . $monitorContainer;
 	}
-
-
+	
 	protected function setBashCommandDockerCompose($tool, $customToolParameters)
 	{
 		$this->job_type = "interactive";

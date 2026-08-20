@@ -1,7 +1,7 @@
 services:
   my-mongodb:
     hostname: my-mongodb
-    image: registry.gitlab.bsc.es/impact-cohorte/impd-openvre:mongo
+    image: mongo:8.0
     container_name: my-mongodb
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
@@ -9,15 +9,13 @@ services:
       MONGO_INITDB_USERNAME: ${MONGO_INITDB_USERNAME}
       MONGO_INITDB_PASSWORD: ${MONGO_INITDB_PASSWORD}
       MONGO_MAIN_DB: ${MONGO_MAIN_DB}
-      MONGO_TLS_MODE: ${MONGO_TLS_MODE}
     ports:
       - "${MONGO_PORT}:27017"
-    command: mongod --bind_ip_all --tlsMode ${MONGO_TLS_MODE} # --tlsCertificateKeyFile ${MONGO_CERT_KEYFILE} --tlsCAFile ${MONGO_CA_COMBINED_FILE}
+    command: mongod
     volumes:
       - mongo_data:/data/db:rw
       - ./mongodb/mongo-init.sh:/docker-entrypoint-initdb.d/mongo-init.sh:ro
       - ./mongodb/init_documents:/init_documents:ro
-      - ./mongodb/mongod.conf:/etc/mongo/mongod.conf:ro
     networks:
       net_vre:
         ipv4_address: 172.21.0.10
@@ -64,13 +62,14 @@ services:
         ipv4_address: 172.21.0.12
     restart: on-failure:2
 
+
   front_end:
-    #pull_policy: never
-    image: registry.gitlab.bsc.es/impact-cohorte/impd-openvre:front_end
+    pull_policy: never
     container_name: front_end
     hostname: ${FRONTEND_HOSTNAME}
-    #build:
-      #context: ./front_end/
+    build:
+      context: ./front_end/
+    image: front_end
     environment:
       FRONTEND_HOST_PATH: ${FRONTEND_HOST_PATH}
       KEYCLOAK_CLIENT: ${KEYCLOAK_CLIENT}
@@ -98,7 +97,7 @@ services:
       - ./front_end/openVRE/data:/var/www/html/openVRE/data
       - ./front_end/openVRE/apache/check_tool_access.lua:/opt/docker/etc/httpd/check_tool_access.lua
       - ./front_end/openVRE/apache/server.conf:/opt/docker/etc/httpd/conf.d/10-server.conf
-      - ./tools:/var/www/html/openVRE/public/tools
+      - ./tools/front:/var/www/html/openVRE/public/tools/front
       - ./shared_data:/shared_data
     ports:
       - "${FRONTEND_PORT}:80"
@@ -106,6 +105,7 @@ services:
       net_vre:
         ipv4_address: 172.21.0.14
     restart: on-failure:2
+
 
   guacd:
     container_name: guacd
