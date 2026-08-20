@@ -35,7 +35,7 @@
     }
   },
   "scripts": {
-    "docs": "openapi public/api/ -o public/api/docs/openapi.yaml"
+    "docs": "openapi public/api/ --exclude public/api/index.php --exclude public/api/routes.php --exclude public/api/docs -o public/api/docs/openapi.yaml"
   },
   "config": {
     "sort-packages": true,
