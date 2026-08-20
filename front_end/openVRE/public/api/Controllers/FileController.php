@@ -4,11 +4,12 @@ declare(strict_types=1);
 
 namespace OpenVREAPI\Controllers;
 
+use MongoDB\BSON\UTCDateTime;
+use MongoDB\Client as MongoClient;
+use MongoDB\Collection;
 use OpenApi\Attributes as OA;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
-
-require_once __DIR__ . "/../../phplib/db.inc.php";
 
 /**
  * Handles all file-related endpoints under /files.
@@ -17,12 +18,39 @@ require_once __DIR__ . "/../../phplib/db.inc.php";
  * Bearer token's subject claim (see AuthMiddleware), so a request can only
  * ever act on the caller's own files.
  *
- * All methods are stubs for now — no business logic / processing implemented.
  * OA attributes document the intended contract; docs/openapi.yaml is
  * regenerated from these via `composer run docs`.
  */
 final class FileController
 {
+    private ?MongoClient $mongoClient = null;
+
+
+    private function getMongoClient(): MongoClient
+    {
+        if ($this->mongoClient === null) {
+            $connectionUri = "mongodb://" . getenv('MONGO_CREDENTIALS') . "@" . getenv('MONGO_SERVER') . "/?authSource=" . getenv('MONGO_MAIN_DB');
+
+            $this->mongoClient = new MongoClient($connectionUri, array(
+                'readConcernLevel' => 'local'
+            ), array(
+                'typeMap' => array(
+                    'root'     => 'array',
+                    'document' => 'array',
+                    'array'    => 'array'
+                )
+            ));
+        }
+
+        return $this->mongoClient;
+    }
+
+    private function getCollection(string $name): Collection
+    {
+        return $this->getMongoClient()->selectDatabase(getenv('MONGO_MAIN_DB'))->selectCollection($name);
+    }
+
+
     #[OA\Get(
         path: '/files',
         tags: ['Files'],
@@ -53,20 +81,49 @@ final class FileController
     )]
     public function list(Request $request, Response $response, array $args): Response
     {
+        $userId = $request->getAttribute('userId'); // set by AuthMiddleware from the token's subject claim
+
+
+
         $queryParams = $request->getQueryParams();
         $offset = max(0, (int) ($queryParams['offset'] ?? 0));
         $limit = max(1, (int) ($queryParams['limit'] ?? 50));
 
-        $userId = $request->getAttribute('userId'); // set by AuthMiddleware from the token's subject claim
-        $userDoc = $GLOBALS['usersCol']->findOne(['_id' => $userId], ['projection' => ['id' => 1]]);
-        $filesDoc = $GLOBALS['filesCol']->find(['owner' => $userDoc['id']], ['projection' => ['atime' => 1, 'files' => 1, 'path' => 1, 'size' => 1, 'type' => 1]]);
+        $filter = ['userId' => $userId];
+
+        try {
+            $usersCollection = $this->getCollection('users');
+            $filesCollection = $this->getCollection('files');
+            $metadataFilesCollection = $this->getCollection('filesMetadata');
+            $userDoc = $usersCollection->findOne(['_id' => $userId], ['projection' => ['id' => 1]]);
+            $filter = ['owner' => $userDoc['id']];
+            $total = $filesCollection->countDocuments($filter);
+            $fileDocs = $filesCollection->find($filter, [
+                'projection' => ['_id' => 1, 'files' => 1, 'mtime' => 1, 'parentDir' => 1, 'path' => 1, 'size' => 1, 'type' => 1],
+                'skip' => $offset,
+                'limit' => $limit,
+            ])->toArray();
+
+            $fileIds = array_column($fileDocs, '_id');
+            $metadataFileDocs = $metadataFilesCollection->find(['_id' => ['$in' => $fileIds]], [
+                'projection' => ['data_type' => 1, 'description' => 1, 'format' => 1, 'validated' => 1]
+            ])->toArray();
+            $metadataById = array_column($metadataFileDocs, null, '_id');
+
+            $files = array_map(function ($doc) use ($metadataById) {
+                $merged = array_merge($doc, $metadataById[$doc['_id']] ?? []);
+                return $this->documentToFileItem($merged);
+            }, $fileDocs);
+        } catch (\Throwable $e) {
+            return $this->jsonError($response, 500, 'DATABASE_ERROR', 'Failed to fetch files: ' . $e->getMessage());
+        }
 
         $payload = json_encode([
             'userId' => $userId,
             'offset' => $offset,
             'limit' => $limit,
-            //'total' => $total,
-            'files' => $filesDoc->toArray(),
+            'total' => $total,
+            'files' => $files,
         ], JSON_UNESCAPED_SLASHES);
 
         $response->getBody()->write($payload);
@@ -74,6 +131,38 @@ final class FileController
         return $response
             ->withHeader('Content-Type', 'application/json')
             ->withStatus(200);
+    }
+
+    /**
+     * Maps a raw Mongo document (as an associative array, via find()->toArray())
+     * into the FileItem shape defined in the OpenAPI schema.
+     */
+    private function documentToFileItem(array $doc): array
+    {
+        return [
+            'dataType' => $doc['data_type'] ?? '',
+            'date' => $this->mongoDateToIso($doc['mtime'] ?? null),
+            'fileId' => (string) $doc['_id'],
+            'filename' => basename($doc['path']) ?? null,
+            'format' => $doc['format'] ?? '',
+            'parentId' => $doc['parentDir'] ?? null,
+            'path' => $doc['path'] ?? null,
+            'size' => (int) ($doc['size'] ?? 0),
+            'type' => $doc['type'] ?? '',
+        ];
+    }
+
+    /**
+     * Converts a MongoDB\BSON\UTCDateTime into the Mongo-style ISO 8601
+     * string format used by the OpenAPI schema, e.g. "2026-07-17T11:41:19.000+00:00".
+     */
+    private function mongoDateToIso(?UTCDateTime $date): string
+    {
+        if ($date === null) {
+            return '';
+        }
+
+        return $date->toDateTime()->format('Y-m-d\TH:i:s.v') . '+00:00';
     }
 
     #[OA\Delete(
@@ -216,18 +305,23 @@ final class FileController
         return $this->notImplemented($response, 'uncompressFile');
     }
 
-    private function notImplemented(Response $response, string $operationId): Response
+    private function jsonError(Response $response, int $status, string $code, string $message): Response
     {
         $payload = json_encode([
-            'code' => 'NOT_IMPLEMENTED',
-            'status' => 501,
-            'message' => sprintf('%s has no processing logic yet.', $operationId),
+            'code' => $code,
+            'status' => $status,
+            'message' => $message,
         ], JSON_UNESCAPED_SLASHES);
 
         $response->getBody()->write($payload);
 
         return $response
             ->withHeader('Content-Type', 'application/json')
-            ->withStatus(501);
+            ->withStatus($status);
+    }
+
+    private function notImplemented(Response $response, string $operationId): Response
+    {
+        return $this->jsonError($response, 501, 'NOT_IMPLEMENTED', sprintf('%s has no processing logic yet.', $operationId));
     }
 }
