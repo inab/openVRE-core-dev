@@ -19,7 +19,7 @@ class GetUserFilesResponse
     #[OA\Property(description: 'Number of items skipped for this page of results', type: 'integer', minimum: 0)]
     public int $offset;
 
-    #[OA\Property(description: 'Maximum number of items returned for this page', type: 'integer', minimum: 1)]
+    #[OA\Property(description: 'Maximum number of items returned for this page', type: 'integer', minimum: 1, maximum: 100)]
     public int $limit;
 
     #[OA\Property(description: 'Total number of files available for this user', type: 'integer', minimum: 0)]

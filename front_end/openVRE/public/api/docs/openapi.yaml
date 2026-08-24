@@ -23,10 +23,11 @@ paths:
         -
           name: limit
           in: query
-          description: 'Maximum number of items to return'
+          description: 'Maximum number of items to return (capped at 100)'
           schema:
             type: integer
             default: 50
+            maximum: 100
             minimum: 1
       responses:
         '200':
@@ -366,6 +367,7 @@ components:
         limit:
           description: 'Maximum number of items returned for this page'
           type: integer
+          maximum: 100
           minimum: 1
         total:
           description: 'Total number of files available for this user'
