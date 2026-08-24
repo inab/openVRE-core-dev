@@ -61,8 +61,16 @@ final class FileController
 
         $userId = $request->getAttribute('userId'); // set by AuthMiddleware from the token's subject claim
         $userDoc = $GLOBALS['usersCol']->findOne(['_id' => $userId], ['projection' => ['id' => 1]]);
+        if ($userDoc === null) {
+            return $this->jsonError($response, 404, 'NOT_FOUND', 'User not found');
+        }
 
-        $ownerFilter = ['owner' => $userDoc['id']];
+        $ownerId = $userDoc['id'] ?? null;
+        if ($ownerId === null || $ownerId === '') {
+            return $this->jsonError($response, 404, 'NOT_FOUND', 'User not found');
+        }
+
+        $ownerFilter = ['owner' => $ownerId];
         $total = $GLOBALS['filesCol']->countDocuments($ownerFilter);
         $filesDoc = $GLOBALS['filesCol']->find(
             $ownerFilter,
@@ -231,16 +239,26 @@ final class FileController
 
     private function notImplemented(Response $response, string $operationId): Response
     {
+        return $this->jsonError(
+            $response,
+            501,
+            'NOT_IMPLEMENTED',
+            sprintf('%s has no processing logic yet.', $operationId),
+        );
+    }
+
+    private function jsonError(Response $response, int $status, string $code, string $message): Response
+    {
         $payload = json_encode([
-            'code' => 'NOT_IMPLEMENTED',
-            'status' => 501,
-            'message' => sprintf('%s has no processing logic yet.', $operationId),
+            'code' => $code,
+            'status' => $status,
+            'message' => $message,
         ], JSON_UNESCAPED_SLASHES);
 
         $response->getBody()->write($payload);
 
         return $response
             ->withHeader('Content-Type', 'application/json')
-            ->withStatus(501);
+            ->withStatus($status);
     }
 }
