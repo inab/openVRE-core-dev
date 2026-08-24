@@ -8,7 +8,7 @@ use UnexpectedValueException;
 
 class Tooljob
 {
-	public $_id;
+	public $_id; // directory or file id
 	public $title;
 	public $execution;         // User defined. Correspond to the execution folder name
 	public $project;           // User defined. Correspond to the project
@@ -64,19 +64,22 @@ class Tooljob
 	/**
 	 * Create working directory
 	 */
-	public function createWorking_dir($projectDir)
+	public function createWorkingDir($projectDir)
 	{
 		if (is_null($this->executionDirectories->executionDir)) {
 			$this->logger->error("Cannot create working directory. Not set yet");
 			throw new UnexpectedValueException("Cannot create working directory. Not set yet");
 		}
 
-		$dirPath = str_replace($GLOBALS['userDataDir'] . "/", "", $this->executionDirectories->executionDir);
-		$this->logger->info("Creating execution folder from replacing '" . $GLOBALS['userDataDir'] . "' in ''" . $this->executionDirectories->executionDir . "' and getting '" . $dirPath . "'");
-		if (!is_dir($this->executionDirectories->executionDir)) {
-			$this->_id = 1;
+		if (is_dir($this->executionDirectories->executionDir)) {
+			if (!$this->isInternal) {
+				$this->logger->error("Cannot set job. Requested execution folder (" . basename($this->executionDirectories->executionDir) . ") already exists.");
+				throw new UnexpectedValueException("Cannot set job. Requested execution folder (" . basename($this->executionDirectories->executionDir) . ") already exists.");
+			}
+		} else {
 			if (!$this->isInternal) {
 				try {
+					$dirPath = str_replace($GLOBALS['userDataDir'] . "/", "", $this->executionDirectories->executionDir);
 					$this->_id = createGSDirBNS($projectDir, $dirPath);
 				} catch (UnexpectedValueException $e) {
 					$this->logger->error("Cannot create execution folder: '" . $this->executionDirectories->executionDir . "'");
@@ -89,44 +92,39 @@ class Tooljob
 				throw new UnexpectedValueException("Failed to create directory: '" . $this->executionDirectories->executionDir . "'");
 			}
 
-			chmod($this->executionDirectories->executionDir, 0777);
-			// if exists, recover working dir id
-		} else {
-			if (!$this->isInternal) {
-				$this->logger->error("Cannot set job. Requested execution folder (" . basename($dirPath) . ") already exists.");
-				throw new UnexpectedValueException("Cannot set job. Requested execution folder (" . basename($dirPath) . ") already exists.");
+			if (isset($this->_id)) {
+				$this->setDirMetadata();
 			}
+		}
+	}
 
-			$this->_id = 1;
+
+	private function setDirMetadata()
+	{
+		if (!is_dir($this->executionDirectories->executionDir)) {
+			$this->logger->error("Cannot write and set new execution directory: '" . $this->executionDirectories->executionDir . "' with id '$this->_id'");
+			throw new UnexpectedValueException("Cannot write and set new execution directory: '" . $this->executionDirectories->executionDir . "' with id '$this->_id'");
 		}
 
-		// set dir metadata
-		if ($this->_id != 1) {
-			if (!is_dir($this->executionDirectories->executionDir)) {
-				$this->logger->error("Cannot write and set new execution directory: '" . $this->executionDirectories->executionDir . "' with id '$this->_id'");
-				throw new UnexpectedValueException("Cannot write and set new execution directory: '" . $this->executionDirectories->executionDir . "' with id '$this->_id'");
-			}
+		$input_ids = [];
+		array_walk_recursive($this->input_files, function ($v, $k) use (&$input_ids) {
+			$input_ids[] = $v;
+		});
+		$input_ids = array_unique($input_ids);
+		$projDirMeta = [
+			'description'     => $this->description,
+			'input_files'     => $input_ids,
+			'tool'            => $this->toolId,
+			'submission_file' => $this->executionDirectories->executionSubmissionFile,
+			'log_file'        => $this->executionDirectories->executionLogFile,
+			'arguments'       => array_merge($this->arguments, $this->input_paths_pub)
+		];
 
-			$input_ids = [];
-			array_walk_recursive($this->input_files, function ($v, $k) use (&$input_ids) {
-				$input_ids[] = $v;
-			});
-			$input_ids = array_unique($input_ids);
-			$projDirMeta = [
-				'description'     => $this->description,
-				'input_files'     => $input_ids,
-				'tool'            => $this->toolId,
-				'submission_file' => $this->executionDirectories->executionSubmissionFile,
-				'log_file'        => $this->executionDirectories->executionLogFile,
-				'arguments'       => array_merge($this->arguments, $this->input_paths_pub)
-			];
-
-			try {
-				addMetadataToFile($this->_id, $projDirMeta);
-			} catch (UnexpectedValueException $e) {
-				$this->logger->error("Project folder created. But cannot set metadata for '" . $this->executionDirectories->executionDir . "' with id '$this->_id'");
-				throw new UnexpectedValueException("Project folder created. But cannot set metadata for '" . $this->executionDirectories->executionDir . "' with id '$this->_id'. " . $e->getMessage());
-			}
+		try {
+			addMetadataToFile($this->_id, $projDirMeta);
+		} catch (UnexpectedValueException $e) {
+			$this->logger->error("Project folder created. But cannot set metadata for '" . $this->executionDirectories->executionDir . "' with id '$this->_id'");
+			throw new UnexpectedValueException("Project folder created. But cannot set metadata for '" . $this->executionDirectories->executionDir . "' with id '$this->_id'. " . $e->getMessage());
 		}
 	}
 
@@ -135,7 +133,7 @@ class Tooljob
 	 * Creates tool configuration JSON
 	 * @param array $tool Fill in config file: input_files, arguments and output_files
 	 */
-	public function setConfiguration_file($tool)
+	private function setConfigurationFile($tool)
 	{
 		if (is_null($this->executionDirectories->executionDir)) {
 			$this->logger->error("Cannot create tool configuration file. No 'working_directory' set");
@@ -145,8 +143,8 @@ class Tooljob
 		$data = [
 			'input_files' => [],
 			'arguments' => [
-				["name" => "execution", "value" => $this->jobDirectories->userDir . "/" . $this->project . "/" . $this->execution],
-				["name" => "project", "value" => $this->jobDirectories->userDir . "/" . $this->project . "/" . $this->execution],
+				["name" => "execution", "value" => $this->executionDirectories->executionDir],
+				["name" => "project", "value" => $this->executionDirectories->executionDir],
 				["name" => "description", "value" => $this->description],
 			],
 			'output_files' => []
@@ -206,43 +204,34 @@ class Tooljob
 	}
 
 
-	/**
-	 * Set Arguments
-	 * @param array $arguments Arguments as received from inputs.php
-	 */
-	public function setArguments($arguments, $tool = [])
+	private function checkArguments($arg_name, $arg_value, $tool): void
 	{
-		foreach ($arguments as $arg_name => $arg_value) {
-			if (count($tool)) {
+		if (count($tool)) {
 				// checking coherence between JSON and REQUEST
 				if (is_null($tool['arguments'][$arg_name])) {
 					$this->logger->error("Argument '$arg_name' not found in tool '$this->toolId' definition");
-					$_SESSION['errorData']['Internal'][] = "There was an internal error launching the tool.";
-					redirect($GLOBALS['BASEURL'] . "workspace/");
+					throw new UnexpectedValueException("Argument '$arg_name' not found in tool '$this->toolId' definition");
 				}
 
-				if ($arg_value == "") {
+				if (empty($arg_value)) {
 					if ($tool['arguments'][$arg_name]['required']) {
 						$this->logger->error("No value given for argument '$arg_name'");
-						$_SESSION['errorData']['Internal'][] = "There was an internal error launching the tool.";
-						redirect($GLOBALS['BASEURL'] . "workspace/");
+						throw new UnexpectedValueException("No value given for argument '$arg_name'");
 					}
 
-					continue;
+					return;
 				}
 
 				switch ($tool['arguments'][$arg_name]['type']) {
 					case "enum":
 						if (is_null($tool['arguments'][$arg_name]['enum_items']) || (is_null($tool['arguments'][$arg_name]['enum_items']['name']))) {
 							$this->logger->error("Invalid argument enum in tool definition. '$arg_name' has no 'enum_items' or 'enum_items['name]");
-							$_SESSION['errorData']['Internal'][] = "There was an internal error launching the tool.";
-							redirect($GLOBALS['BASEURL'] . "workspace/");
+							throw new UnexpectedValueException("Invalid argument enum in tool definition. '$arg_name' has no 'enum_items' or 'enum_items['name]");
 						}
 
 						if (!in_array($arg_value, $tool['arguments'][$arg_name]['enum_items']['name'])) {
 							$this->logger->error("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found $arg_value");
-							$_SESSION['errorData']['Internal'][] = "There was an internal error launching the tool.";
-							redirect($GLOBALS['BASEURL'] . "workspace/");
+							throw new UnexpectedValueException("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found $arg_value");
 						}
 
 						break;
@@ -250,8 +239,7 @@ class Tooljob
 					case "enum_multiple":
 						if (is_null($tool['arguments'][$arg_name]['enum_items']) || (is_null($tool['arguments'][$arg_name]['enum_items']['name']))) {
 							$this->logger->error("Invalid argument enum in tool definition. '$arg_name' has no 'enum_items' or 'enum_items['name]");
-							$_SESSION['errorData']['Internal'][] = "There was an internal error launching the tool.";
-							redirect($GLOBALS['BASEURL'] . "workspace/");
+							throw new UnexpectedValueException("Invalid argument enum in tool definition. '$arg_name' has no 'enum_items' or 'enum_items['name]");
 						}
 
 						if (!is_array($arg_value)) {
@@ -261,8 +249,7 @@ class Tooljob
 						foreach ($arg_value as $v) {
 							if (!in_array($v, $tool['arguments'][$arg_name]['enum_items']['name'])) {
 								$this->logger->error("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found " . implode(", ", $arg_value));
-								$_SESSION['errorData']['Internal'][] = "There was an internal error launching the tool.";
-								redirect($GLOBALS['BASEURL'] . "workspace/");
+								throw new UnexpectedValueException("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found " . implode(", ", $arg_value));
 							}
 						}
 
@@ -274,10 +261,8 @@ class Tooljob
 						} elseif ($arg_value === false || $arg_value == "off" || $arg_value == "0" || $arg_value == 0) {
 							$arg_value = false;
 						} else {
-							$_SESSION['errorData']['Error'][] = "Invalid argument. In '$arg_name' a boolean was expected, but found: $arg_value";
 							$this->logger->error("Invalid argument. In '$arg_name' a boolean was expected, but found: $arg_value");
-							$_SESSION['errorData']['Internal'][] = "There was an internal error launching the tool.";
-							redirect($GLOBALS['BASEURL'] . "workspace/");
+							throw new UnexpectedValueException("Invalid argument. In '$arg_name' a boolean was expected, but found: $arg_value");
 						}
 
 						break;
@@ -285,8 +270,7 @@ class Tooljob
 					case "integer":
 						if (!is_numeric($arg_value)) {
 							$this->logger->error("Invalid argument. In '$arg_name' an integer was expected, but found: $arg_value");
-							$_SESSION['errorData']['Internal'][] = "There was an internal error launching the tool.";
-							redirect($GLOBALS['BASEURL'] . "workspace/");
+							throw new UnexpectedValueException("Invalid argument. In '$arg_name' an integer was expected, but found: $arg_value");
 						}
 
 						$arg_value = intval($arg_value);
@@ -295,8 +279,7 @@ class Tooljob
 					case "number":
 						if (!is_numeric($arg_value)) {
 							$this->logger->error("Invalid argument. In '$arg_name' a number was expected, but found: $arg_value");
-							$_SESSION['errorData']['Internal'][] = "There was an internal error launching the tool.";
-							redirect($GLOBALS['BASEURL'] . "workspace/");
+							throw new UnexpectedValueException("Invalid argument. In '$arg_name' a number was expected, but found: $arg_value");
 						}
 
 						break;
@@ -305,8 +288,7 @@ class Tooljob
 					case "string":
 						if (is_array($arg_value)) {
 							$this->logger->error("Invalid argument. In '$arg_name' a string was expected, but found an array: " . implode(",", $arg_value));
-							$_SESSION['errorData']['Internal'][] = "There was an internal error launching the tool.";
-							redirect($GLOBALS['BASEURL'] . "workspace/");
+							throw new UnexpectedValueException("Invalid argument. In '$arg_name' a string was expected, but found an array: " . implode(",", $arg_value));
 						}
 
 						$arg_value = strval($arg_value);
@@ -314,11 +296,20 @@ class Tooljob
 
 					default:
 						$this->logger->error("Invalid argument type in tool definition. '$arg_name' is of type " . $tool['arguments'][$arg_name]['type']);
-						$_SESSION['errorData']['Internal'][] = "There was an internal error launching the tool.";
-						redirect($GLOBALS['BASEURL'] . "workspace/");
+						throw new UnexpectedValueException("Invalid argument type in tool definition. '$arg_name' is of type " . $tool['arguments'][$arg_name]['type']);
 				}
 			}
+	}
 
+
+	/**
+	 * Set Arguments
+	 * @param array $arguments Arguments as received from inputs.php
+	 */
+	public function setArguments($arguments, $tool = [])
+	{
+		foreach ($arguments as $arg_name => $arg_value) {
+			$this->checkArguments($arg_name, $arg_value, $tool);
 			$this->arguments[$arg_name] = $arg_value;
 		}
 	}
@@ -721,7 +712,7 @@ class Tooljob
 				throw new UnexpectedValueException("Internal tool not properly registered. Launcher for '" . $this->toolId . "' is set to \"" . $this->launcher->value . "\". Case not implemented.");
 			}
 		} else {
-			$this->setConfiguration_file($tool);
+			$this->setConfigurationFile($tool);
 			$this->setMetadata_file($metadata, $metadata_pub);
 			if (!is_file($this->executionDirectories->executionConfigFile) && !is_file($this->executionDirectories->executionMetadataFile)) {
 				$this->logger->error("Cannot set tool command line. It required configuration file ($this->executionDirectories->executionConfigFile) and metadata file ($this->executionDirectories->executionMetadataFile)");
