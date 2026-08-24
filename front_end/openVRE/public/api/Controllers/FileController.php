@@ -21,6 +21,10 @@ use Psr\Http\Message\ServerRequestInterface as Request;
  */
 final class FileController
 {
+    private const DEFAULT_LIMIT = 50;
+
+    private const MAX_LIMIT = 100;
+
     #[OA\Get(
         path: '/files',
         tags: ['Files'],
@@ -34,8 +38,8 @@ final class FileController
             new OA\Parameter(
                 name: 'limit',
                 in: 'query',
-                description: 'Maximum number of items to return',
-                schema: new OA\Schema(type: 'integer', minimum: 1, default: 50)
+                description: 'Maximum number of items to return (capped at 100)',
+                schema: new OA\Schema(type: 'integer', minimum: 1, maximum: 100, default: 50)
             ),
         ],
         responses: [
@@ -53,17 +57,28 @@ final class FileController
     {
         $queryParams = $request->getQueryParams();
         $offset = max(0, (int) ($queryParams['offset'] ?? 0));
-        $limit = max(1, (int) ($queryParams['limit'] ?? 50));
+        $limit = min(self::MAX_LIMIT, max(1, (int) ($queryParams['limit'] ?? self::DEFAULT_LIMIT)));
 
         $userId = $request->getAttribute('userId'); // set by AuthMiddleware from the token's subject claim
         $userDoc = $GLOBALS['usersCol']->findOne(['_id' => $userId], ['projection' => ['id' => 1]]);
-        $filesDoc = $GLOBALS['filesCol']->find(['owner' => $userDoc['id']], ['projection' => ['atime' => 1, 'files' => 1, 'path' => 1, 'size' => 1, 'type' => 1]]);
+
+        $ownerFilter = ['owner' => $userDoc['id']];
+        $total = $GLOBALS['filesCol']->countDocuments($ownerFilter);
+        $filesDoc = $GLOBALS['filesCol']->find(
+            $ownerFilter,
+            [
+                'projection' => ['atime' => 1, 'files' => 1, 'path' => 1, 'size' => 1, 'type' => 1],
+                'sort' => ['path' => 1],
+                'skip' => $offset,
+                'limit' => $limit,
+            ]
+        );
 
         $payload = json_encode([
             'userId' => $userId,
             'offset' => $offset,
             'limit' => $limit,
-            //'total' => $total,
+            'total' => $total,
             'files' => $filesDoc->toArray(),
         ], JSON_UNESCAPED_SLASHES);
 
