@@ -130,7 +130,7 @@ function launchToolInternal($toolId, $projectDir, $args = [], $outs = [], $outpu
 
 	$args['working_dir'] = $jobMeta->executionDirectories->executionDir; // hardcoded at wget tool JSON
 	$jobMeta->setArguments($args, $tool);
-	$jobMeta->createWorking_dir($projectDir);
+	$jobMeta->createWorkingDir($projectDir);
 
 	// Set outfiles metadata -- for register latter
 	$jobMeta->setStageout_data($outs);

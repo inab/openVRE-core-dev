@@ -99,7 +99,7 @@ function launchTool($toolId, $userEmail, $projectName, $inputFilepaths)
         return 0;
     }
 
-    $workDirId = $jobMeta->createWorking_dir();
+    $workDirId = $jobMeta->createWorkingDir();
     if (!$workDirId) {
         $_SESSION['errorData']['Error'][] = "Error creating working dir.";
         return 0;

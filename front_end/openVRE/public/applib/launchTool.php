@@ -125,7 +125,7 @@ if ($_REQUEST['input_files_public_dir']) {
 }
 
 try {
-	$jobMeta->createWorking_dir($user->getActiveProject());
+	$jobMeta->createWorkingDir($user->getActiveProject());
 } catch (Exception $e) {
 	$logger->error("Cannot create working directory.");
 	redirect($GLOBALS['BASEURL'] . "workspace/");
