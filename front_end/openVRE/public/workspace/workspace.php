@@ -63,7 +63,7 @@ if (isset($_REQUEST['op'])) {
 				downloadFile($rfn);
 				exit(0);
 			} else {
-				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to download file " . $_REQUEST['fn']);
+				getWorkspaceLogger()->error("User " . $_SESSION['internalUserId'] . " does not have permission to download file " . $_REQUEST['fn']);
 				throw new UnexpectedValueException("User not allowed to download file " . $_REQUEST['fn']);
 			}
 
@@ -98,7 +98,7 @@ if (isset($_REQUEST['op'])) {
 				unlink($tmpZip);
 				exit(0);
 			} else {
-				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to download files.");
+				getWorkspaceLogger()->error("User " . $_SESSION['internalUserId'] . " does not have permission to download files.");
 				throw new UnexpectedValueException("User not allowed to download files.");
 			}
 
@@ -129,7 +129,7 @@ if (isset($_REQUEST['op'])) {
 				unlink($tmpZip);
 				exit(0);
 			} else {
-				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to download files.");
+				getWorkspaceLogger()->error("User " . $_SESSION['internalUserId'] . " does not have permission to download files.");
 				throw new UnexpectedValueException("User not allowed to download files.");
 			}
 
@@ -148,7 +148,7 @@ if (isset($_REQUEST['op'])) {
 <?php
 				exit;
 			} else {
-				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to edit files.");
+				getWorkspaceLogger()->error("User " . $_SESSION['internalUserId'] . " does not have permission to edit files.");
 				throw new UnexpectedValueException("User not allowed to edit files.");
 			}
 
@@ -178,7 +178,7 @@ if (isset($_REQUEST['op'])) {
 				print passthru("/bin/cat \"$rfn\"");
 				exit(0);
 			} else {
-				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to read files.");
+				getWorkspaceLogger()->error("User " . $_SESSION['internalUserId'] . " does not have permission to read files.");
 				throw new UnexpectedValueException("User not allowed to read files.");
 			}
 
@@ -216,7 +216,7 @@ if (isset($_REQUEST['op'])) {
 				print passthru("/bin/cat \"$rfn\"");
 				exit;
 			} else {
-				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to read files.");
+				getWorkspaceLogger()->error("User " . $_SESSION['internalUserId'] . " does not have permission to read files.");
 				throw new UnexpectedValueException("User not allowed to read files.");
 			}
 

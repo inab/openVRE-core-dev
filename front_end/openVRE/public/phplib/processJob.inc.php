@@ -26,7 +26,7 @@ function execJob($workDir, $shFile, $queue, $jobManager, $cpus = 1, $mem = 0, $j
 
     if (is_null($_SESSION['internalUserId'])) {
         getJobProcessLogger()->error("User ID not found in session.");
-        LoggerFactory::getPersistentLogger()->error("User ID {userId} not found in session.", array('userId' => $_SESSION['User']['id']));
+        LoggerFactory::getPersistentLogger()->error("User ID {userId} not found in session.", array('userId' => $_SESSION['internalUserId']));
         throw new NotFoundException("User ID not found in session.");
     }
 

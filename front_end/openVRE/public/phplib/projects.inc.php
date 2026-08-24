@@ -422,7 +422,7 @@ function addTreeTableNodesToFiles($filesAll)
 	unset($file);
 
 	$printOrder = array();
-	$rootId = $_SESSION['User']['dataDir'];
+	$rootId = $GLOBALS['userDataDir'];
 	$rootData = getGSFile_fromId($rootId);
 
 	$n = 1;
@@ -2295,7 +2295,7 @@ function ensureDirRegistered($relativePath, $projectId, $parentDirId)
 	$mongoDirDocument = array(
 		'_id'       => $dirId,
 		'mtime'     => new MongoDB\BSON\UTCDateTime(strtotime("now") * 1000),
-		'owner'     => $_SESSION['User']['id'],
+		'owner'     => $_SESSION['internalUserId'],
 		'path'      => $relativePath,
 		'project'   => $projectId,
 		'parentDir' => $parentDirId,
@@ -2330,7 +2330,7 @@ function ensureFileRegistered($relativePath, $fullPath, $projectId, $parentDirId
 	$mongoFileDocument = array(
 		'_id'       => $fileId,
 		'mtime'     => new MongoDB\BSON\UTCDateTime(strtotime("now") * 1000),
-		'owner'     => $_SESSION['User']['id'],
+		'owner'     => $_SESSION['internalUserId'],
 		'size'      => filesize($fullPath),
 		'path'      => $relativePath,
 		'project'   => $projectId,

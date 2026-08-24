@@ -2,6 +2,7 @@
 
 namespace OpenVRE;
 
+use MongoDB\BSON\UTCDateTime;
 use Monolog\Logger;
 use UnexpectedValueException;
 
@@ -207,109 +208,109 @@ class Tooljob
 	private function checkArguments($arg_name, $arg_value, $tool): void
 	{
 		if (count($tool)) {
-				// checking coherence between JSON and REQUEST
-				if (is_null($tool['arguments'][$arg_name])) {
-					$this->logger->error("Argument '$arg_name' not found in tool '$this->toolId' definition");
-					throw new UnexpectedValueException("Argument '$arg_name' not found in tool '$this->toolId' definition");
+			// checking coherence between JSON and REQUEST
+			if (is_null($tool['arguments'][$arg_name])) {
+				$this->logger->error("Argument '$arg_name' not found in tool '$this->toolId' definition");
+				throw new UnexpectedValueException("Argument '$arg_name' not found in tool '$this->toolId' definition");
+			}
+
+			if (empty($arg_value)) {
+				if ($tool['arguments'][$arg_name]['required']) {
+					$this->logger->error("No value given for argument '$arg_name'");
+					throw new UnexpectedValueException("No value given for argument '$arg_name'");
 				}
 
-				if (empty($arg_value)) {
-					if ($tool['arguments'][$arg_name]['required']) {
-						$this->logger->error("No value given for argument '$arg_name'");
-						throw new UnexpectedValueException("No value given for argument '$arg_name'");
+				return;
+			}
+
+			switch ($tool['arguments'][$arg_name]['type']) {
+				case "enum":
+					//Values as string
+					if (is_array($arg_value)) {
+						$arg_value = reset($arg_value); // take first value
+					}
+					$arg_value = strval($arg_value);
+
+					//If enum exists then validate
+
+					if (isset($tool['arguments'][$arg_name]['enum_items']) && (isset($tool['arguments'][$arg_name]['enum_items']['name']))) {
+						if (!in_array($arg_value, $tool['arguments'][$arg_name]['enum_items']['name'])) {
+							$this->logger->error("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found $arg_value");
+							throw new UnexpectedValueException("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found $arg_value");
+						}
+					} else {
+						//No enum definition
+						// Treat it as a string
+						if (!is_string($arg_value)) {
+							$this->logger->info("Enum '$arg_name' has no enum_items defined. Treated as string..");
+						}
 					}
 
-					return;
-				}
+					break;
 
-				switch ($tool['arguments'][$arg_name]['type']) {
-					case "enum":
-						//Values as string
-						if (is_array($arg_value)) {
-							$arg_value = reset($arg_value); // take first value
+				case "enum_multiple":
+					if (is_null($tool['arguments'][$arg_name]['enum_items']) || (is_null($tool['arguments'][$arg_name]['enum_items']['name']))) {
+						$this->logger->error("Invalid argument enum in tool definition. '$arg_name' has no 'enum_items' or 'enum_items['name]");
+						throw new UnexpectedValueException("Invalid argument enum in tool definition. '$arg_name' has no 'enum_items' or 'enum_items['name]");
+					}
+
+					if (!is_array($arg_value)) {
+						$arg_value = [$arg_value];
+					}
+
+					foreach ($arg_value as $v) {
+						if (!in_array($v, $tool['arguments'][$arg_name]['enum_items']['name'])) {
+							$this->logger->error("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found " . implode(", ", $arg_value));
+							throw new UnexpectedValueException("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found " . implode(", ", $arg_value));
 						}
-						$arg_value = strval($arg_value);
+					}
 
-						//If enum exists then validate
+					break;
 
-						if (isset($tool['arguments'][$arg_name]['enum_items']) && (isset($tool['arguments'][$arg_name]['enum_items']['name']))) {
-							if (!in_array($arg_value, $tool['arguments'][$arg_name]['enum_items']['name'])) {
-								$this->logger->error("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found $arg_value");
-								throw new UnexpectedValueException("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found $arg_value");
-							}
-						} else {
-							//No enum definition
-							// Treat it as a string
-							if (!is_string($arg_value)) {
-								$this->logger->info("Enum '$arg_name' has no enum_items defined. Treated as string..");
-							}
-						}
+				case "boolean":
+					if ($arg_value === true || $arg_value == "on" || $arg_value == "1" || $arg_value == 1) {
+						$arg_value = true;
+					} elseif ($arg_value === false || $arg_value == "off" || $arg_value == "0" || $arg_value == 0) {
+						$arg_value = false;
+					} else {
+						$this->logger->error("Invalid argument. In '$arg_name' a boolean was expected, but found: $arg_value");
+						throw new UnexpectedValueException("Invalid argument. In '$arg_name' a boolean was expected, but found: $arg_value");
+					}
 
-						break;
+					break;
 
-					case "enum_multiple":
-						if (is_null($tool['arguments'][$arg_name]['enum_items']) || (is_null($tool['arguments'][$arg_name]['enum_items']['name']))) {
-							$this->logger->error("Invalid argument enum in tool definition. '$arg_name' has no 'enum_items' or 'enum_items['name]");
-							throw new UnexpectedValueException("Invalid argument enum in tool definition. '$arg_name' has no 'enum_items' or 'enum_items['name]");
-						}
+				case "integer":
+					if (!is_numeric($arg_value)) {
+						$this->logger->error("Invalid argument. In '$arg_name' an integer was expected, but found: $arg_value");
+						throw new UnexpectedValueException("Invalid argument. In '$arg_name' an integer was expected, but found: $arg_value");
+					}
 
-						if (!is_array($arg_value)) {
-							$arg_value = [$arg_value];
-						}
+					$arg_value = intval($arg_value);
+					break;
 
-						foreach ($arg_value as $v) {
-							if (!in_array($v, $tool['arguments'][$arg_name]['enum_items']['name'])) {
-								$this->logger->error("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found " . implode(", ", $arg_value));
-								throw new UnexpectedValueException("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found " . implode(", ", $arg_value));
-							}
-						}
+				case "number":
+					if (!is_numeric($arg_value)) {
+						$this->logger->error("Invalid argument. In '$arg_name' a number was expected, but found: $arg_value");
+						throw new UnexpectedValueException("Invalid argument. In '$arg_name' a number was expected, but found: $arg_value");
+					}
 
-						break;
+					break;
 
-					case "boolean":
-						if ($arg_value === true || $arg_value == "on" || $arg_value == "1" || $arg_value == 1) {
-							$arg_value = true;
-						} elseif ($arg_value === false || $arg_value == "off" || $arg_value == "0" || $arg_value == 0) {
-							$arg_value = false;
-						} else {
-							$this->logger->error("Invalid argument. In '$arg_name' a boolean was expected, but found: $arg_value");
-							throw new UnexpectedValueException("Invalid argument. In '$arg_name' a boolean was expected, but found: $arg_value");
-						}
+				case "hidden":
+				case "string":
+					if (is_array($arg_value)) {
+						$this->logger->error("Invalid argument. In '$arg_name' a string was expected, but found an array: " . implode(",", $arg_value));
+						throw new UnexpectedValueException("Invalid argument. In '$arg_name' a string was expected, but found an array: " . implode(",", $arg_value));
+					}
 
-						break;
+					$arg_value = strval($arg_value);
+					break;
 
-					case "integer":
-						if (!is_numeric($arg_value)) {
-							$this->logger->error("Invalid argument. In '$arg_name' an integer was expected, but found: $arg_value");
-							throw new UnexpectedValueException("Invalid argument. In '$arg_name' an integer was expected, but found: $arg_value");
-						}
-
-						$arg_value = intval($arg_value);
-						break;
-
-					case "number":
-						if (!is_numeric($arg_value)) {
-							$this->logger->error("Invalid argument. In '$arg_name' a number was expected, but found: $arg_value");
-							throw new UnexpectedValueException("Invalid argument. In '$arg_name' a number was expected, but found: $arg_value");
-						}
-
-						break;
-
-					case "hidden":
-					case "string":
-						if (is_array($arg_value)) {
-							$this->logger->error("Invalid argument. In '$arg_name' a string was expected, but found an array: " . implode(",", $arg_value));
-							throw new UnexpectedValueException("Invalid argument. In '$arg_name' a string was expected, but found an array: " . implode(",", $arg_value));
-						}
-
-						$arg_value = strval($arg_value);
-						break;
-
-					default:
-						$this->logger->error("Invalid argument type in tool definition. '$arg_name' is of type " . $tool['arguments'][$arg_name]['type']);
-						throw new UnexpectedValueException("Invalid argument type in tool definition. '$arg_name' is of type " . $tool['arguments'][$arg_name]['type']);
-				}
+				default:
+					$this->logger->error("Invalid argument type in tool definition. '$arg_name' is of type " . $tool['arguments'][$arg_name]['type']);
+					throw new UnexpectedValueException("Invalid argument type in tool definition. '$arg_name' is of type " . $tool['arguments'][$arg_name]['type']);
 			}
+		}
 	}
 
 
@@ -467,8 +468,8 @@ class Tooljob
 						$source_path = getAttr_fromGSFileId($sourceid, "path");
 						$this->logger->debug("DEBUG: Source ID: $sourceid -> Path: " . $source_path);
 						if ($source_path) {
-							$this->logger->debug("DEBUG: Full source path: " . $this->root_dir_virtual . "/" . $source_path);
-							array_push($source_list, $this->root_dir_virtual . "/" . $source_path);
+							$this->logger->debug("DEBUG: Full source path: " . $this->jobDirectories->userDir . "/" . $source_path);
+							array_push($source_list, $this->jobDirectories->userDir . "/" . $source_path);
 						}
 					}
 				}
@@ -519,17 +520,13 @@ class Tooljob
 		fclose($file);
 	}
 
-
-	/**
-	 * Creates metadata JSON for results, since the file is on remote_path and can't be syncronized
-	 */
 	/**
 	 * Creates metadata JSON for results, considering remote paths and input sources.
 	 */
 	public function setResults_file($metadata)
 	{
-		if (!$this->working_dir) {
-			$_SESSION['errorData']['Internal Error'][] = "Cannot create results file. No 'working_dir' set";
+		if (!$this->executionDirectories->executionDir) {
+			$_SESSION['errorData']['Internal Error'][] = "Cannot create results file. No 'executionDir' set";
 			return 0;
 		}
 
@@ -542,7 +539,7 @@ class Tooljob
 
 			// Add local file path to sources
 			if (!empty($fileMuG['file_path'])) {
-				$sources[] = rtrim($this->root_dir_virtual, '/') . '/' . ltrim($fileMuG['file_path'], '/');
+				$sources[] = rtrim($this->jobDirectories->userDir, '/') . '/' . ltrim($fileMuG['file_path'], '/');
 			}
 
 			// Determine remote base path from the first remote_path
@@ -557,7 +554,7 @@ class Tooljob
 		}
 
 		// Load configuration file
-		$config = json_decode(file_get_contents($this->config_file), true);
+		$config = json_decode(file_get_contents($this->executionDirectories->executionConfigFile), true);
 		if (!$config || empty($config['output_files'])) {
 			$_SESSION['errorData']['Internal Error'][] = "Invalid config file or missing output_files";
 			return 0;
@@ -568,7 +565,7 @@ class Tooljob
 		foreach ($config['output_files'] as $out) {
 			$fileName = $out['name'] . "." . strtolower($out['file']['file_type'] ?? "txt");
 
-			$localOutputPath = rtrim($this->root_dir_virtual, '/') . '/' . $this->execution . "/" . $fileName;
+			$localOutputPath = rtrim($this->jobDirectories->userDir, '/') . '/' . $this->execution . "/" . $fileName;
 
 			$entry = [
 				"name"       => $out['name'],
@@ -589,7 +586,7 @@ class Tooljob
 				$parent_path = getAttr_fromGSFileId($out['meta_data']['parentDir'], "path");
 				if ($parent_path) {
 					$this->logger->debug("ParentDir ID: " . $out['meta_data']['parentDir'] . " -> Path: " . $parent_path);
-					$entry['meta_data']['parentDir'] = rtrim($this->root_dir_virtual, '/') . '/' . ltrim($parent_path, '/');
+					$entry['meta_data']['parentDir'] = rtrim($this->jobDirectories->userDir, '/') . '/' . ltrim($parent_path, '/');
 				}
 			}
 
@@ -621,7 +618,7 @@ class Tooljob
 		$this->logger->debug(json_encode($output_files, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
 
 		$results = ["output_files" => $output_files];
-		$resultsFile = rtrim($this->working_dir, '/') . "/.results.json";
+		$resultsFile = rtrim($this->executionDirectories->executionDir, '/') . "/.results.json";
 
 		$this->logger->debug("Writing results file to: " . $resultsFile);
 
@@ -635,17 +632,14 @@ class Tooljob
 
 		$this->logger->debug("Results file written to: " . $resultsFile);
 		$this->logger->debug("FINAL RESULTS JSON:\n" . json_encode($results, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
-
-		// Automatically set stageout_file to results JSON path
-		$this->stageout_file = $resultsFile;
 	}
 
 
 	public function setToolLog_file($metadata)
 	{
-		if (!$this->working_dir) {
-			$this->logger->error("Cannot create tool log file. No 'working_dir' set");
-			throw new UnexpectedValueException('Cannot create tool log file. No "working_dir" set');
+		if (!$this->executionDirectories->executionDir) {
+			$this->logger->error("Cannot create tool log file. No 'executionDir' set");
+			throw new UnexpectedValueException('Cannot create tool log file. No "executionDir" set');
 		}
 
 		// -----------------------------
@@ -668,15 +662,16 @@ class Tooljob
 		// -----------------------------
 		// 2. Define local log path
 		// -----------------------------
-		$this->logName = ".tool.log";
-		$localLogPath = rtrim($this->working_dir, '/') . '/' . $this->logName;
+		$localLogPath = rtrim($this->executionDirectories->executionDir, '/') . '/' . $this->executionDirectories->executionLogFile;
 
 		// -----------------------------
-		// 3. Map to remote path if applicable
+		// 3. Map to remote path if applicable (TODO: adapt for remote)
 		// -----------------------------
-		if (!empty($remoteBase)) {
+
+		/*
+		 if (!empty($remoteBase)) {
 			$relativePath = str_replace(
-				rtrim($this->root_dir_virtual, '/'),
+				rtrim($this->jobDirectories->userDir, '/'),
 				'',
 				$localLogPath
 			);
@@ -685,6 +680,8 @@ class Tooljob
 		} else {
 			$this->log_file = $localLogPath;
 		}
+		 */
+
 
 		// -----------------------------
 		// 4. Create local placeholder file
@@ -703,9 +700,7 @@ class Tooljob
 
 		fclose($filePointer);
 
-		$this->logger->debug("Tool log file path set to: " . $this->log_file);
-
-		return $this->log_file;
+		//$this->logger->debug("Tool log file path set to: " . $this->log_file);
 	}
 
 
@@ -828,7 +823,7 @@ class Tooljob
 
 
 		$monitorContainer = <<<EOF
-			docker logs -f \$CONTAINER_ID &> $this->log_file_virtual &
+			docker logs -f \$CONTAINER_ID &> $this->executionDirectories->executionLogFile &
 			CONTAINER_URL="http://$this->containerName:$container_port";
 			EXIT_CODE_FILE="/tmp/exit_code_$this->containerName"
 			printf '%s | %s\n' "\$(date)" "Waiting for the service URL to become available in the internal network...";
@@ -906,7 +901,7 @@ class Tooljob
 		exit_code="\$(docker wait $this->containerName)";
 		printf '%s | Container has stopped (exit code = %s) \n' "\$(date)" "\$exit_code";
 
-		echo '# End time:' \$(date) >> $this->log_file_virtual;
+		echo '# End time:' \$(date) >> $this->executionDirectories->executionLogFile;
 		EOF;
 
 		return $cmd . "\n" . $monitorContainer . $customToolParameters;
@@ -941,7 +936,7 @@ class Tooljob
 			throw new UnexpectedValueException("Tool '$this->toolId' not properly registered.");
 		}
 
-		$this->containerName = $tool['infrastructure']['container_image'] . "_" . $_SESSION['User']['activeProject'];
+		$this->containerName = $tool['infrastructure']['container_image'] . "_" . $this->project;
 		$customToolParameters = "";
 		$envReplacements = ['$this->containerName' => $this->containerName];
 		foreach ($tool['infrastructure']['container_env'] as $env_key => $env_value) {
@@ -1135,24 +1130,18 @@ class Tooljob
 		fwrite($fout, "\n$cmd >> " . $this->executionDirectories->executionLogFile . " 2>&1\n");
 		fwrite($fout, "\necho '# End time:' \$(date) >> " . $this->executionDirectories->executionLogFile . "\n");
 		fclose($fout);
-
-		return $bashFilename;
 	}
 
 	protected function createSubmitFile_Slurm($cmd)
 	{
-		$bashFilename = $this->submission_file;
+		$bashFilename = $this->executionDirectories->executionSubmissionFile;
 		$siteDetails = $this->getLauncher_SlurmInfo($this->site['_id']);
-		try {
-			$fout = fopen($bashFilename, "w");
-			if ($fout === false) {
-				$_SESSION['errorData']['Error'][] = "Failed to create SLURM submission file. " . $bashFilename;
-				return 0;
-			}
-		} catch (Exception $e) {
-			$_SESSION['errorData']['Error'][] = "Failed to create SLURM submission file. " . $e->getMessage();
-			return 0;
+		$fout = fopen($bashFilename, "w");
+		if ($fout === false) {
+			$this->logger->error("Failed to create SLURM submission file. " . $bashFilename);
+			throw new UnexpectedValueException("Failed to create SLURM submission file. " . $bashFilename);
 		}
+
 		// Write SLURM headers
 		fwrite($fout, "#!/bin/bash\n");
 		fwrite($fout, "#SBATCH --job-name=" . $this->toolId . "_job\n");
@@ -1304,7 +1293,7 @@ class Tooljob
 		}
 
 		$mugfile['user_id'] = $file['owner'] ?? $_SESSION['internalUserId'];
-		$mugfile['creation_time'] = $file['mtime'] ?? new MongoDB\BSON\UTCDateTime(strtotime("now") * 1000);
+		$mugfile['creation_time'] = $file['mtime'] ?? new UTCDateTime(strtotime("now") * 1000);
 
 		$mugfile['taxon_id'] = $file['taxon_id'] ?? (isset($file['refGenome'])
 			? ($this->refGenome_to_taxon[$file['refGenome']] ?? 0)

@@ -548,45 +548,9 @@ $includeOpenStack = getenv('INCLUDE_OPENSTACK_DATASETS') === 'true';
                                                             </div>
                                                         </div>
                                                     <?php
-                                                    } else {
-                                                        // compute expiration time for XNAT token
-                                                        //
-                                                        $xnat_expiration = intval($_SESSION['User']['linked_accounts']['euBI']['estimatedExpirationTime'] / 1000);
-                                                        $ed = date('h:i:s A jS \of F Y', $xnat_expiration);
-                                                        $expiresIn = $xnat_expiration - time();
-                                                        if ($expiresIn > 0)
-                                                            $expDate = "Alias will expire in " . intval($expiresIn / (60 * 60)) . " hours, at $ed";
-                                                        else
-                                                            $expDate = "Alias is expired... Regenerate it at <a href='https://xnat.bmia.nl' target='_blank'>euro-BioImaging</a>";
-                                                    ?>
-                                                        <div class="form-group">
-                                                            <label class="control-label">euro-BioImaging Username</label>
-                                                            <br />
-                                                            <input type="text" value="<?php echo $_SESSION['User']['linked_accounts']['euBI']['xdatUserId'] ?>" class="form-control" readonly style="background:#fff;" />
-                                                        </div>
-                                                        <div class="form-group">
-                                                            <label class="control-label">Alias Token</label>
-                                                            <br />
-                                                            <input type="text" value="<?php echo $_SESSION['User']['linked_accounts']['euBI']['alias'] ?>" class="form-control" readonly style="background:#fff;" />
-                                                        </div>
-
-                                                        <div class="form-group">
-                                                            <label class="control-label">Expiration date</label>
-                                                            <br />
-                                                            <span class="form-control" readonly style="background:#fff;"><?php echo $expDate; ?></span>
-
-                                                            <?php if ($expiresIn < 0) { ?>
-                                                                <div style="margin:3px;font-size:0.9em;">
-                                                                    <a target="_blank" href="https://wiki.xnat.org/documentation/how-to-use-xnat/generating-an-alias-token-for-scripted-authentication">How to generate an euro-BioImaging Alias Token?</a>
-                                                                    <br />
-                                                                    <a target="_blank" href="https://xnat.bmia.nl/">Go to euro-BioImaging</a>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                        <!-- end openstack account -->
+                                                    } ?>
                                                     </div>
-                                                <?php } ?>
-                                            </div>
+                                                    </div>
                                         <?php endif; ?>
                                         <!-- end openstack account -->
                                         </div>

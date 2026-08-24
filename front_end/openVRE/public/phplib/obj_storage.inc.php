@@ -71,7 +71,7 @@ function getContainerFiles($container, $swiftClient)
 function initiateFileDownload(SwiftClient $swiftClient, $fileUrl, $container)
 {
 	// Set destination working directory/uploads
-	$dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+	$dataDirPath = getAttr_fromGSFileId($GLOBALS['userDataDir'], "path");
 	$wd = $dataDirPath . "/uploads";
 	$wdP = $GLOBALS['userDataDir'] . "/" . $wd;
 
