@@ -139,6 +139,7 @@ Files in `src/entries/` whose names start with `_` are skipped by the production
 cd react-frontend
 npm install
 npm run dev            # Vite dev server with hot reload (port 5173)
+npm test               # Vitest (src/**/*.test.ts)
 npm run build          # one-shot production build
 npm run build:watch    # rebuild static bundles on file changes (manual refresh)
 ```
@@ -146,6 +147,19 @@ npm run build:watch    # rebuild static bundles on file changes (manual refresh)
 When using Docker, `npm install <package>` is enough — the `react-frontend` container watches `package.json` / `package-lock.json` and restarts Vite for you.
 
 Production output is written to `front_end/openVRE/public/assets/react/`.
+
+## Tests
+
+Island unit tests use [Vitest](https://vitest.dev/). They mock `fetch`; they do not need Docker, Keycloak, or a logged-in session.
+
+```bash
+cd react-frontend
+npm test
+```
+
+`getUserFiles` covers unauthorized (401, no Bearer, URL is `/auth-bff/files`) and authorized (200 JSON). Add new cases next to the code as `src/**/*.test.ts`.
+
+`npm run check` runs lint, format, TypeScript, and the same tests.
 
 ## Related documentation
 
