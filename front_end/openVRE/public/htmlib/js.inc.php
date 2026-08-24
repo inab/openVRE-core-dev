@@ -21,7 +21,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 			<script src="assets/global/scripts/jquery.dataTables.min.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/jquery-knob/js/jquery.knob.js" type="text/javascript"></script>
-			<script src="assets/global/plugins/ngl.last.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/bootstrap-toastr/toastr.min.js" type="text/javascript"></script>
 		<?php } elseif (basename(dirname($_SERVER['PHP_SELF'])) == 'home') { ?>
 			<script src="assets/global/plugins/cubeportfolio/js/jquery.cubeportfolio.min.js" type="text/javascript"></script>
@@ -37,7 +36,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 			<script src="assets/global/scripts/jquery.dataTables.min.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/jquery-knob/js/jquery.knob.js" type="text/javascript"></script>
-			<script src="assets/global/plugins/ngl.last.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/bootstrap-toastr/toastr.min.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/clipboardjs/clipboard.min.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/select2/js/select2.full.min.js" type="text/javascript"></script>
@@ -143,7 +141,7 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 		<script src="assets/global/plugins/jquery.sparkline.min.js" type="text/javascript"></script>
 	<?php break;
 	case 'input': ?>
-		<?php if (strrpos(dirname($_SERVER['PHP_SELF']), "tools")) { ?>
+		<?php if (strrpos(dirname($_SERVER['PHP_SELF']), "tools/")) { ?>
 			<script src="assets/pages/scripts/tool-input.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 			<script src="assets/global/plugins/select2/js/select2.full.min.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/jquery-validation/js/jquery.validate.min.js" type="text/javascript"></script>
@@ -152,7 +150,7 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 			<script src="assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/typeahead/handlebars.min.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/typeahead/typeahead.bundle.min.js" type="text/javascript"></script>
-			<script src="tools/<?php echo $toolId; ?>/assets/js/input.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
+			<script src="tools/<?php echo $toolId; ?>/front/assets/js/input.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 		<?php } elseif (strrpos(dirname($_SERVER['PHP_SELF']), "visualizers")) { ?>
 			<script src="assets/pages/scripts/visualizer-input.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 			<script src="assets/global/plugins/datatables/datatables.min.js" type="text/javascript"></script>
@@ -160,16 +158,10 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 		<?php } ?>
 	<?php break;
 	case 'output': ?>
-		<?php if (preg_match('tools/tool_skeleton', dirname($_SERVER['PHP_SELF']))) { ?>
-			<script src="assets/global/plugins/ngl.js" type="text/javascript"></script>
+		<?php if (preg_match('#tools/[^/]+/front#', dirname($_SERVER['PHP_SELF']))) { ?>
 			<script src="assets/global/scripts/datatable.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/datatables/datatables.min.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.js" type="text/javascript"></script>
-			<script src="tools/tool_skeleton/assets/js/output.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
-		<?php } elseif (preg_match('tools/GMI_OD', dirname($_SERVER['PHP_SELF']))) { ?>
-			<script src="tools/GMI_OD/assets/js/output.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
-		<?php } elseif (preg_match('tools/TCGA_CD', dirname($_SERVER['PHP_SELF']))) { ?>
-			<script src="tools/TCGA_CD/assets/js/output.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 		<?php }
 		break;
 	case 'help':
@@ -213,7 +205,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 			<script src="assets/pages/scripts/datatables-page.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 			<script src="assets/pages/scripts/components-knob-dials.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 			<script src="assets/pages/scripts/run-tools.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
-			<script src="assets/pages/scripts/ngl-home.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 			<script src="https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/0.7.24/webcomponents-lite.min.js"></script>
 			<script src="assets/pages/scripts/actions-home.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 			<script src="assets/pages/scripts/restore-link.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
@@ -353,7 +344,8 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 	case 'visualizers':
 	case 'sampleDataList':
 	case 'form':
-	case 'linkedAccount': ?>
+	case 'linkedAccount':
+	case 'logout': ?>
 		<script src="assets/layouts/layout/scripts/layout.js" type="text/javascript"></script>
 		<script src="assets/layouts/layout/scripts/main.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 		<script src="assets/layouts/layout/scripts/cookie-toolbar.js" type="text/javascript"></script>

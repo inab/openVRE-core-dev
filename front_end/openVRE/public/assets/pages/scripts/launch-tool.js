@@ -52,7 +52,7 @@ var createDatatableTools = function () {
       var operations = d[4].split("~");
       var launch_buttons = "";
       $.each(operations, function (index, value) {
-        launch_buttons += '<a href="tools/' + d[7] + '/input.php?op=' + index + '" class="btn btn-sm green uppercase" style="margin-bottom:10px;"><i class="fa fa-rocket"></i>&nbsp;&nbsp;' + value + '</a><br>';
+        launch_buttons += '<a href="tools/' + d[7] + '/front/input.php?op=' + index + '" class="btn btn-sm green uppercase" style="margin-bottom:10px;"><i class="fa fa-rocket"></i>&nbsp;&nbsp;' + value + '</a><br>';
       });
 
       if (operations.length > 1) var op_name = "Operations";

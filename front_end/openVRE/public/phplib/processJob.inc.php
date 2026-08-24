@@ -3,6 +3,7 @@
 use OpenVRE\Launcher;
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
+use OpenVRE\ProcessK8s;
 use OpenVRE\ProcessSGE;
 use OpenVRE\ProcessSlurm;
 
@@ -19,22 +20,25 @@ function getJobProcessLogger()
 }
 
 
-function execJob($workDir, $shFile, $queue, $jobManager, $cpus = 1, $mem = 0)
+function execJob($workDir, $shFile, $queue, $jobManager, $cpus = 1, $mem = 0, $jobOptions = array())
 {
     getJobProcessLogger()->info("Start job submission via SGE");
 
     if (is_null($_SESSION['internalUserId'])) {
         getJobProcessLogger()->error("User ID not found in session.");
+        LoggerFactory::getPersistentLogger()->error("User ID {userId} not found in session.", array('userId' => $_SESSION['User']['id']));
         throw new NotFoundException("User ID not found in session.");
     }
 
     if (!file_exists($shFile)) {
         getJobProcessLogger()->error("Shell script file does not exist: $shFile");
+        LoggerFactory::getPersistentLogger()->error("Shell script file {shFile} does not exist", array('shFile' => $shFile));
         throw new NotFoundException("Shell script file does not exist: $shFile");
     }
 
     if (!is_dir($workDir)) {
         getJobProcessLogger()->error("Working directory does not exist: $workDir");
+        LoggerFactory::getPersistentLogger()->error("Working directory {workDir} does not exist", array('workDir' => $workDir));
         throw new NotFoundException("Working directory does not exist: $workDir");
     }
 
@@ -57,6 +61,22 @@ function execJob($workDir, $shFile, $queue, $jobManager, $cpus = 1, $mem = 0)
             $userSecretsId = $user->getSecretsId();
             getJobProcessLogger()->debug("Submitting job via Slurm_Singularity to $remote_system. Parameters: shFile=$shFile, workDir=$workDir");
             $process = new ProcessSlurm($shFile, $workDir, $userSecretsId, $remote_system);
+            break;
+        case "kubernetes_native":
+            $schedUrl = getenv("OPENVRE_K8S_SCHEDULER_URL") ?: "";
+            $schedHost = $schedUrl !== ""
+                ? (string)(parse_url($schedUrl, PHP_URL_HOST) ?: "(parse_failed)")
+                : "(not_set)";
+            $k8sNs = getenv("OPENVRE_K8S_NAMESPACE") ?: "(env_unset)";
+            $jobOptKeys = is_array($jobOptions) && count($jobOptions)
+                ? implode(",", array_keys($jobOptions))
+                : "(none)";
+            getJobProcessLogger()->info(
+                "Submitting job via kubernetes_native. Parameters: shFile=$shFile, workDir=$workDir, "
+                . "jobname=$jobname, cpus=$cpus, mem=$mem, "
+                . "namespace=$k8sNs, scheduler_host=$schedHost, jobOptions_keys=$jobOptKeys"
+            );
+            $process = new ProcessK8s($shFile,$workDir,$jobname,(int)$cpus,(int)$mem,is_array($jobOptions) ? $jobOptions : []);
             break;
         default:
             $process = new ProcessSGE($shFile, $workDir, $queue, $jobname, $cpus, $mem);
@@ -85,6 +105,14 @@ function getRunningJobInfo($pid, $launcherType = null)
 
     if (is_null($launcherType) && is_numeric($pid)) {
         $launcherType = Launcher::SGE;
+    } elseif (is_null($launcherType) && strpos((string)$pid, "-") !== false) {
+        $launcherType = Launcher::kubernetes_native;
+    }
+
+    if (Launcher::tryFrom($launcherType) === null) {
+        $launcherType = "SGE";
+    } elseif (strpos((string)$pid, "-") !== false) {
+        $launcherType = "kubernetes_native";
     }
 
     if (Launcher::tryFrom($launcherType) === null) {
@@ -92,8 +120,18 @@ function getRunningJobInfo($pid, $launcherType = null)
         throw new UnexpectedValueException("Cannot monitor job '$pid' of type '$launcherType'. Launcher not implemented.");
     }
 
-    $process = new ProcessSGE();
-    return $process->getRunningJobInfo($pid);
+    if ($launcherType == Launcher::SGE) {
+        $process = new ProcessSGE();
+        $job = $process->getRunningJobInfo($pid);
+    } elseif ($launcherType == Launcher::kubernetes_native) {
+        $process = new ProcessK8s();
+        $job = $process->getRunningJobInfo($pid);
+    } elseif ($launcherType == Launcher::slurm) {
+        $process = new ProcessSlurm();
+        $job = $process->getRunningJobInfo($pid);
+    }
+
+    return $job;
 }
 
 
@@ -193,6 +231,8 @@ function delJob($pid, $launcherType = null, $login = null)
     // guess launcher
     if (!$launcherType && is_numeric($pid)) {
         $launcherType = Launcher::docker_SGE;
+    } elseif (strpos((string)$pid, "-") !== false) {
+        $launcherType = Launcher::kubernetes_native;
     }
 
     // cancel job
@@ -200,6 +240,14 @@ function delJob($pid, $launcherType = null, $login = null)
     if ($launcherType == Launcher::SGE || $launcherType == Launcher::docker_SGE) {
         $processSGE = new ProcessSGE();
         list($r_sge, $msg_sge) = $processSGE->stop($pid);
+    } elseif ($launcherType == "kubernetes_native") {
+        getJobProcessLogger()->debug("delJob kubernetes_native pid=$pid calling ProcessK8s::stop");
+        $processK8s = new ProcessK8s();
+        list($r_sge, $msg_sge) = $processK8s->stop($pid);
+        getJobProcessLogger()->debug(
+            "delJob kubernetes_native pid=$pid stop_ok=" . ($r_sge ? "1" : "0")
+                . " msg=" . $msg_sge
+        );
     } else {
         getJobProcessLogger()->error("Cannot delete job of type '$launcherType' [id = $pid]. Launcher not implemented.");
         throw new UnexpectedValueException("Cannot delete job of type '$launcherType' [id = $pid]. Launcher not implemented.");
@@ -217,6 +265,7 @@ function delJob($pid, $launcherType = null, $login = null)
     }
 
     $_SESSION['errorData']['Info'][] = "Job successfully cancelled";
+    LoggerFactory::getPersistentLogger()->info("Job {pid} successfully cancelled", array('pid' => $pid));
 
     // wait to make qdel/terminateActivity effective
     sleep(15);

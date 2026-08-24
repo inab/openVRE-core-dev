@@ -348,76 +348,226 @@ function filterFiles_by_dataType($filesAll, $filter_data_types = array())
 
 	// Filter files by data_types
 
-	if ($filter_data_types || is_array($filter_data_types)) {
-		$filesFiltered = array();
-		$dirs_filtered = array();
-		//filter out files with unselected data_types
-		foreach ($filesAll as $fn => $file) {
-			if (isset($file['data_type']) and  in_array($file['data_type'], $filter_data_types)) {
-				$filesFiltered[$fn] = $filesAll[$fn];
-				array_push($dirs_filtered, $file['parentDir']);
-			}
-		}
-		//filter out empty dirs
-		foreach ($filesAll as $fn => $file) {
-			if (isset($file['parentDir']) and  in_array($file['_id'], $dirs_filtered)) {
-				$filesFiltered[$fn] = $filesAll[$fn];
-			}
-		}
-		$filesAll = $filesFiltered;
+	if (!$filter_data_types || !is_array($filter_data_types) || !count($filter_data_types)) {
+		return $filesAll;
 	}
 
-	return $filesAll;
+	$matchingIds = array();
+	foreach ($filesAll as $fn => $file) {
+		if (isset($file['files'])) {
+			continue;
+		}
+		if (isset($file['data_type']) && in_array($file['data_type'], $filter_data_types)) {
+			$matchingIds[] = $fn;
+		}
+	}
+
+	$filesFiltered = array();
+	foreach ($matchingIds as $fileId) {
+		$currentId = $fileId;
+		while ($currentId && isset($filesAll[$currentId])) {
+			$filesFiltered[$currentId] = $filesAll[$currentId];
+			$parentId = $filesAll[$currentId]['parentDir'] ?? null;
+			if (!$parentId || !isset($filesAll[$parentId])) {
+				break;
+			}
+			$currentId = $parentId;
+		}
+	}
+
+	return $filesFiltered;
 }
 
+
+function normalizeGsId($id)
+{
+	if ($id instanceof \MongoDB\BSON\ObjectId) {
+		return (string) $id;
+	}
+	return $id;
+}
+
+
+function getTreeChildrenOrdered($parentId, $filesAll, $parentDoc = null)
+{
+	$parentId = normalizeGsId($parentId);
+	$children = array();
+	foreach ($filesAll as $id => $file) {
+		if (isset($file['parentDir']) && normalizeGsId($file['parentDir']) === $parentId) {
+			$children[] = $id;
+		}
+	}
+
+	if ($parentDoc && isset($parentDoc['files']) && count($parentDoc['files'])) {
+		$order = array_flip(array_map('normalizeGsId', $parentDoc['files']));
+		usort($children, function ($a, $b) use ($order) {
+			$oa = $order[normalizeGsId($a)] ?? PHP_INT_MAX;
+			$ob = $order[normalizeGsId($b)] ?? PHP_INT_MAX;
+			if ($oa !== $ob) {
+				return $oa - $ob;
+			}
+			return strcmp((string) $a, (string) $b);
+		});
+	}
+
+	return array_values(array_unique($children));
+}
 
 //add datatable tree nodes and hidden cols values
 function addTreeTableNodesToFiles($filesAll)
 {
-	$n = 1;
-	foreach ($filesAll as $r) {
-		// Add Tree Nodes
-		if (isset($r['files'])) {
-			if (isset($filesAll[$r['_id']]['tree_id']) && $filesAll[$r['_id']]['tree_id'])
-				continue;
+	foreach ($filesAll as $id => &$file) {
+		unset($file['tree_id'], $file['tree_id_parent'], $file['tree_depth'], $file['tree_sort'], $file['parent_tree_sort'], $file['_print_order']);
+	}
+	unset($file);
 
-			$filesAll[$r['_id']]['tree_id']     = $n;
-			$filesAll[$r['_id']]['size']	= calcGSUsedSpaceDir($r['_id']);
-			$filesAll[$r['_id']]['size_parent'] = $filesAll[$r['_id']]['size'];
-			//$filesAll[$r['_id']]['mtime_parent'] = (isset($r['atime']) ? $r['atime']->toDateTime()->format('U') : $r['mtime']);
-			$filesAll[$r['_id']]['mtime_parent'] =
-				((isset($r['atime']) && ($t = $r['atime']->toDateTime()->getTimestamp()) > 0)
-					? $t
-					: ((isset($r['mtime']) && $r['mtime'] > 0)
-						? $r['mtime']
-						: (!empty($filesAll[$r['_id']]['mtime_parent'])
-							? $filesAll[$r['_id']]['mtime_parent']
-							: time())));
-			if ($filesAll[$r['_id']]['mtime_parent'] == 0) {
-				$_SESSION['errorData']['Error'][] =
-					"MTIME_PARENT STILL ZERO for " . $r['_id'] .
-					" | atime=" . (isset($r['atime']) ? $r['atime']->toDateTime()->getTimestamp() : 'NULL') .
-					" | mtime=" . ($r['mtime'] ?? 'NULL') .
-					" | existing=" . ($filesAll[$r['_id']]['mtime_parent'] ?? 'NULL');
-			}
-			$i = 1;
-			foreach ($r['files'] as $rr) {
-				$filesAll[$rr]['tree_id']       = "$n.$i";
-				$filesAll[$rr]['tree_id_parent'] = $n;
-				$filesAll[$rr]['size_parent']   = $filesAll[$r['_id']]['size_parent'];
-				$filesAll[$rr]['mtime_parent']  = $filesAll[$r['_id']]['mtime_parent'];
-				$i++;
-			}
-			$n++;
-		} else {
-			if (isset($r['pending'])) {
-				$dir = $r['parentDir'];
+	$printOrder = array();
+	$rootId = $_SESSION['User']['dataDir'];
+	$rootData = getGSFile_fromId($rootId);
+
+	$n = 1;
+	foreach (getTreeChildrenOrdered($rootId, $filesAll, $rootData) as $childId) {
+		assignTreeIdsRecursive($childId, (string)$n, null, $filesAll, $printOrder);
+		$n++;
+	}
+
+	foreach ($filesAll as $id => $r) {
+		if (!isset($r['tree_id']) && !isset($r['files']) && isset($r['pending'])) {
+			$dir = $r['parentDir'];
+			if (isset($filesAll[$dir])) {
 				$filesAll[$dir]['pending'] = "true";
 			}
 		}
 	}
 
+	$order = 0;
+	foreach (array_unique($printOrder) as $id) {
+		if (isset($filesAll[$id])) {
+			$filesAll[$id]['_print_order'] = $order++;
+		}
+	}
+
 	return $filesAll;
+}
+
+function assignTreeIdsRecursive($nodeId, $treeId, $parentTreeId, &$filesAll, &$printOrder, $executionMeta = null)
+{
+	if (!isset($filesAll[$nodeId])) {
+		return;
+	}
+
+	$r = &$filesAll[$nodeId];
+
+	if (isset($r['tree_id']) && $r['tree_id']) {
+		return;
+	}
+
+	$r['tree_id'] = $treeId;
+	if ($parentTreeId !== null && $parentTreeId !== '') {
+		$r['tree_id_parent'] = $parentTreeId;
+	}
+
+	if (isset($r['files'])) {
+		$r['size'] = calcGSUsedSpaceDir($nodeId);
+
+		if ($executionMeta === null) {
+			$r['size_parent'] = $r['size'];
+			if (isset($r['atime']) && ($t = $r['atime']->toDateTime()->getTimestamp()) > 0) {
+				$r['mtime_parent'] = $t;
+			} elseif (isset($r['mtime']) && $r['mtime'] > 0) {
+				$r['mtime_parent'] = is_object($r['mtime'])
+					? $r['mtime']->toDateTime()->getTimestamp()
+					: $r['mtime'];
+			} elseif (!empty($r['mtime_parent'])) {
+				// keep existing
+			} else {
+				$r['mtime_parent'] = time();
+			}
+			if ($r['mtime_parent'] == 0) {
+				$_SESSION['errorData']['Error'][] =
+					"MTIME_PARENT STILL ZERO for " . $nodeId .
+					" | atime=" . (isset($r['atime']) ? $r['atime']->toDateTime()->getTimestamp() : 'NULL') .
+					" | mtime=" . ($r['mtime'] ?? 'NULL') .
+					" | existing=" . ($r['mtime_parent'] ?? 'NULL');
+			}
+			$executionMeta = array(
+				'size_parent'  => $r['size_parent'],
+				'mtime_parent' => $r['mtime_parent'],
+			);
+		}
+
+		$printOrder[] = $nodeId;
+
+		$i = 1;
+		foreach (getTreeChildrenOrdered($nodeId, $filesAll, $r) as $childId) {
+			if (!isset($filesAll[$childId]) || !empty($filesAll[$childId]['tree_id'])) {
+				continue;
+			}
+			assignTreeIdsRecursive($childId, $treeId . '.' . $i, $treeId, $filesAll, $printOrder, $executionMeta);
+			$i++;
+		}
+	} else {
+		if ($executionMeta !== null) {
+			$r['size_parent']  = $executionMeta['size_parent'];
+			$r['mtime_parent'] = $executionMeta['mtime_parent'];
+		}
+		if (isset($r['pending'])) {
+			$dir = $r['parentDir'];
+			if (isset($filesAll[$dir])) {
+				$filesAll[$dir]['pending'] = "true";
+			}
+		}
+		$printOrder[] = $nodeId;
+	}
+}
+
+function sortFilesForTable($filesAll)
+{
+	$withOrder = array();
+	$withoutOrder = array();
+
+	foreach ($filesAll as $id => $file) {
+		if (isset($file['_print_order'])) {
+			$withOrder[] = array('order' => $file['_print_order'], 'id' => $id);
+		} else {
+			$withoutOrder[$id] = $file;
+		}
+	}
+
+	usort($withOrder, function ($a, $b) {
+		if ($a['order'] !== $b['order']) {
+			return $a['order'] - $b['order'];
+		}
+		return strcmp($a['id'], $b['id']);
+	});
+
+	$sorted = array();
+	foreach ($withOrder as $entry) {
+		$id = $entry['id'];
+		$printOrd = $entry['order'];
+		$filesAll[$id]['tree_sort'] = str_pad((string)$printOrd, 6, '0', STR_PAD_LEFT);
+		unset($filesAll[$id]['_print_order']);
+		$sorted[$id] = $filesAll[$id];
+	}
+	foreach ($withoutOrder as $id => $file) {
+		$sorted[$id] = $file;
+	}
+
+	$treeIdToSort = array();
+	foreach ($sorted as $file) {
+		if (!empty($file['tree_id']) && !empty($file['tree_sort'])) {
+			$treeIdToSort[$file['tree_id']] = $file['tree_sort'];
+		}
+	}
+	foreach ($sorted as $id => $file) {
+		if (!empty($file['tree_id_parent'])) {
+			$sorted[$id]['parent_tree_sort'] = $treeIdToSort[$file['tree_id_parent']] ?? '000000';
+		} else {
+			$sorted[$id]['parent_tree_sort'] = '000000';
+		}
+	}
+
+	return $sorted;
 }
 
 function printTable($filesAll = array())
@@ -434,6 +584,9 @@ function printTable($filesAll = array())
 		<tbody><?php
 
 				foreach ($filesAll as $r) {
+					if (!isset($r['tree_id']) && !isset($r['pending'])) {
+						continue;
+					}
 					// is dir
 					if (isset($r['files'])) {
 						if (preg_match('/\/\./', $r['_id'])) {
@@ -780,20 +933,20 @@ function formatData($data)
 				"<span class=\"$state\" 
 					style=\"color:#7f8c8d; cursor:not-allowed;\"
 					title=\"Remote file (not accessible)\">
-					&nbsp;&nbsp;&nbsp;$filename
+					$filename
 				</span>";
 		} else {
 			$data['show_file_url'] =
 				"<a class=\"$state\" 
 					href=\"workspace/workspace.php?op=openPlainFile&fn={$data['_id_URL']}\" 
 					title=\"open file $filename\" target=\"_blank\">
-					&nbsp;&nbsp;&nbsp;$filename
+					$filename
 				</a>";
 		}
 	}
 	//remote_path && location
 	$locationMap = [
-		'marenostrum' => 'MN',
+		'MareNostrum' => 'MN',
 		'mn4'         => 'MN',
 	];
 
@@ -865,8 +1018,11 @@ function formatData($data)
 		$tList = getToolsByDT($user, $data['data_type']);
 		$data['tools_list'] = '<ul class="dropdown-menu pull-right" role="menu">';
 		if (sizeof($tList) > 0) {
+			$toolsFrontDir = __DIR__ . '/../tools/';
 			foreach ($tList as $t) {
-				$data['tools_list'] .= '<li><a href="tools/' . $t[0] . '/input.php?fn[]=' . $data['_id_URL'] . '" class="' . $t[0] . '">' . file_get_contents('../tools/' . $t[0] . '/assets/ws/icon.php') . ' ' . $t[1] . '</a></li>';
+				$iconPath = $toolsFrontDir . $t[0] . '/front/assets/ws/icon.php';
+				$icon = file_get_contents($iconPath);
+				$data['tools_list'] .= '<li><a href="tools/' . $t[0] . '/front/input.php?fn[]=' . $data['_id_URL'] . '" class="' . $t[0] . '">' . $icon . ' ' . $t[1] . '</a></li>';
 			}
 			$data['tools_button'] = 'block';
 		} else {
@@ -1013,7 +1169,7 @@ function formatData($data)
 	if (isset($data['input_files']) && isset($data['tool'])) {
 		$tool = $GLOBALS['toolsCol']->findOne(array('_id' => $data['tool']));
 		if (!empty($tool)) {
-			$formPath  = "tools/" . $data['tool'] . "/input.php";
+			$formPath  = "tools/" . $data['tool'] . "/front/input.php";
 			$data['rerunLink'] = "<li><a href=\"$formPath?rerunDir=" . $data['_id_URL'] . "\"><i class=\"fa fa-share\"></i> Rerun Project</a></li>";
 		}
 	}
@@ -1059,6 +1215,31 @@ function formatData($data)
 		$data['compressionLink'] = "<li><a  href=\"workspace/workspace.php?op=$func&fn=" . $data['_id_URL'] . "\" class=\"enabled\"><i class=\"$img\"></i> $linkTxt</a></li>";
 		//$data['compressionLink'] = "<li><a  href=\"javascript:;\" class=\"disabled\"><i class=\"$img\"></i> $linkTxt</a></li>";
 	}
+
+	if (isset($data['tree_id'])) {
+		$data['tree_depth'] = substr_count($data['tree_id'], '.');
+	}
+	if (empty($data['tree_id_parent'])) {
+		$data['tree_id_parent'] = '';
+	}
+
+	if (empty($data['tree_sort'])) {
+		$data['tree_sort'] = '999999';
+	}
+	if (empty($data['parent_tree_sort'])) {
+		$data['parent_tree_sort'] = '000000';
+	}
+
+	$name = $data['longfilename'] ?? $data['filename'] ?? '';
+	$mtime = (int)($data['mtime_parent'] ?? 0);
+	$size = (int)($data['size_parent'] ?? 0);
+	$data['name_sort_key'] = htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+	$data['format_sort_key'] = htmlspecialchars($data['format'] ?? '', ENT_QUOTES, 'UTF-8');
+	$data['data_type_sort_key'] = htmlspecialchars($data['file_data_type'] ?? '', ENT_QUOTES, 'UTF-8');
+	$data['execution_sort_key'] = htmlspecialchars($data['execution'] ?? $name, ENT_QUOTES, 'UTF-8');
+	$data['date_sort_key'] = str_pad((string)$mtime, 12, '0', STR_PAD_LEFT);
+	$data['size_sort_key'] = str_pad((string)$size, 12, '0', STR_PAD_LEFT);
+
 	return $data;
 }
 
@@ -1092,6 +1273,7 @@ function updatePendingFiles($sessionId)
 				// and consequently reload workspace (checkPendingJobs.php)
 			} else {
 				getProjectLogger()->info("Automatic job update detects job $pid is not running anymore");
+				LoggerFactory::getPersistentLogger()->info("Automatic job update detects job {pid} is not running anymore", array('pid' => $pid));
 				$SGE_updated[$pid] = $job;
 				$SGE_updated[$pid]['state'] = "NOT_RUNNING";
 			}
@@ -1167,6 +1349,7 @@ function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$file
 function processFinishedJobInfo($projectDir, $job, $pid, $title, &$filesPending)
 {
 	getProjectLogger()->info("Workspace reload detects job $pid is not running anymore");
+	LoggerFactory::getPersistentLogger()->info("Workspace reload detects job {pid} is not running anymore", array('pid' => $pid));
 
 	unset($_SESSION['errorData']);
 	$job_in_err = 0;
@@ -1177,6 +1360,7 @@ function processFinishedJobInfo($projectDir, $job, $pid, $title, &$filesPending)
 		getProjectLogger()->error("Tool '" . $job['toolId'] . "' received from JobTool not registered");
 		getProjectLogger()->error("Cannot obtain results from '$title' in folder '" . basename($job['executionDirectories']['executionDir']) . "'. Job metadata is not valid.");
 		getProjectLogger()->error("Failed to register $pid job outfiles. Job metadata has toolId '" . $job['toolId'] . "'");
+		LoggerFactory::getPersistentLogger()->error("Failed to register {pid} job outfiles. Tool {toolId} not registered.", array('pid' => $pid, 'toolId' => $job['toolId']));
 		$job_in_err = 1;
 		return;
 	}
@@ -1188,6 +1372,7 @@ function processFinishedJobInfo($projectDir, $job, $pid, $title, &$filesPending)
 	getProjectLogger()->debug("Finished building output from toolINFO + stageout_file + stageout_data: " . json_encode($outs_files));
 	if (empty($outs_files)) {
 		getProjectLogger()->warning("Failed to register $pid job outfiles. Output file list empty.");
+		LoggerFactory::getPersistentLogger()->warning("Failed to register {pid} job outfiles. Output file list empty.", array('pid' => $pid));
 		$job_in_err = 1;
 	}
 
@@ -1228,7 +1413,7 @@ function processFinishedJobInfo($projectDir, $job, $pid, $title, &$filesPending)
 						print "<br/>Recovering path from remote_paths: $remote_path<br/>";
 						$_SESSION['errorData']['Error'][] = "Recovering path from remote_paths: $remote_path";
 					}
-					// this is right (?)
+					
 					$out_data['path'] = $remote_path;
 				} else {
 					if ($is_required) {
@@ -1237,7 +1422,7 @@ function processFinishedJobInfo($projectDir, $job, $pid, $title, &$filesPending)
 						$msg .= ". No 'path' and no usable 'remote_paths' found.";
 						$msg .= ". Job metadata: " . print_r($out_data, true);
 						$_SESSION['errorData']['Error'][] = $msg;
-						log_addOutregister($pid, $msg);
+						LoggerFactory::getPersistentLogger()->error("Job output file {outName} not created.", array('outName' => $out_name));
 						$job_in_err = 1;
 					}
 					continue;
@@ -1295,8 +1480,9 @@ function processFinishedJobInfo($projectDir, $job, $pid, $title, &$filesPending)
 
 			// job successfully finished and already in mongo. Update medatada
 			if ($fileId) {
-				getProjectLogger()->debug("JOB $pid finished successfully.");
+				getProjectLogger()->info("JOB $pid finished successfully.");
 				getProjectLogger()->debug("Updating only outfile $out_name '$rfn' metadata from job $pid");
+				LoggerFactory::getPersistentLogger()->info("Job {pid} finished successfully.", array('pid' => $pid));
 				list($out_vre, $metadata) = getVREfile_fromFile($out_data);
 				addMetadataToFile($fileId, $metadata);
 			} elseif (is_file($rfn) || is_dir($rfn) || isset($out_data['meta_data']['remote_paths'][0]['remote_path'])) { // job successfully finished but not yet on mongo. Save output
@@ -1361,6 +1547,7 @@ function processFinishedJobInfo($projectDir, $job, $pid, $title, &$filesPending)
 	if ($job_in_err) {
 		getProjectLogger()->error("Failed to register all job outfiles");
 		getProjectLogger()->error("JOB $pid FINISHED but with errors");
+		LoggerFactory::getPersistentLogger()->error("Job {pid} finished with errors. Failed to register all job outfiles.", array('pid' => $pid));
 
 		$logFileP = $job['executionDirectories']['executionLogFile'];
 		$logFile  = fromAbsPath_toPath($job['executionDirectories']['executionLogFile']);
@@ -1384,7 +1571,8 @@ function processFinishedJobInfo($projectDir, $job, $pid, $title, &$filesPending)
 			}
 		}
 	} else {
-		getProjectLogger()->debug("JOB $pid finished successfully.");
+		getProjectLogger()->info("JOB $pid finished successfully.");
+		LoggerFactory::getPersistentLogger()->info("Job {pid} finished successfully.", array('pid' => $pid));
 	}
 }
 
@@ -1566,7 +1754,7 @@ function  build_outputs_list($tool, $stageout_job, $stageout_file)
 
 			array_push($stageout_meta[$out['name']], $out);
 		}
-	} elseif ($tool['external'] !== false) {
+	} elseif ($tool['external'] !== false && !$tool['infrastructure']['interactive']) {
 		$_SESSION['errorData']['Warning'][] = date("h:i:s") . ": Tool stageout file '" . $stageout_file . "' is not found";
 		getProjectLogger()->warning("Tool stageout file '" . $stageout_file . "' is not found");
 	}
@@ -1586,20 +1774,6 @@ function  build_outputs_list($tool, $stageout_job, $stageout_file)
 
 			array_push($stageout_data[$out['name']], $out);
 		}
-	}
-	if ($debug) {
-
-		print "\n__________FROM FILE________________\n";
-		print json_encode($stageout_meta, JSON_PRETTY_PRINT);
-
-		print "\n__________FROM JOB________________\n";
-		print json_encode($stageout_data, JSON_PRETTY_PRINT);
-
-		// Merge FILE + JOB (job overrides file)
-		$stageout_meta = array_merge($stageout_meta, $stageout_data);
-
-		print "\n__________MERGED (FILE + JOB)________________\n";
-		print json_encode($stageout_meta, JSON_PRETTY_PRINT);
 	}
 
 	// merging file data from tool and stageout_file
@@ -1696,14 +1870,20 @@ function downloadFile($rfn)
 
 		$fhandle = fopen($rfn, 'r');
 		fseek($fhandle, $offset); // seek to the requested offset, this is 0 if it's not a partial content request
-		$data = fread($fhandle, $length);
 		fclose($fhandle);
 
 		header('HTTP/1.1 206 Partial Content');
 		header('Content-Range: bytes ' . $offset . '-' . ($offset + $length) . '/' . $size);
 	}
-	header("Content-Disposition: attachment;filename=" . $filename);
-	header('Content-Type: ' . $content_type);
+
+	if (strtolower($fileExtension) === 'html' || strtolower($fileExtension) === 'htm') {
+		header("Content-Disposition: inline; filename=\"$filename\"");
+		header("Content-Type: text/html; charset=UTF-8");
+	} else {
+		header("Content-Disposition: attachment; filename=\"$filename\"");
+		header("Content-Type: " . $content_type);
+	}
+
 	header("Accept-Ranges: bytes");
 	header("Pragma: public");
 	header("Expires: -1");
@@ -1741,25 +1921,36 @@ function refresh_token($force = false)
 	if (!$_SESSION['userToken']->getToken()) {
 		ob_clean();
 		header('Location: ' . $GLOBALS['BASEURL'] . '/htmlib/errordb.php?msg=Authentification Session Expired. <a href=' . $GLOBALS['URL'] . '>Login again</a>');
+		exit;
 	}
 
 	$existingToken = $_SESSION['userToken'];
-	$provider = new Oauth2Provider(['redirectUri' => $GLOBALS['URL'] . $_SERVER['PHP_SELF']]);
 
 	if ($force || $existingToken->hasExpired()) {
-		try {
-			$newToken = $provider->getAccessToken('refresh_token', ['refresh_token' => $existingToken->getRefreshToken()]);
-		} catch (Exception $e) {
-			$_SESSION['errorData']['Error'][] = "Cannot validate token from refresh token.";
-			$_SESSION['errorData']['Error'][] = $e->getMessage();
+		$freshAccessToken = $_SERVER['OIDC_access_token'] ?? null;
+
+		if (!$freshAccessToken) {
+			getProjectLogger()->error("No access token in OIDC headers.");
 			return false;
 		}
 
-		// load new token in session
-		$_SESSION['userToken'] = $newToken;
+		if ($freshAccessToken === $existingToken->getToken()) {
+			$redirectUri  = $GLOBALS['URL'] . '/redirect_uri';
+			$currentUrl   = $GLOBALS['URL'] . $_SERVER['REQUEST_URI'];
+			header('Location: ' . $redirectUri
+				. '?refresh='      . urlencode($currentUrl)
+				. '&access_token=' . urlencode($freshAccessToken));
+			exit;
+		}
+
+		$_SESSION['userToken'] = new AccessToken([
+			'access_token' => $freshAccessToken,
+			'expires'      => (int)($_SERVER['OIDC_access_token_expires'] ?? 0),
+		]);
+
 		return true;
 	} else {
-		$_SESSION['errorData']['Warning'][] = "Access token not expired yet. <a href='applib/refreshToken.php?force=1'>Force refresh</a>";
+		getProjectLogger()->error("Access token not expired yet.");
 		return false;
 	}
 }
@@ -1891,6 +2082,10 @@ function resolvePath_toLocalAbsolutePath($path, $job)
 		}
 	}
 	//clean slashes
+	if ($rfn === "") {
+		// Keep original absolute path instead of returning empty when launcher mapping is missing.
+		$rfn = $path;
+	}
 	$rfn = preg_replace('#/+#', '/', $rfn);
 
 	//return absolute path
@@ -2042,5 +2237,132 @@ function moveFiles($fns, $target_fn)
 				}
 			}
 		*/
+	}
+}
+
+
+function syncProjectFiles($projects)
+{
+	foreach ($projects as $projectId => $projectAttributes) {
+		$projectFullPath = $GLOBALS['dataDir'] . "/" . $projectAttributes['path'];
+
+		if (!is_dir($projectFullPath)) {
+			continue; // skip projects whose root path doesn't exist
+		}
+
+		syncDirectoryRecursive($projectFullPath, $projectAttributes['path'], $projectId, null);
+	}
+}
+
+
+function syncDirectoryRecursive($fullFolderPath, $relativeFolderPath, $projectId, $parentDirId)
+{
+	$entries = scandir($fullFolderPath);
+
+	foreach ($entries as $entry) {
+		// skip hidden files/folders (this also covers "." and "..")
+		if ($entry[0] === '.') {
+			continue;
+		}
+
+		$relativePath = $relativeFolderPath . "/" . $entry;
+		$fullPath = $fullFolderPath . "/" . $entry;
+
+		if (is_dir($fullPath)) {
+			// skip folders named "run*" (e.g. "run001")
+			if (fnmatch('run*', $entry)) {
+				continue;
+			}
+
+			// ensure this subdirectory itself is registered, then recurse into it
+			$subDirId = ensureDirRegistered($relativePath, $projectId, $parentDirId);
+			syncDirectoryRecursive($fullPath, $relativePath, $projectId, $subDirId);
+		} else {
+			ensureFileRegistered($relativePath, $fullPath, $projectId, $parentDirId);
+		}
+	}
+}
+
+function ensureDirRegistered($relativePath, $projectId, $parentDirId)
+{
+	$existingId = getGSFileId_fromPath($relativePath);
+	if ($existingId) {
+		return $existingId;
+	}
+
+	$dirId = createLabel();
+
+	$mongoDirDocument = array(
+		'_id'       => $dirId,
+		'mtime'     => new MongoDB\BSON\UTCDateTime(strtotime("now") * 1000),
+		'owner'     => $_SESSION['User']['id'],
+		'path'      => $relativePath,
+		'project'   => $projectId,
+		'parentDir' => $parentDirId,
+		'type'      => "dir",
+		'files'     => []
+	);
+
+	$GLOBALS['filesCol']->updateOne(
+		['_id' => $dirId],
+		['$set' => $mongoDirDocument],
+		['upsert' => true]
+	);
+
+	if ($parentDirId) {
+		$GLOBALS['filesCol']->updateOne(
+			['_id' => $parentDirId],
+			['$addToSet' => ['files' => $dirId]]
+		);
+	}
+
+	return $dirId;
+}
+
+function ensureFileRegistered($relativePath, $fullPath, $projectId, $parentDirId)
+{
+	if (getGSFileId_fromPath($relativePath)) {
+		return; // already registered
+	}
+
+	$fileId = createLabel();
+
+	$mongoFileDocument = array(
+		'_id'       => $fileId,
+		'mtime'     => new MongoDB\BSON\UTCDateTime(strtotime("now") * 1000),
+		'owner'     => $_SESSION['User']['id'],
+		'size'      => filesize($fullPath),
+		'path'      => $relativePath,
+		'project'   => $projectId,
+		'parentDir' => $parentDirId,
+		'type'      => "file"
+	);
+
+	$mongoFileMetadataDocument = array(
+		'_id'         => $fileId,
+		'compressed'  => false,
+		'data_type'   => null,
+		'format'      => null,
+		'validated'   => true,
+		'visible'     => true
+	);
+
+	$GLOBALS['filesCol']->updateOne(
+		['_id' => $fileId],
+		['$set' => $mongoFileDocument],
+		['upsert' => true]
+	);
+
+	$GLOBALS['filesMetaCol']->updateOne(
+		['_id' => $fileId],
+		['$set' => $mongoFileMetadataDocument],
+		['upsert' => true]
+	);
+
+	if ($parentDirId) {
+		$GLOBALS['filesCol']->updateOne(
+			['_id' => $parentDirId],
+			['$addToSet' => ['files' => $fileId]]
+		);
 	}
 }

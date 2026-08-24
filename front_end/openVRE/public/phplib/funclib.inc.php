@@ -30,9 +30,7 @@ function redirectOutside()
 	if (checkLoggedIn()) {
 		$user = loadUser($_SESSION['userId'], false);
 	} else {
-		getRedirectLogger()->info("User not logged in, creating guest user");
-		getRedirectLogger()->debug("Session: " . print_r($_SESSION, true));
-		$user = createUserAnonymous(null);
+		header("Location: /login.php");
 	}
 
 	if (!checkTermsOfUse($user) && pathinfo($_SERVER['PHP_SELF'])['filename'] != 'usrProfile') {

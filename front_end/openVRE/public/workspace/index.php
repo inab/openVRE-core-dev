@@ -24,12 +24,13 @@ $tools = empty($_REQUEST["tool"])
 
 // project list
 $projects = getProjects_byOwner();
+syncProjectFiles($projects);
 
 //update files workspace content (job and files)
 $userFiles = getFilesToDisplay($user->getActiveProject(), array('_id' => $user->getDataDir()), $user->getLastJobs());
 
 $files = (isset($tools['list']) ? filterFiles_by_dataType($userFiles, $tools["list"]) : $userFiles);
-$files = addTreeTableNodesToFiles($files);
+$files = sortFilesForTable(addTreeTableNodesToFiles($files));
 
 ?>
 
@@ -114,7 +115,7 @@ $files = addTreeTableNodesToFiles($files);
 
 					<div class="row">
 						<div class="col-md-12" style="margin-bottom:30px;">
-							<?php require "../tools/" . $_REQUEST["from"] . "/assets/ws/btn-modal.php"; ?>
+							<?php require "../tools/" . $_REQUEST["from"] . "/front/assets/ws/btn-modal.php"; ?>
 						</div>
 					</div>
 
@@ -803,7 +804,7 @@ If you want to <strong>re-use your session</strong>, make sure you save the <str
 							</div>
 							<div class="col-md-3" id="col-2-move">
 								<div class="form-group">
-									<label class="control-label">Select execution</label>
+									<label class="control-label">Select folder</label>
 									<select name="" id="execution-name" class="form-control"></select>
 								</div>
 							</div>
@@ -884,7 +885,7 @@ If you want to <strong>re-use your session</strong>, make sure you save the <str
 
 		if (isset($_REQUEST["from"]) && $_REQUEST["from"]) {
 
-			require "../tools/" . $_REQUEST["from"] . "/assets/ws/modal.php";
+			require "../tools/" . $_REQUEST["from"] . "/front/assets/ws/modal.php";
 		}
 
 

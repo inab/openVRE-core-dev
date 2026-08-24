@@ -224,14 +224,25 @@ class Tooljob
 
 				switch ($tool['arguments'][$arg_name]['type']) {
 					case "enum":
-						if (is_null($tool['arguments'][$arg_name]['enum_items']) || (is_null($tool['arguments'][$arg_name]['enum_items']['name']))) {
-							$this->logger->error("Invalid argument enum in tool definition. '$arg_name' has no 'enum_items' or 'enum_items['name]");
-							throw new UnexpectedValueException("Invalid argument enum in tool definition. '$arg_name' has no 'enum_items' or 'enum_items['name]");
+						//Values as string
+						if (is_array($arg_value)) {
+							$arg_value = reset($arg_value); // take first value
 						}
+						$arg_value = strval($arg_value);
 
-						if (!in_array($arg_value, $tool['arguments'][$arg_name]['enum_items']['name'])) {
-							$this->logger->error("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found $arg_value");
-							throw new UnexpectedValueException("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found $arg_value");
+						//If enum exists then validate
+
+						if (isset($tool['arguments'][$arg_name]['enum_items']) && (isset($tool['arguments'][$arg_name]['enum_items']['name']))) {
+							if (!in_array($arg_value, $tool['arguments'][$arg_name]['enum_items']['name'])) {
+								$this->logger->error("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found $arg_value");
+								throw new UnexpectedValueException("Invalid argument. In '$arg_name' these values are accepted [" . implode(", ", $tool['arguments'][$arg_name]['enum_items']['name']) . "], but found $arg_value");
+							}
+						} else {
+							//No enum definition
+							// Treat it as a string
+							if (!is_string($arg_value)) {
+								$this->logger->info("Enum '$arg_name' has no enum_items defined. Treated as string..");
+							}
 						}
 
 						break;
@@ -594,7 +605,7 @@ class Tooljob
 				$entry['file_path'] = null;
 				$entry['meta_data']['remote_paths'] = [[
 					"remote_path" => preg_replace('#/+#', '/', $remoteOutputPath),
-					"location"    => "marenostrum"
+					"location"    => "MareNostrum"
 				]];
 
 				$this->logger->debug("Remote output path set to: " . $entry['meta_data']['remote_paths'][0]['remote_path']);
@@ -721,6 +732,7 @@ class Tooljob
 
 			switch ($this->launcher) {
 				case Launcher::SGE:
+				case Launcher::kubernetes_native:
 					$cmd  = $this->setBashCmd_SGE($tool);
 					$this->createSubmitFile_SGE($cmd);
 
@@ -788,7 +800,7 @@ class Tooljob
 	}
 
 
-	protected function setBashCommandDockerSgeInteractive($tool, $cmd_envs)
+	protected function setBashCommandDockerSgeInteractive($tool, $customToolParameters)
 	{
 		$this->job_type = "interactive";
 		$container_port = $tool['infrastructure']['container_port'];
@@ -797,92 +809,57 @@ class Tooljob
 			$this->logger->error("No free ports available to run the interactive tool.");
 			throw new UnexpectedValueException("No free ports available to run the interactive tool.");
 		}
-		$this->containerName = $tool['infrastructure']['container_image'];
 
-		$checkEnvironment = <<<EOF
-			FREE_PORT=$hostPort
+		$networkName = $GLOBALS['NETWORK_NAME'];
 
-			current_user=\$(whoami)
-			current_groups=\$(groups)
-			checking=\$(getent group | grep docker)
-			docker_socket_permissions=\$(ls -l /var/run/docker.sock)
-
-			echo "Free port: \$FREE_PORT"
-			echo "Current user: \$current_user"
-			echo "Groups: \$current_groups"
-			echo "Checking: \$checking"
-			echo "Docker socket permissions: \$docker_socket_permissions"
-		EOF;
-
-		$configureDockerGroup = <<<EOF
-			if echo "\$current_groups" | grep -q "docker"; then
-				echo "User \$current_user is already in the 'docker' group."
-			else
-				echo "User \$current_user is not in the 'docker' group. Attempting to add..."
-
-				sudo usermod -aG docker "\$current_user"
-
-				if [ \$? -eq 0 ]; then
-					echo "User \$current_user has been added to the 'docker' group."
-					echo "Please log out and log back in for the group changes to take effect."
-				else
-					echo "Failed to add user \$current_user to the 'docker' group."
-				fi
-			fi
-		EOF;
-
-
-		$runContainer = <<<EOF
+		$cmd = <<<EOF
 			CONTAINER_ID=\$(docker run \
 			--rm \
 			--privileged \
 			-v /var/run/docker.sock:/var/run/docker.sock -d \
-			--net={$GLOBALS['network_name']} --name $this->containerName \
-			$cmd_envs \
+			--name $this->containerName \
+			--net $networkName \
+			$customToolParameters \
 			-v {$this->jobDirectories->projectDirHost}:{$GLOBALS['shared']}public_tmp/ \
 			-v {$this->jobDirectories->userDirHost}:{$GLOBALS['shared']}userdata_tmp/{$_SESSION['internalUserId']} \
 			--hostname $this->containerName \
-			-p \$FREE_PORT:{$tool['infrastructure']['container_port']} {$tool['infrastructure']['container_image']});
+			-p $hostPort:{$tool['infrastructure']['container_port']} {$tool['infrastructure']['container_image']} {$tool['infrastructure']['executable']});
 		EOF;
 
-		$checkContainerStatus = <<<EOF
-	if ! docker top \$CONTAINER_ID &>/dev/null; then
-		printf '%s | %s\n' "$(date)" "Container crashed unexpectedly...";
-		exit 1;
-	fi
-
-	if ! docker inspect --format='{{.State.Running}}' \$CONTAINER_ID | grep -q true; then
-		printf '%s | %s\n' "$(date)" "Container not running anymore";
-		exit 1;
-	fi
-EOF;
-
-		$reportContainerInfo = <<<EOF
-	CONTAINER_URL="http://$this->containerName:$container_port"
-	printf '%s | %s\n' "\$(date)" "ContainerID: \$CONTAINER_ID";
-	printf '%s | %s\n' "\$(date)" "ExposedPort: \$FREE_PORT";
-	printf '%s | %s\n' "\$(date)" "ContainerURL: \$CONTAINER_URL";
-EOF;
 
 		$monitorContainer = <<<EOF
-			docker logs -f \$CONTAINER_ID &> $this->executionDirectories->executionLogFile &
+			docker logs -f \$CONTAINER_ID &> $this->log_file_virtual &
+			CONTAINER_URL="http://$this->containerName:$container_port";
+			EXIT_CODE_FILE="/tmp/exit_code_$this->containerName"
+			printf '%s | %s\n' "\$(date)" "Waiting for the service URL to become available in the internal network...";
+			if timeout 420 wget --retry-connrefused --tries=0 --wait=7 -O /dev/null \$CONTAINER_URL; then
+				printf '%s | %s\n' "\$(date)" "Service UP";
+			else
+				printf '%s | %s\n' "\$(date)" "Service TIMEOUT (7 minutes)";
+			fi
 
-		printf '%s | %s\n' "\$(date)" "Wait while container is running...";
-		exit_code="\$(docker wait \$CONTAINER_ID)";
-		printf '%s | Container has stopped (exit code = %s) \n' "\$(date)" "\$exit_code";
+			cleanup() {
+				printf '%s | %s\n' "\$(date)" "Stop container...";
+				docker stop $this->containerName 2>/dev/null
+				wait $!  2>/dev/null
+				exit_code=$(cat \$EXIT_CODE_FILE)
+				rm -f \$EXIT_CODE_FILE
+				printf '%s | Container has stopped (exit code = %s) \n' "\$(date)" "\$exit_code";
+				exit 0
+			}
+
+			trap cleanup SIGTERM SIGUSR1 SIGUSR2
 
 			printf '%s | %s\n' "\$(date)" "Wait while container is running...";
-			exit_code="\$(docker wait \$CONTAINER_ID)";
-			printf '%s | Container has stopped (exit code = %s) \n' "\$(date)" "\$exit_code";
-
-			echo '# End time:' \$(date) >> $this->executionDirectories->executionLogFile;
+			docker wait $this->containerName > \$EXIT_CODE_FILE &
+			wait $!
 		EOF;
 
-		return $checkEnvironment . "\n" . $configureDockerGroup . "\n" . $runContainer . "\n" . $checkContainerStatus . "\n" . $reportContainerInfo . "\n" . $monitorContainer;
+		return $cmd . "\n" . $monitorContainer;
 	}
 
 
-	protected function setBashCommandDockerCompose($tool, $cmd_envs)
+	protected function setBashCommandDockerCompose($tool, $customToolParameters)
 	{
 		$this->job_type = "interactive";
 		$dockerComposeFile = $GLOBALS['toolsPath'] . $tool['infrastructure']['docker_path'];
@@ -932,7 +909,28 @@ EOF;
 		echo '# End time:' \$(date) >> $this->log_file_virtual;
 		EOF;
 
-		return $cmd . "\n" . $monitorContainer . $cmd_envs;
+		return $cmd . "\n" . $monitorContainer . $customToolParameters;
+	}
+
+
+	protected function isToolRunning()
+	{
+		$ch = curl_init();
+		$defaultInternalPort = 8787;
+		curl_setopt_array($ch, [
+			CURLOPT_URL            => $this->containerName . ":" . $defaultInternalPort,
+			CURLOPT_NOBODY         => true,
+			CURLOPT_TIMEOUT        => 5,
+			CURLOPT_CONNECTTIMEOUT => 5,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_FOLLOWLOCATION => false,
+		]);
+
+		curl_exec($ch);
+		$httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+		curl_close($ch);
+
+		return $httpCode !== 0;
 	}
 
 
@@ -943,23 +941,47 @@ EOF;
 			throw new UnexpectedValueException("Tool '$this->toolId' not properly registered.");
 		}
 
-		$timestamp = date('Y-m-d_H-i-s');
-		$this->containerName = $tool['infrastructure']['container_image'] . "_" . $_SESSION['internalUserId'] . "_" . $timestamp;
-		$cmd_envs = "";
+		$this->containerName = $tool['infrastructure']['container_image'] . "_" . $_SESSION['User']['activeProject'];
+		$customToolParameters = "";
+		$envReplacements = ['$this->containerName' => $this->containerName];
 		foreach ($tool['infrastructure']['container_env'] as $env_key => $env_value) {
-			$cmd_envs .= "-e $env_key=$env_value ";
+			$env_value = str_replace(array_keys($envReplacements), array_values($envReplacements), $env_value);
+			$customToolParameters .= "-e $env_key=$env_value ";
 		}
 
 		foreach ($tool['infrastructure']['volumes'] as $hostDir => $containerDir) {
-			$userHomeDir = $GLOBALS['shared'] . "userdata_tmp/{$_SESSION['internalUserId']}" . "/" . $this->project;
-			$cmd_envs .= "-v $userHomeDir" . "$hostDir:$containerDir ";
+			$userHomeDir = $this->jobDirectories->userDirHost . "/" . $this->project;
+			$customToolParameters .= "-v $userHomeDir" . "$hostDir:$containerDir ";
+
+			$user = getUserById($_SESSION['userId']);
+			$dataDir = $user->getInternalId() . "/" . $user->getActiveProject();
+			$upDirId  = createGSDirBNS($dataDir . $hostDir, 1);
+			getProjectLogger()->info("Creating directory:" . $dataDir . $hostDir . "($upDirId)");
+			addMetadataToFile($upDirId, array(
+				"expiration" => -1,
+				"description" => "Uploaded personal data"
+			));
+
+			$dataDirP  = $GLOBALS['dataDir'] . "/$dataDir";
+			if (!is_dir("$dataDirP" . $hostDir)) {
+				mkdir("$dataDirP" . $hostDir, 0775);
+			}
+		}
+
+		if (!empty($tool['infrastructure']['user'])) {
+			$customToolParameters .= "--user " . escapeshellarg($tool['infrastructure']['user'] . " ");
 		}
 
 		if ($tool['infrastructure']['interactive']) {
 			if ($tool['infrastructure']['docker_type'] == "compose") {
-				$cmd = $this->setBashCommandDockerCompose($tool, $cmd_envs);
+				$cmd = $this->setBashCommandDockerCompose($tool, $customToolParameters);
 			} else {
-				$cmd = $this->setBashCommandDockerSgeInteractive($tool, $cmd_envs);
+				if ($this->isToolRunning()) {
+					$toolUrl = $GLOBALS['URL'] . "interactive-tool/" . $this->containerName . "/";
+					$_SESSION['errorData']['Error'][] = "There is already a running instance of this tool at: <a href='$toolUrl' target='_blank'>" . $toolUrl . "</a>";
+				}
+
+				$cmd = $this->setBashCommandDockerSgeInteractive($tool, $customToolParameters);
 			}
 		} else {
 			$cmd_vre = $tool['infrastructure']['executable'] .
@@ -970,7 +992,7 @@ EOF;
 
 
 			$cmd =  "docker run --privileged -v /var/run/docker.sock:/var/run/docker.sock -d" .
-				" " . $cmd_envs .
+				" " . $customToolParameters .
 				"--memory=" . $tool['infrastructure']['memory'] . "g" .
 				" -v " . $this->jobDirectories->projectDirHost . ":" . $GLOBALS['shared'] . "public_tmp/ " .
 				" -v " . $this->jobDirectories->userDirHost . ":" . $GLOBALS['shared'] . "userdata_tmp/{$_SESSION['internalUserId']}" .
@@ -1039,9 +1061,9 @@ EOF;
 			" --out_metadata " . $this->executionDirectories->executionStageoutFile .
 			" --log_file "     . $this->executionDirectories->executionLogFile;
 
-		$cmd_envs = "";
+		$customToolParameters = "";
 		foreach ($tool['infrastructure']['container_env'][0] as $env_key => $env_value) {
-			$cmd_envs .= "-e $env_key=$env_value ";
+			$customToolParameters .= "-e $env_key=$env_value ";
 		}
 
 		$vaultKey = $_SESSION['userVaultInfo']['vaultKey'];
@@ -1057,7 +1079,7 @@ EOF;
 		}
 
 		$cmd = "docker run --device /dev/fuse --security-opt apparmor:unconfined --cap-add SYS_ADMIN -v /var/run/docker.sock:/var/run/docker.sock " .
-			" " . $cmd_envs .
+			" " . $customToolParameters .
 			" -v " . $this->jobDirectories->projectDirHost .                            ":" . $GLOBALS['shared'] . "public_tmp/ " .
 			" -v " . $this->jobDirectories->userDirHost . "/" . $_SESSION['internalUserId'] . ":" . $GLOBALS['shared'] . "userdata_tmp/" . $_SESSION['internalUserId'] .
 			" --tmpfs " . "/clean_files:rw,uid=1000,gid=1000" .
@@ -1189,7 +1211,7 @@ EOF;
 			case Launcher::SGE:
 			case Launcher::docker_SGE_EGA:
 			case Launcher::docker_SGE:
-				return $this->enqueue($tool);
+			case Launcher::kubernetes_native:
 			case "Slurm_Singularity":
 				return $this->enqueue($tool);
 			default:
@@ -1212,9 +1234,23 @@ EOF;
 		$cpus = $launcherInfo['cpus'] ?? $tool['infrastructure']['cpus'];
 		$queue = $launcherInfo['queue'] ?? $tool['infrastructure']['clouds'][$this->site['_id']]['queue'];
 		$this->logger->info("Resolved Parameters: Queue=$queue, CPUs=$cpus, Memory=$memory");
+		$jobOptions = array();
+		if ($jobManager == Launcher::kubernetes_native) {
+			$jobOptions["image"] = $tool['infrastructure']['container_image'] ?? "";
+			if ($jobOptions["image"] === "") {
+				throw new UnexpectedValueException("Missing infrastructure.container_image for kubernetes_native launcher.");
+			}
+			$jobOptions["env"] = array();
+			if (isset($tool['infrastructure']['container_env']) && is_array($tool['infrastructure']['container_env'])) {
+				foreach ($tool['infrastructure']['container_env'] as $env_key => $env_value) {
+					$jobOptions["env"][$env_key] = (string)$env_value;
+				}
+			}
+		}
 
-		$pid = execJob($this->executionDirectories->executionDir, $this->executionDirectories->executionSubmissionFile, $queue, $jobManager, $cpus, $memory);
+		$pid = execJob($this->executionDirectories->executionDir, $this->executionDirectories->executionSubmissionFile, $queue, $jobManager, $cpus, $memory, $jobOptions);
 		$this->logger->info("Tool job submitted to SGE queue '$queue' (PID=$pid)");
+		LoggerFactory::getPersistentLogger()->info("Job {pid} for tool {toolId} submitted to SGE queue {queue}", array("toolId" => $this->toolId, "queue" => $queue, "pid" => $pid));
 
 		$this->pid = $pid;
 		return $pid;
@@ -1232,11 +1268,20 @@ EOF;
 		$mugfile['_id'] = $file['_id'];
 
 		if (isset($file['path'])) {
-			if (preg_match('/^\//', $file['path']) || preg_match('/^' . $_SESSION['internalUserId'] . '/', $file['path'])) {
-				$path = explode("/", $file['path']);
-				$mugfile['file_path'] = implode("/", array_slice($path, -3, 3));
+			$path = $file['path'];
+			$userId = $file['owner'] ?? $_SESSION['internalUserId'];
+
+			if (preg_match('/^\//', $path)) {
+				$dataPrefix = rtrim($GLOBALS['dataDir'], '/') . '/';
+				$path = (strpos($path, $dataPrefix) === 0)
+					? substr($path, strlen($dataPrefix))
+					: ltrim($path, '/');
+			}
+
+			if ($userId && preg_match('/^' . preg_quote($userId, '/') . '\//', $path)) {
+				$mugfile['file_path'] = substr($path, strlen($userId) + 1);
 			} else {
-				$mugfile['file_path'] = $file['path'];
+				$mugfile['file_path'] = $path;
 			}
 		} else {
 			$mugfile['file_path'] = null;

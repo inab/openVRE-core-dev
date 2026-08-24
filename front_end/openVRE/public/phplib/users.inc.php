@@ -2,6 +2,7 @@
 
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
+use OpenVRE\Permission;
 use OpenVRE\User;
 use OpenVRE\UserStatus;
 use OpenVRE\UserType;
@@ -47,6 +48,18 @@ function checkToolDev()
     return isset($user) && ($user->getStatus() == UserStatus::Active->value) && (in_array($user->getType(), $GLOBALS['TOOLDEV']) || in_array($user->getType(), $GLOBALS['ADMIN']));
 }
 
+
+function base64UrlDecode($input)
+{
+    $remainder = strlen($input) % 4;
+    if ($remainder) {
+        $padlen = 4 - $remainder;
+        $input .= str_repeat('=', $padlen);
+    }
+    return base64_decode(strtr($input, '-_', '+/'));
+}
+
+
 // create user - after being authentified by the Auth Server
 function createUserFromToken($token, $userInfo = array())
 {
@@ -67,63 +80,44 @@ function createUserFromToken($token, $userInfo = array())
 
         if (isset($userInfo['provider'])) {
             $userAttributes['AuthProvider'] = $userInfo['provider'];
+        if (isset($userInfo['provider'])) {
+            $userAttributes['AuthProvider'] = $userInfo['provider'];
         }
 
         if (isset($userInfo['sub'])) {
             $userAttributes['secretsId'] = $userInfo['sub'];
         }
 
+        if (isset($userInfo['roles'])) {
+            $userAttributes['roles'] = explode(',', $userInfo['roles']);
+        }
+
+        $_SESSION['allowedDatasetIds'] = [];
+        if (isset($userInfo['ga4gh_passport_v1'])) {
+            $gh4ghPassport = $userInfo['ga4gh_passport_v1'];
+
+            foreach ($gh4ghPassport as $gh4ghVisaJwt) {
+                $gh4ghVisaTokenParts = explode(".", $gh4ghVisaJwt);
+                $gh4ghTokenPayload = base64UrlDecode($gh4ghVisaTokenParts[1]);
+                $gh4ghJwtPayload = json_decode($gh4ghTokenPayload);
+
+                if ($gh4ghJwtPayload->ga4gh_visa_v1->type == "ControlledAccessGrants") {
+                    array_push($_SESSION['allowedDatasetIds'], $gh4ghJwtPayload->ga4gh_visa_v1->value);
+                }
+            }
+        }
+
         $_SESSION['tokenInfo'] = $userInfo;
     }
 
     $internalId = uniqid($GLOBALS['AppPrefix'] . "USER");
-    $user = new User($userAttributes['email'], $userAttributes['secretsId'], $userAttributes['surname'], $userAttributes['name'], "", $userAttributes['type'], $GLOBALS['DISKLIMIT'], "", $userAttributes['AuthProvider'], $internalId, "", []);
+    $user = new User($userAttributes['email'], $userAttributes['secretsId'], $userAttributes['surname'], $userAttributes['name'], "", $userAttributes['type'], $GLOBALS['DISKLIMIT'], "", $userAttributes['AuthProvider'], $internalId, "", $userAttributes['roles'], []);
 
     $_SESSION['userId'] = $userAttributes['email']; // TODO: rename if email will not replace internalId attribute in User class (currently it is the same as _id but no as internalId)
     $_SESSION['internalUserId'] = $user->getInternalId();
     $_SESSION['userType'] = $user->getType();
 
     return $user;
-}
-
-
-// create anonymous user - without being authentified by the Auth Server
-function createUserAnonymous($sampleData)
-{
-    getUsersLogger()->info("Creating anonymous user");
-    $userAttributes = array(
-        "email"        => substr(md5(rand()), 0, 25) . "",
-        "type"         => UserType::Guest->value,
-        "name"         => "Guest",
-        "surname"      => "User",
-        "institution"  => "institution",
-        "AuthProvider" => "VRE"
-    );
-
-    $internalId = uniqid($GLOBALS['AppPrefix'] . "ANON");
-    $objUser = new User($userAttributes['email'], "", $userAttributes['surname'], $userAttributes['name'], $userAttributes['institution'], $userAttributes['type'], $GLOBALS['DISKLIMIT_ANON'], "", $userAttributes['AuthProvider'], $internalId, "", []);
-    if (!$objUser) {
-        return false;
-    }
-
-    $objUser->setTermsAccepted(true);
-    $_SESSION['userId'] = $userAttributes['email']; // userId is the email and the _id of the mongo document (and the class attribute)
-    $_SESSION['internalUserId'] = $objUser->getInternalId(); // internalUserId built inside openVRE
-    $_SESSION['userType'] = $objUser->getType();
-
-    $dataDirId = prepUserWorkSpace($objUser->getActiveProject(), $objUser->getInternalId(), $sampleData);
-    $objUser->setDataDir($dataDirId);
-
-    // register user in mongo. NOT in ldap nor in the oauth2 provider
-    try {
-        saveNewUser($objUser);
-    } catch (Exception $e) {
-        getUsersLogger()->error("Error saving new user into Mongo database");
-        getUsersLogger()->error($e->getMessage());
-        exit('Login error: cannot create anonymous user');
-    }
-
-    return $objUser;
 }
 
 
@@ -222,11 +216,27 @@ function loadUserWithToken(User $user, $userInfo, $token)
 
     $user->setLastLogin(moment());
     $user->setSecretsId($userInfo['sub']);
+    $user->setRoles($userInfo['roles']);
     $_SESSION['userToken'] = $token;
     $_SESSION['tokenInfo'] = $userInfo;
     $_SESSION['userId'] = $user->get_id();
     $_SESSION['userType'] = $user->getType();
     $_SESSION['internalUserId'] = $user->getInternalId();
+
+    $_SESSION['allowedDatasetIds'] = [];
+    if (isset($userInfo['ga4gh_passport_v1'])) {
+        $gh4ghPassport = $userInfo['ga4gh_passport_v1'];
+
+        foreach ($gh4ghPassport as $gh4ghVisaJwt) {
+            $gh4ghVisaTokenParts = explode(".", $gh4ghVisaJwt);
+            $gh4ghTokenPayload = base64UrlDecode($gh4ghVisaTokenParts[1]);
+            $gh4ghJwtPayload = json_decode($gh4ghTokenPayload);
+
+            if ($gh4ghJwtPayload->ga4gh_visa_v1->type == "ControlledAccessGrants") {
+                array_push($_SESSION['allowedDatasetIds'], $gh4ghJwtPayload->ga4gh_visa_v1->value);
+            }
+        }
+    }
 
     updateUser($user);
 
@@ -313,4 +323,16 @@ function getUserJobPid($login, $pid)
     ), array("lastJobs.$pid" => 1));
 
     return $r['lastJobs'] ?? array();
+}
+
+function hasPermissions(string $userId, Permission $requiredPermission) {
+    $userPermissions = getUserPermissions($userId);
+
+    return in_array($requiredPermission->value, $userPermissions);
+}
+
+function hasPermissions(string $userId, Permission $requiredPermission) {
+    $userPermissions = getUserPermissions($userId);
+
+    return in_array($requiredPermission->value, $userPermissions);
 }

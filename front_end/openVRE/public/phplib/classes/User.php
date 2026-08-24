@@ -27,9 +27,10 @@ class User implements Persistable
     private bool $termsAccepted = false;
     private array $developedTools = [];
     private array $lastJobs = [];
+    private array $roles = [];
     private Logger $logger;
 
-    public function __construct(string $email, string $secretsId, string $surname, string $name, string $inst, int $type, int $diskQuota, string $dataDir, ?string $authProvider, string $internalId, string $activeProject, array $developedTools)
+    public function __construct(string $email, string $secretsId, string $surname, string $name, string $inst, int $type, int $diskQuota, string $dataDir, ?string $authProvider, string $internalId, string $activeProject, array $roles, array $developedTools)
     {
         $this->logger = LoggerFactory::getLogger('User');
         if ($type != UserType::Guest->value && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -247,6 +248,16 @@ class User implements Persistable
     public function setLastJobs(array $lastJobs): void
     {
         $this->lastJobs = $lastJobs;
+    }
+
+    public function getRoles(): array
+    {
+        return $this->roles;
+    }
+
+    public function setRoles(array $roles): void
+    {
+        $this->roles = $roles;
     }
 
     public function bsonSerialize(): array

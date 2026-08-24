@@ -8,6 +8,7 @@ $VREConn =  new MongoDB\Client($connectionUri, array('readConcernLevel' => 'loca
 
 
 $dbname = getenv('MONGO_MAIN_DB');
+$GLOBALS['mongodbClient']         = $VREConn;
 $databaseConnection = $VREConn->getDatabase($dbname);
 $userTypeMap = ['typeMap' => ['array' => 'array', 'root' => User::class, 'document' => 'array']];
 
@@ -17,9 +18,10 @@ $GLOBALS['filesMetaCol']    = $databaseConnection->filesMetadata;
 $GLOBALS['logMailCol']      = $databaseConnection->checkMail;
 $GLOBALS['toolsCol']        = $databaseConnection->getCollection('tools');
 $GLOBALS['visualizersCol']  = $databaseConnection->visualizers;
-$GLOBALS['fileFormatsCol']    = $databaseConnection->file_formats;
+$GLOBALS['fileFormatsCol']  = $databaseConnection->file_formats;
 $GLOBALS['dataTypesCol']    = $databaseConnection->data_types;
 $GLOBALS['helpsCol']        = $databaseConnection->helps;
 $GLOBALS['sampleDataCol']   = $databaseConnection->sampleData;
-$GLOBALS['logExecutionsCol'] = $databaseConnection->log_executions;
+$GLOBALS['actionLogs']      = $GLOBALS['db']->action_logs;
+$GLOBALS['rolePermissions']      = $databaseConnection->role_permissions;
 $GLOBALS['sitesCol']   = $databaseConnection->sites;

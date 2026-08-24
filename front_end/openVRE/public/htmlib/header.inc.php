@@ -208,6 +208,7 @@
 		case 'restoreLink':
 		case 'form':
 		case 'linkedAccount':
+		case 'logout':
 
 	?>
 			<link href="assets/layouts/layout/css/layout.css" rel="stylesheet" type="text/css" />

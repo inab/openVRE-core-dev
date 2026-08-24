@@ -3,6 +3,7 @@
 require __DIR__ . "/../../config/bootstrap.php";
 
 use OpenVRE\LoggerFactory;
+use OpenVRE\Permission;
 
 redirectOutside();
 
@@ -51,23 +52,28 @@ if (isset($_REQUEST['op'])) {
 			break;
 
 		case 'downloadFile':
-			set_time_limit(0);
-			ini_set('memory_limit', '512M');
+			if (hasPermissions($_SESSION['userId'], Permission::DownloadFile)) {
+				set_time_limit(0);
+				ini_set('memory_limit', '512M');
 
-			if (empty($rfn) || !file_exists($rfn)) {
-				$_SESSION['errorData']['Error'][] = "File " . $_REQUEST['fn'] . " not found in disk anymore or empty <a href=\"javascript:location.reload();\">[ OK ]</a>";
-				break;
+				if (empty($rfn) || !file_exists($rfn)) {
+					$_SESSION['errorData']['Error'][] = "File " . $_REQUEST['fn'] . " not found in disk anymore or empty <a href=\"javascript:location.reload();\">[ OK ]</a>";
+					break;
+				}
+				downloadFile($rfn);
+				exit(0);
+			} else {
+				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to download file " . $_REQUEST['fn']);
+				throw new UnexpectedValueException("User not allowed to download file " . $_REQUEST['fn']);
 			}
-			downloadFile($rfn);
-			exit(0);
+
 			break;
-
 		case 'downloadAll':
+			if (hasPermissions($_SESSION['userId'], Permission::DownloadFile)) {
+				$newName = "files.tar.gz";
+				$tmpZip = $GLOBALS['userDataDir'] . "/" . $userPath . "/" . $GLOBALS['tmpUser_dir'] . "/" . basename($newName);
 
-			$newName = "files.tar.gz";
-			$tmpZip = $GLOBALS['userDataDir'] . "/" . $userPath . "/" . $GLOBALS['tmpUser_dir'] . "/" . basename($newName);
-
-			$fls = "";
+				$fls = "";
 
 			foreach ($_GET['fn'] as $v) {
 				if ($v !== 'undefined') {
@@ -79,18 +85,23 @@ if (isset($_REQUEST['op'])) {
 				}
 			}
 
-			$cmd = "/bin/tar czf $tmpZip $fls 2>&1";
+				$cmd = "/bin/tar czf $tmpZip $fls 2>&1";
 
-			exec($cmd, $output);
-			if (!is_file($tmpZip)) {
-				$_SESSION['errorData']['Error'][] = "Uncompressed file not created.";
-				if ($output)
-					$_SESSION['errorData']['Error'][] = implode(" ", $output) . "</br> <a href=\"javascript:location.reload();\">[ OK ]</a>";
-				break;
+				exec($cmd, $output);
+				if (!is_file($tmpZip)) {
+					$_SESSION['errorData']['Error'][] = "Uncompressed file not created.";
+					if ($output)
+						$_SESSION['errorData']['Error'][] = implode(" ", $output) . "</br> <a href=\"javascript:location.reload();\">[ OK ]</a>";
+					break;
+				}
+				downloadFile($tmpZip);
+				unlink($tmpZip);
+				exit(0);
+			} else {
+				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to download files.");
+				throw new UnexpectedValueException("User not allowed to download files.");
 			}
-			downloadFile($tmpZip);
-			unlink($tmpZip);
-			exit(0);
+
 			break;
 
 		case 'downloadtgz':
@@ -105,88 +116,110 @@ if (isset($_REQUEST['op'])) {
 			$newName = $_REQUEST['fn'] . ".tar.gz";
 			$tmpZip = $GLOBALS['userDataDir'] . "/" . $userPath . "/" . $GLOBALS['tmpUser_dir'] . "/" . basename($newName);
 
-			$cmd = "/bin/tar -czf $tmpZip -C $rfn . 2>&1";
+				$cmd = "/bin/tar -czf $tmpZip -C $rfn . 2>&1";
 
-			exec($cmd, $output);
-			if (!is_file($tmpZip)) {
-				$_SESSION['errorData']['Error'][] = "Uncompressed file not created.";
-				if ($output)
-					$_SESSION['errorData']['Error'][] = implode(" ", $output) . "</br> <a href=\"javascript:location.reload();\">[ OK ]</a>";
-				break;
+				exec($cmd, $output);
+				if (!is_file($tmpZip)) {
+					$_SESSION['errorData']['Error'][] = "Uncompressed file not created.";
+					if ($output)
+						$_SESSION['errorData']['Error'][] = implode(" ", $output) . "</br> <a href=\"javascript:location.reload();\">[ OK ]</a>";
+					break;
+				}
+				downloadFile($tmpZip);
+				unlink($tmpZip);
+				exit(0);
+			} else {
+				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to download files.");
+				throw new UnexpectedValueException("User not allowed to download files.");
 			}
-			downloadFile($tmpZip);
-			unlink($tmpZip);
-			exit(0);
+
 			break;
 
 		case 'openPlainFileEdit':
-			// read the textfile
-			$text = file_get_contents($rfn);
+			if (hasPermissions($_SESSION['userId'], Permission::EditFile)) {
+				$text = file_get_contents($rfn);
 ?>
-			<form action="" method="post">
-				<textarea style="border:2px solid #92b854; background-color: #fefbfa;" cols=150 rows=37 name="text"><?php echo htmlspecialchars($text) ?></textarea>
-				</br>
-				<input type="submit" value="Save edited file" />
-				<input type="reset" />
-			</form>
+				<form action="" method="post">
+					<textarea style="border:2px solid #92b854; background-color: #fefbfa;" cols=150 rows=37 name="text"><?php echo htmlspecialchars($text) ?></textarea>
+					</br>
+					<input type="submit" value="Save edited file" />
+					<input type="reset" />
+				</form>
 <?php
-			exit;
+				exit;
+			} else {
+				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to edit files.");
+				throw new UnexpectedValueException("User not allowed to edit files.");
+			}
+
 			break;
 
 		case 'openPlainFile':
-			$fileInfo = pathinfo($rfn);
-			$contentType = "text/plain";
-			$fileExtension = $fileInfo['extension'];
-			$content_types_list = mimeTypes();
-			if (array_key_exists($fileExtension, $content_types_list))
-				$contentType = $content_types_list[$fileExtension];
+			if (hasPermissions($_SESSION['userId'], Permission::ReadFile)) {
+				$fileInfo = pathinfo($rfn);
+				$contentType = "text/plain";
+				$fileExtension = $fileInfo['extension'];
+				$content_types_list = mimeTypes();
+				if (array_key_exists($fileExtension, $content_types_list))
+					$contentType = $content_types_list[$fileExtension];
 
-			if (!$fileData && !preg_match('/\.log/', $rfn)) {
-				break;
+				if (!$fileData && !preg_match('/\.log/', $rfn)) {
+					break;
+				}
+				if (!is_file($rfn) || !filesize($rfn)) {
+					$_SESSION['errorData']['error'][] = "'" . basename($rfn) . "' does not exist anymore or is empty. <a href=\"javascript:deleteMesg('" . urlencode($_REQUEST['fn']) . "')\">[ Delete ]</a> <a href=\"workspace/workspace.php\">[ OK ]</a>";
+					break;
+				}
+				header('Content-Type: ' . $contentType);
+				header("Accept-Ranges: bytes");
+				header("Access-Control-Allow-Methods:GET, HEAD, DNT");
+				header("Content-Disposition: inline; filename=" . basename($rfn));
+				header("Content-Length: " . filesize($rfn));
+				print passthru("/bin/cat \"$rfn\"");
+				exit(0);
+			} else {
+				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to read files.");
+				throw new UnexpectedValueException("User not allowed to read files.");
 			}
-			if (!is_file($rfn) || !filesize($rfn)) {
-				$_SESSION['errorData']['error'][] = "'" . basename($rfn) . "' does not exist anymore or is empty. <a href=\"javascript:deleteMesg('" . urlencode($_REQUEST['fn']) . "')\">[ Delete ]</a> <a href=\"workspace/workspace.php\">[ OK ]</a>";
-				break;
-			}
-			header('Content-Type: ' . $contentType);
-			header("Accept-Ranges: bytes");
-			header("Access-Control-Allow-Methods:GET, HEAD, DNT");
-			header("Content-Disposition: inline; filename=" . basename($rfn));
-			header("Content-Length: " . filesize($rfn));
-			print passthru("/bin/cat \"$rfn\"");
-			exit(0);
+
 			break;
 
 		case 'openPlainFileFromPath':
-			if (!$_REQUEST['fnPath']) {
-				getWorkspaceLogger()->error("Cannot open file. Variable 'fnPath' not received.");
-				throw new UnexpectedValueException("Cannot open file. Variable 'fnPath' not received.");
-			}
+			if (hasPermissions($_SESSION['userId'], Permission::ReadFile)) {
+				if (!$_REQUEST['fnPath']) {
+					getWorkspaceLogger()->error("Cannot open file. Variable 'fnPath' not received.");
+					throw new UnexpectedValueException("Cannot open file. Variable 'fnPath' not received.");
+				}
 
 			$rfn = (preg_match('/^\//', $_REQUEST['fnPath'])
 				? $_REQUEST['fnPath']
 				: $GLOBALS['userDataDir'] . "/" . $_REQUEST['fnPath']);
 
-			$fileInfo = pathinfo($rfn);
-			$contentType = "text/plain";
-			$fileExtension = $fileInfo['extension'];
-			$content_types_list = mimeTypes();
-			if (array_key_exists($fileExtension, $content_types_list)) {
-				$contentType = $content_types_list[$fileExtension];
+				$fileInfo = pathinfo($rfn);
+				$contentType = "text/plain";
+				$fileExtension = $fileInfo['extension'];
+				$content_types_list = mimeTypes();
+				if (array_key_exists($fileExtension, $content_types_list)) {
+					$contentType = $content_types_list[$fileExtension];
+				}
+
+				if (!is_file($rfn) || !filesize($rfn)) {
+					$_SESSION['errorData']['error'][] = "'" . basename($rfn) . "' does not exist anymore or is empty. <a href=\"javascript:deleteMesg('" . urlencode($_REQUEST['fn']) . "')\">[ Delete ]</a> <a href=\"workspace/workspace.php\">[ OK ]</a>";
+					break;
+				}
+
+				header('Content-Type: ' . $contentType);
+				header("Accept-Ranges: bytes");
+				header("Access-Control-Allow-Methods:GET, HEAD, DNT");
+				header("Content-Disposition: inline; filename=" . basename($rfn));
+				header("Content-Length: " . filesize($rfn));
+				print passthru("/bin/cat \"$rfn\"");
+				exit;
+			} else {
+				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to read files.");
+				throw new UnexpectedValueException("User not allowed to read files.");
 			}
 
-			if (!is_file($rfn) || !filesize($rfn)) {
-				$_SESSION['errorData']['error'][] = "'" . basename($rfn) . "' does not exist anymore or is empty. <a href=\"javascript:deleteMesg('" . urlencode($_REQUEST['fn']) . "')\">[ Delete ]</a> <a href=\"workspace/workspace.php\">[ OK ]</a>";
-				break;
-			}
-
-			header('Content-Type: ' . $contentType);
-			header("Accept-Ranges: bytes");
-			header("Access-Control-Allow-Methods:GET, HEAD, DNT");
-			header("Content-Disposition: inline; filename=" . basename($rfn));
-			header("Content-Length: " . filesize($rfn));
-			print passthru("/bin/cat \"$rfn\"");
-			exit;
 
 		case 'deleteAll':
 		case 'deleteSure':
@@ -421,41 +454,56 @@ if (isset($_REQUEST['op'])) {
 
 		case 'moveFiles':
 		case 'moveFile':
-			if (is_null($_REQUEST['target'])) {
-				getWorkspaceLogger()->error("Error while moving file. Target path not given.");
-				exit("Error while moving file. Target path not given.");
-			}
+			if (hasPermissions($_SESSION['userId'], Permission::MoveFile)) {
+				if (empty($_REQUEST['target'])) {
+					getWorkspaceLogger()->error("Error while moving file. Target path not given.");
+					print('{"error":true, "msg": "Error while moving file. Target path not given."}');
+					die();
+				}
 
-			try {
-				moveFiles($_REQUEST['fn'], $_REQUEST['target']);
-				getWorkspaceLogger()->info("File/s successfully moved!!");
-			} catch (UnexpectedValueException $e) {
-				getWorkspaceLogger()->error($e->getMessage());
-				exit($e->getMessage());
+				try {
+					moveFiles($_REQUEST['fn'], $_REQUEST['target']);
+					getWorkspaceLogger()->info("File/s successfully moved!!");
+					print('{"error":false, "msg": "File/s successfully moved!"}');
+					die();
+				} catch (Exception $e) {
+					getWorkspaceLogger()->error($e->getMessage());
+					print(json_encode(array('error' => true, 'msg' => $e->getMessage())));
+					die();
+				}
+			} else {
+				getWorkspaceLogger()->error("User" . $_SESSION['userId'] . " does not have permission to move files.");
+				print '{"error":true, "msg": "User does not have permission to move files."}';
 			}
 
 			break;
 		case 'moveDir':
-			if (is_null($_REQUEST['target'])) {
-				$_SESSION['errorData']['Error'][] = "Error while moving directory. Target path not given.";
-				print('{"error":true, "msg": "Error while moving directory. Target path not given."}');
+			if (hasPermissions($_SESSION['userId'], Permission::MoveFile)) {
+				if (is_null($_REQUEST['target'])) {
+					$_SESSION['errorData']['Error'][] = "Error while moving directory. Target path not given.";
+					print('{"error":true, "msg": "Error while moving directory. Target path not given."}');
+					die();
+					break;
+				}
+				$rfn_target = $GLOBALS['userDataDir'] . "/" . $_REQUEST['target'];
+
+				// Move file in mongo
+				moveGSDirBNS($filePath, $_REQUEST['target']);
+
+				// Move dir in disk
+				rename($rfn, $rfn_target);
+				if (!is_dir($rfn_target)) {
+					$_SESSION['errorData']['Error'][] = "Error while writting moved directory";
+					break;
+				}
+				$_SESSION['errorData']['Info'][] = "Directory successfully moved!";
+				print('{"error":false, "msg": "Directory successfully moved!"}');
 				die();
-				break;
+			} else {
+				getWorkspaceLogger()->error("User" . $_SESSION['userId'] . " does not have permission to move directories.");
+				print '{"error":true, "msg": "User does not have permission to move directories."}';
 			}
-			$rfn_target = $GLOBALS['userDataDir'] . "/" . $_REQUEST['target'];
 
-			// Move file in mongo
-			moveGSDirBNS($filePath, $_REQUEST['target']);
-
-			// Move dir in disk
-			rename($rfn, $rfn_target);
-			if (!is_dir($rfn_target)) {
-				$_SESSION['errorData']['Error'][] = "Error while writting moved directory";
-				break;
-			}
-			$_SESSION['errorData']['Info'][] = "Directory successfully moved!";
-			print('{"error":false, "msg": "Directory successfully moved!"}');
-			die();
 			break;
 		case 'moveDirAll':
 			break;
