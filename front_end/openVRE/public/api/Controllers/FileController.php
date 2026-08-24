@@ -41,6 +41,13 @@ final class FileController
                 description: 'Maximum number of items to return (capped at 100)',
                 schema: new OA\Schema(type: 'integer', minimum: 1, maximum: 100, default: 50)
             ),
+            new OA\Parameter(
+                name: 'q',
+                in: 'query',
+                description: 'Optional case-insensitive substring match against file path; applied before pagination',
+                required: false,
+                schema: new OA\Schema(type: 'string')
+            ),
         ],
         responses: [
             new OA\Response(
@@ -58,6 +65,7 @@ final class FileController
         $queryParams = $request->getQueryParams();
         $offset = max(0, (int) ($queryParams['offset'] ?? 0));
         $limit = min(self::MAX_LIMIT, max(1, (int) ($queryParams['limit'] ?? self::DEFAULT_LIMIT)));
+        $q = trim((string) ($queryParams['q'] ?? ''));
 
         $userId = $request->getAttribute('userId'); // set by AuthMiddleware from the token's subject claim
         $userDoc = $GLOBALS['usersCol']->findOne(['_id' => $userId], ['projection' => ['id' => 1]]);
@@ -70,10 +78,17 @@ final class FileController
             return $this->jsonError($response, 404, 'NOT_FOUND', 'User not found');
         }
 
-        $ownerFilter = ['owner' => $ownerId];
-        $total = $GLOBALS['filesCol']->countDocuments($ownerFilter);
+        $filter = ['owner' => $ownerId];
+        if ($q !== '') {
+            $filter['path'] = [
+                '$regex' => preg_quote($q, '/'),
+                '$options' => 'i',
+            ];
+        }
+
+        $total = $GLOBALS['filesCol']->countDocuments($filter);
         $filesDoc = $GLOBALS['filesCol']->find(
-            $ownerFilter,
+            $filter,
             [
                 'projection' => ['atime' => 1, 'files' => 1, 'path' => 1, 'size' => 1, 'type' => 1],
                 'sort' => ['path' => 1],

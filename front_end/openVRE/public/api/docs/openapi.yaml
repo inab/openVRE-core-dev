@@ -29,6 +29,13 @@ paths:
             default: 50
             maximum: 100
             minimum: 1
+        -
+          name: q
+          in: query
+          description: 'Optional case-insensitive substring match against file path; applied before pagination'
+          required: false
+          schema:
+            type: string
       responses:
         '200':
           description: 'List of files and directories belonging to the user'
@@ -370,7 +377,7 @@ components:
           maximum: 100
           minimum: 1
         total:
-          description: 'Total number of files available for this user'
+          description: 'Total number of files matching the current filter (owner and optional q), not just this page'
           type: integer
           minimum: 0
         files:
