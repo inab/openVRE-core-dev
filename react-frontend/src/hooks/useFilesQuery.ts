@@ -6,6 +6,6 @@ import { workspaceQueryKeys } from '../api/queryKeys';
 export function useFilesQuery() {
   return useQuery({
     queryKey: workspaceQueryKeys.files,
-    queryFn: getUserFiles,
+    queryFn: () => getUserFiles(),
   });
 }
