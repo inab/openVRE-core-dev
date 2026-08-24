@@ -232,6 +232,65 @@ final class FileControllerTest extends TestCase
         $this->assertSame(100, $this->json($response)['limit']);
     }
 
+    public function testListAppliesPathSearchBeforePagination(): void
+    {
+        $page = [['path' => 'uploads/readme.txt', 'type' => 'file', 'size' => 4]];
+        $filesCol = new FakeFilesCol(1, $page);
+        $GLOBALS['usersCol'] = new FakeUsersCol(['id' => 'internal-user']);
+        $GLOBALS['filesCol'] = $filesCol;
+
+        $response = (new FileController())->list(
+            $this->request('user@example.com', [
+                'offset' => '10',
+                'limit' => '25',
+                'q' => 'readme.txt',
+            ]),
+            new Response(),
+            [],
+        );
+
+        $expectedFilter = [
+            'owner' => 'internal-user',
+            'path' => [
+                '$regex' => preg_quote('readme.txt', '/'),
+                '$options' => 'i',
+            ],
+        ];
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame($expectedFilter, $filesCol->lastCountFilter);
+        $this->assertSame($expectedFilter, $filesCol->lastFindFilter);
+        $this->assertSame(10, $filesCol->lastFindOptions['skip']);
+        $this->assertSame(25, $filesCol->lastFindOptions['limit']);
+        $this->assertSame(
+            [
+                'userId' => 'user@example.com',
+                'offset' => 10,
+                'limit' => 25,
+                'total' => 1,
+                'files' => $page,
+            ],
+            $this->json($response),
+        );
+    }
+
+    public function testListIgnoresEmptyOrWhitespaceSearch(): void
+    {
+        $filesCol = new FakeFilesCol(0, []);
+        $GLOBALS['usersCol'] = new FakeUsersCol(['id' => 'internal-user']);
+        $GLOBALS['filesCol'] = $filesCol;
+
+        $response = (new FileController())->list(
+            $this->request('user@example.com', ['q' => "  \t  "]),
+            new Response(),
+            [],
+        );
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(['owner' => 'internal-user'], $filesCol->lastCountFilter);
+        $this->assertSame(['owner' => 'internal-user'], $filesCol->lastFindFilter);
+    }
+
     /**
      * @param array<string, string> $query
      */
