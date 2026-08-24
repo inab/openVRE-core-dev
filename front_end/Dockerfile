@@ -43,7 +43,8 @@ RUN npm ci
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 RUN composer self-update
 RUN composer update --ignore-platform-req=ext-mongodb --ignore-platform-req=ext-mongodb
-RUN composer run docs
+RUN MONGO_CREDENTIALS=build:build MONGO_SERVER=127.0.0.1:27017 MONGO_MAIN_DB=openVRE composer run docs
+RUN composer update --no-dev --ignore-platform-req=ext-mongodb --ignore-platform-req=ext-mongodb
 RUN mkdir logs
 RUN touch logs/application.log
 RUN chmod -R 777 logs/application.log
