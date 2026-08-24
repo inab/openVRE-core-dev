@@ -10,6 +10,8 @@ export interface GetUserFilesResponse {
 export interface GetUserFilesParams {
   offset?: number;
   limit?: number;
+  /** Optional case-insensitive path substring; omitted when empty. */
+  q?: string;
 }
 
 export const USER_FILES_URL = '/auth-bff/files';
@@ -21,11 +23,16 @@ export const USER_FILES_DEFAULT_LIMIT = 50;
 export function userFilesUrl({
   offset = USER_FILES_DEFAULT_OFFSET,
   limit = USER_FILES_DEFAULT_LIMIT,
+  q,
 }: GetUserFilesParams = {}): string {
   const query = new URLSearchParams({
     offset: String(offset),
     limit: String(limit),
   });
+  const trimmedQ = q?.trim();
+  if (trimmedQ) {
+    query.set('q', trimmedQ);
+  }
   return `${USER_FILES_URL}?${query}`;
 }
 

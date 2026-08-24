@@ -26,6 +26,18 @@ describe('userFilesUrl', () => {
       `${USER_FILES_URL}?offset=50&limit=25`,
     );
   });
+
+  it('adds a non-empty search query', () => {
+    expect(userFilesUrl({ q: 'fastq' })).toBe(
+      `${USER_FILES_URL}?offset=${USER_FILES_DEFAULT_OFFSET}&limit=${USER_FILES_DEFAULT_LIMIT}&q=fastq`,
+    );
+  });
+
+  it('omits empty or whitespace-only search', () => {
+    expect(userFilesUrl({ q: '   ' })).toBe(
+      `${USER_FILES_URL}?offset=${USER_FILES_DEFAULT_OFFSET}&limit=${USER_FILES_DEFAULT_LIMIT}`,
+    );
+  });
 });
 
 describe('getUserFiles', () => {
