@@ -1,4 +1,6 @@
 # Node modules
 node_modules/
+.phpunit.cache/
+.phpunit.result.cache
 public/assets/global/plugins
 plugins-to-copy/

@@ -21,6 +21,7 @@
     "phpseclib/phpseclib": "^3.0"
   },
   "require-dev": {
+    "phpunit/phpunit": "^11.5",
     "zircote/swagger-php": "^6.5"
   },
   "autoload": {
@@ -35,7 +36,8 @@
     }
   },
   "scripts": {
-    "docs": "openapi public/api/ -o public/api/docs/openapi.yaml"
+    "docs": "openapi public/api/ -o public/api/docs/openapi.yaml",
+    "test": "phpunit"
   },
   "config": {
     "sort-packages": true,
