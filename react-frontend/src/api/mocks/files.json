@@ -1,7 +1,7 @@
 {
   "userId": "mock-user",
   "offset": 0,
-  "limit": 100,
+  "limit": 50,
   "total": 0,
   "files": []
 }
