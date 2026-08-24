@@ -8,8 +8,6 @@ use OpenApi\Attributes as OA;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
-require_once __DIR__ . "/../../phplib/db.inc.php";
-
 /**
  * Handles all file-related endpoints under /files.
  *
