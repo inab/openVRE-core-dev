@@ -80,8 +80,6 @@ function createUserFromToken($token, $userInfo = array())
 
         if (isset($userInfo['provider'])) {
             $userAttributes['AuthProvider'] = $userInfo['provider'];
-        if (isset($userInfo['provider'])) {
-            $userAttributes['AuthProvider'] = $userInfo['provider'];
         }
 
         if (isset($userInfo['sub'])) {
@@ -193,6 +191,11 @@ function modifyUser(string $login, array $attributeValueSet)
 function loadUser($userId, $impersonate)
 {
     $user = getUserById($userId);
+    if (is_null($user)) {
+        getUsersLogger()->error("Requested user (_id = $userId) not found. Cannot load user.");
+        throw new NotFoundException("Requested user (_id = $userId) not found. Cannot load user.");
+    }
+
     if (empty($user->get_id()) || $user->getStatus() == UserStatus::Inactive->value) {
         getUsersLogger()->error("Requested user (_id = $userId) not found. Cannot load user.");
         throw new NotFoundException("Requested user (_id = $userId) not found. Cannot load user.");
@@ -216,7 +219,7 @@ function loadUserWithToken(User $user, $userInfo, $token)
 
     $user->setLastLogin(moment());
     $user->setSecretsId($userInfo['sub']);
-    $user->setRoles($userInfo['roles']);
+    $user->setRoles(explode(',', $userInfo['roles']));
     $_SESSION['userToken'] = $token;
     $_SESSION['tokenInfo'] = $userInfo;
     $_SESSION['userId'] = $user->get_id();
@@ -325,13 +328,8 @@ function getUserJobPid($login, $pid)
     return $r['lastJobs'] ?? array();
 }
 
-function hasPermissions(string $userId, Permission $requiredPermission) {
-    $userPermissions = getUserPermissions($userId);
-
-    return in_array($requiredPermission->value, $userPermissions);
-}
-
-function hasPermissions(string $userId, Permission $requiredPermission) {
+function hasPermissions(string $userId, Permission $requiredPermission)
+{
     $userPermissions = getUserPermissions($userId);
 
     return in_array($requiredPermission->value, $userPermissions);

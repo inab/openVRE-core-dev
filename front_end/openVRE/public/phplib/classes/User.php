@@ -63,6 +63,7 @@ class User implements Persistable
         $this->name    = ucfirst($this->name);
         $this->developedTools = $developedTools;
         $this->termsAccepted = "0";
+        $this->roles = $roles;
 
         $_SESSION['userVaultInfo'] = array(
             "vaultKey"     => null

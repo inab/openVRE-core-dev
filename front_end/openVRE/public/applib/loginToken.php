@@ -37,10 +37,29 @@ if (isset($_SERVER['OIDC_access_token'])) {
     $user = getUserById(sanitizeString($_SERVER['OIDC_CLAIM_email']));
     if (is_null($user)) {
         try {
-            $user = createUserFromToken($_SERVER['OIDC_CLAIM_email'], $accessToken, $userInfo, false);
+            $user = createUserFromToken($accessToken, $userInfo);
             getLoginLogger()->info("Created new user from user access token.");
         } catch (\Exception $e) {
             exit('Login error: failed to create local VRE user: ' . $e->getMessage());
+        }
+
+        getLoginLogger()->debug("Creating workspace for internal user id: " . $user->getInternalId());
+        $dataDirId =  prepUserWorkSpace($user->getActiveProject(), $user->getInternalId());
+        $user->setDataDir($dataDirId);
+        getLoginLogger()->info("Workspace created for internal user id: " . $user->getInternalId());
+
+        try {
+            getUsersLogger()->debug("Saving new user into Mongo database");
+            saveNewUser($user);
+        } catch (Exception $e) {
+            getUsersLogger()->error("Error saving new user into Mongo database");
+            throw $e;
+        }
+
+        if (!$user->getName() || !$user->getSurname() || !$user->getInstitution()) {
+            getUsersLogger()->info("User metadata incomplete, redirecting to profile page");
+            redirect($GLOBALS['BASEURL'] . 'user/usrProfile.php');
+            exit(0);
         }
     }
 

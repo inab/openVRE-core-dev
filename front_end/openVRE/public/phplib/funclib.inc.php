@@ -31,6 +31,7 @@ function redirectOutside()
 		$user = loadUser($_SESSION['userId'], false);
 	} else {
 		header("Location: /login.php");
+		exit;
 	}
 
 	if (!checkTermsOfUse($user) && pathinfo($_SERVER['PHP_SELF'])['filename'] != 'usrProfile') {

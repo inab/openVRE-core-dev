@@ -92,7 +92,7 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'downloadFile' && isse
     }
 
     try {
-        $fileId = initiateFileDownload($swiftClient, $fileName, $container);
+        $fileId = initiateFileDownload($swiftClient, $fileName, $container, $user->getDataDir());
         getObjectStorageOpenstackLogger()->info("File downloaded successfully. File ID: " . $fileId . " is present in the workspace.");
         echo json_encode(array('status' => 'success', 'fileId' => $fileId));
     } catch (Exception $e) {

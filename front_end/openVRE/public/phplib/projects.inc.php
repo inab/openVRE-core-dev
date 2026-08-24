@@ -414,7 +414,7 @@ function getTreeChildrenOrdered($parentId, $filesAll, $parentDoc = null)
 }
 
 //add datatable tree nodes and hidden cols values
-function addTreeTableNodesToFiles($filesAll)
+function addTreeTableNodesToFiles($filesAll, $userDataDir)
 {
 	foreach ($filesAll as $id => &$file) {
 		unset($file['tree_id'], $file['tree_id_parent'], $file['tree_depth'], $file['tree_sort'], $file['parent_tree_sort'], $file['_print_order']);
@@ -422,7 +422,7 @@ function addTreeTableNodesToFiles($filesAll)
 	unset($file);
 
 	$printOrder = array();
-	$rootId = $GLOBALS['userDataDir'];
+	$rootId = $userDataDir;
 	$rootData = getGSFile_fromId($rootId);
 
 	$n = 1;
@@ -583,48 +583,48 @@ function printTable($filesAll = array())
 		?>
 		<tbody><?php
 
-				foreach ($filesAll as $r) {
-					if (!isset($r['tree_id']) && !isset($r['pending'])) {
+				foreach ($filesAll as $file) {
+					if (!isset($file['tree_id']) && !isset($file['pending'])) {
 						continue;
 					}
 					// is dir
-					if (isset($r['files'])) {
-						if (preg_match('/\/\./', $r['_id'])) {
+					if (isset($file['files'])) {
+						if (preg_match('/\/\./', $file['_id'])) {
 							continue;
 						}
-						if (isset($r['pending'])) {
-							if (basename($r['path']) == "uploads") {
-								print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_folder_uploads.htm'));
-							} elseif (basename($r['path']) == "repository") {
-								print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_folder_repository.htm'));
+						if (isset($file['pending'])) {
+							if (basename($file['path']) == "uploads") {
+								print parseTemplate(formatData($file), getTemplate('/TreeTblworkspace/TR_folder_uploads.htm'));
+							} elseif (basename($file['path']) == "repository") {
+								print parseTemplate(formatData($file), getTemplate('/TreeTblworkspace/TR_folder_repository.htm'));
 							} else {
-								print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_folderPending.htm'));
+								print parseTemplate(formatData($file), getTemplate('/TreeTblworkspace/TR_folderPending.htm'));
 							}
-						} elseif (basename($r['path']) == "uploads") {
-							print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_folder_uploads.htm'));
-						} elseif (basename($r['path']) == "repository") {
-							print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_folder_repository.htm'));
-						} elseif (count($r['files']) == 0) {
-							print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_folder_empty.htm'));
+						} elseif (basename($file['path']) == "uploads") {
+							print parseTemplate(formatData($file), getTemplate('/TreeTblworkspace/TR_folder_uploads.htm'));
+						} elseif (basename($file['path']) == "repository") {
+							print parseTemplate(formatData($file), getTemplate('/TreeTblworkspace/TR_folder_repository.htm'));
+						} elseif (count($file['files']) == 0) {
+							print parseTemplate(formatData($file), getTemplate('/TreeTblworkspace/TR_folder_empty.htm'));
 						} else {
-							print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_folder.htm'));
+							print parseTemplate(formatData($file), getTemplate('/TreeTblworkspace/TR_folder.htm'));
 						}
 						// is job
-					} elseif (isset($r['pending'])) {
-						if ($r['pending'] == "ACTIVE SESSION") {
-							print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_fileInteractive.htm'));
+					} elseif (isset($file['pending'])) {
+						if ($file['pending'] == "ACTIVE SESSION") {
+							print parseTemplate(formatData($file), getTemplate('/TreeTblworkspace/TR_fileInteractive.htm'));
 						} else {
-							print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_filePending.htm'));
+							print parseTemplate(formatData($file), getTemplate('/TreeTblworkspace/TR_filePending.htm'));
 						}
 						$autorefresh = 1;
 						// is file
-					} elseif (isset($r['_id'])) {
-						if ($r['validated']) {
-							print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_file.htm'));
-						} elseif (!file_exists($r['path'])) {
-							print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_fileDisabledRemote.htm'));
+					} elseif (isset($file['_id'])) {
+						if ($file['validated']) {
+							print parseTemplate(formatData($file), getTemplate('/TreeTblworkspace/TR_file.htm'));
+						} elseif (!file_exists($file['path'])) {
+							print parseTemplate(formatData($file), getTemplate('/TreeTblworkspace/TR_fileDisabledRemote.htm'));
 						} else {
-							print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_fileDisabled.htm'));
+							print parseTemplate(formatData($file), getTemplate('/TreeTblworkspace/TR_fileDisabled.htm'));
 						}
 					} else {
 						//empty mongo entry;
@@ -2244,7 +2244,7 @@ function moveFiles($fns, $target_fn)
 function syncProjectFiles($projects)
 {
 	foreach ($projects as $projectId => $projectAttributes) {
-		$projectFullPath = $GLOBALS['dataDir'] . "/" . $projectAttributes['path'];
+		$projectFullPath = $GLOBALS['userDataDir'] . "/" . $projectAttributes['path'];
 
 		if (!is_dir($projectFullPath)) {
 			continue; // skip projects whose root path doesn't exist

@@ -22,6 +22,6 @@ $GLOBALS['fileFormatsCol']  = $databaseConnection->file_formats;
 $GLOBALS['dataTypesCol']    = $databaseConnection->data_types;
 $GLOBALS['helpsCol']        = $databaseConnection->helps;
 $GLOBALS['sampleDataCol']   = $databaseConnection->sampleData;
-$GLOBALS['actionLogs']      = $GLOBALS['db']->action_logs;
+$GLOBALS['actionLogs']      = $databaseConnection->action_logs;
 $GLOBALS['rolePermissions']      = $databaseConnection->role_permissions;
 $GLOBALS['sitesCol']   = $databaseConnection->sites;

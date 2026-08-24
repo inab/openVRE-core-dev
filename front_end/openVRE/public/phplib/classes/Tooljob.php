@@ -957,7 +957,7 @@ class Tooljob
 				"description" => "Uploaded personal data"
 			));
 
-			$dataDirP  = $GLOBALS['dataDir'] . "/$dataDir";
+			$dataDirP  = $GLOBALS['userDataDir'] . "/$dataDir";
 			if (!is_dir("$dataDirP" . $hostDir)) {
 				mkdir("$dataDirP" . $hostDir, 0775);
 			}
@@ -1261,7 +1261,7 @@ class Tooljob
 			$userId = $file['owner'] ?? $_SESSION['internalUserId'];
 
 			if (preg_match('/^\//', $path)) {
-				$dataPrefix = rtrim($GLOBALS['dataDir'], '/') . '/';
+				$dataPrefix = rtrim($GLOBALS['userDataDir'], '/') . '/';
 				$path = (strpos($path, $dataPrefix) === 0)
 					? substr($path, strlen($dataPrefix))
 					: ltrim($path, '/');

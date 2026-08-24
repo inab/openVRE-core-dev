@@ -30,7 +30,7 @@ syncProjectFiles($projects);
 $userFiles = getFilesToDisplay($user->getActiveProject(), array('_id' => $user->getDataDir()), $user->getLastJobs());
 
 $files = (isset($tools['list']) ? filterFiles_by_dataType($userFiles, $tools["list"]) : $userFiles);
-$files = sortFilesForTable(addTreeTableNodesToFiles($files));
+$files = sortFilesForTable(addTreeTableNodesToFiles($files, $user->getDataDir()));
 
 ?>
 
