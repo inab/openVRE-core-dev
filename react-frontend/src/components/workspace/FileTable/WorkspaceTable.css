@@ -1,0 +1,129 @@
+.workspaceTableRoot {
+  width: 100%;
+}
+
+.workspaceTableWrap {
+  overflow-x: auto;
+  scrollbar-gutter: stable;
+  width: 100%;
+}
+
+.workspaceTable {
+  border-collapse: collapse;
+  color: var(--color-text);
+  font-family: var(--font-family-base);
+  font-size: var(--font-size-md);
+  table-layout: fixed;
+  width: 100%;
+}
+
+.workspaceTableColSelect {
+  width: var(--space-xl);
+}
+
+.workspaceTableColFile {
+  width: var(--space-8xl);
+}
+
+.workspaceTableColActions {
+  width: var(--space-5xl);
+}
+
+.workspaceTableTh {
+  background: color-mix(
+    in srgb,
+    var(--color-text-muted) 12%,
+    var(--color-surface)
+  );
+  border-bottom: 1px solid var(--color-border);
+  border-top: 1px solid var(--color-border);
+  font-weight: var(--font-weight-bold);
+  overflow: hidden;
+  padding: var(--space-sm);
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspaceTableTh:first-child {
+  border-left: 1px solid var(--color-border);
+  padding-left: var(--space-sm);
+  padding-right: 0;
+}
+
+.workspaceTableTh:nth-child(2) {
+  padding-left: var(--space-xs);
+}
+
+.workspaceTableTh:last-child {
+  border-right: 1px solid var(--color-border);
+}
+
+.workspaceTableThSortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.workspaceTableThSortable:hover {
+  color: var(--color-secondary);
+}
+
+.workspaceTableTd {
+  border-bottom: 1px solid var(--color-border-subtle);
+  overflow: hidden;
+  padding: var(--space-sm);
+  text-overflow: ellipsis;
+  vertical-align: middle;
+  white-space: nowrap;
+}
+
+.workspaceTableTd:first-child {
+  padding-left: var(--space-sm);
+  padding-right: 0;
+}
+
+.workspaceTableTd:nth-child(2) {
+  padding-left: var(--space-xs);
+}
+
+.workspaceTableRow:nth-child(odd) {
+  background: color-mix(
+    in srgb,
+    var(--color-text-muted) 6%,
+    var(--color-surface)
+  );
+}
+
+.workspaceTableRow:nth-child(even) {
+  background: var(--color-surface);
+}
+
+.workspaceTableRow:hover {
+  background: color-mix(
+    in srgb,
+    var(--color-text-muted) 12%,
+    var(--color-surface)
+  );
+}
+
+.workspaceTableRow[data-kind='folder'],
+.workspaceTableRow[data-kind='folder_empty'],
+.workspaceTableRow[data-kind='folder_uploads'],
+.workspaceTableRow[data-kind='folder_repository'] {
+  color: var(--color-secondary);
+  font-weight: var(--font-weight-bold);
+}
+
+.workspaceTableRowSelected {
+  background: color-mix(in srgb, var(--color-secondary) 8%, transparent);
+}
+
+.workspaceTableFooter {
+  padding-block: var(--space-md);
+}
+
+.workspaceTableInfo {
+  color: var(--color-text-muted);
+  font-size: var(--font-size-md);
+  margin: 0;
+}
