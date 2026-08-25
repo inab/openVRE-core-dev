@@ -1,7 +1,10 @@
-import type { GetUserFilesParams } from './getUserFiles';
+import {
+  normalizeUserFilesParams,
+  type GetUserFilesParams,
+} from './getUserFiles';
 
 export const workspaceQueryKeys = {
   tools: ['workspace', 'tools'] as const,
   files: (params: GetUserFilesParams = {}) =>
-    ['workspace', 'files', params] as const,
+    ['workspace', 'files', normalizeUserFilesParams(params)] as const,
 };
