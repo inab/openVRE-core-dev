@@ -157,7 +157,7 @@ cd react-frontend
 npm test
 ```
 
-`getUserFiles` covers unauthorized (401, no Bearer, URL is `/auth-bff/files`) and authorized (200 JSON). Add new cases next to the code as `src/**/*.test.ts`.
+`getUserFiles` defaults to a fixture; live `/auth-bff/files` tests stub `fetch` with `{ useFixture: false }`. Add new cases under `tests/**/*.test.ts`.
 
 `npm run check` runs lint, format, TypeScript, and the same tests.
 
