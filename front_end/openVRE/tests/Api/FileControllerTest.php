@@ -291,8 +291,53 @@ final class FileControllerTest extends TestCase
         $this->assertSame(['owner' => 'internal-user'], $filesCol->lastFindFilter);
     }
 
+    public function testListIgnoresNonStringSearch(): void
+    {
+        $filesCol = new FakeFilesCol(0, []);
+        $GLOBALS['usersCol'] = new FakeUsersCol(['id' => 'internal-user']);
+        $GLOBALS['filesCol'] = $filesCol;
+
+        $response = (new FileController())->list(
+            $this->request('user@example.com', ['q' => ['readme.txt']]),
+            new Response(),
+            [],
+        );
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(['owner' => 'internal-user'], $filesCol->lastCountFilter);
+        $this->assertSame(['owner' => 'internal-user'], $filesCol->lastFindFilter);
+    }
+
+    public function testListTruncatesLongSearch(): void
+    {
+        $filesCol = new FakeFilesCol(0, []);
+        $GLOBALS['usersCol'] = new FakeUsersCol(['id' => 'internal-user']);
+        $GLOBALS['filesCol'] = $filesCol;
+
+        $q = str_repeat('a', 250);
+        $truncated = str_repeat('a', 200);
+
+        $response = (new FileController())->list(
+            $this->request('user@example.com', ['q' => $q]),
+            new Response(),
+            [],
+        );
+
+        $expectedFilter = [
+            'owner' => 'internal-user',
+            'path' => [
+                '$regex' => preg_quote($truncated, '/'),
+                '$options' => 'i',
+            ],
+        ];
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame($expectedFilter, $filesCol->lastCountFilter);
+        $this->assertSame($expectedFilter, $filesCol->lastFindFilter);
+    }
+
     /**
-     * @param array<string, string> $query
+     * @param array<string, mixed> $query
      */
     private function request(string $userId, array $query = []): ServerRequestInterface
     {
