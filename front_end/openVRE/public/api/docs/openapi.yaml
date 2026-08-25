@@ -32,10 +32,11 @@ paths:
         -
           name: q
           in: query
-          description: 'Optional case-insensitive substring match against file path; applied before pagination'
+          description: 'Optional case-insensitive substring match against file path; applied before pagination. Non-string values are ignored; truncated to 200 characters.'
           required: false
           schema:
             type: string
+            maxLength: 200
       responses:
         '200':
           description: 'List of files and directories belonging to the user'

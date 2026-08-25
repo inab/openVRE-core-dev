@@ -25,6 +25,8 @@ final class FileController
 
     private const MAX_LIMIT = 100;
 
+    private const MAX_Q_LENGTH = 200;
+
     #[OA\Get(
         path: '/files',
         tags: ['Files'],
@@ -44,9 +46,9 @@ final class FileController
             new OA\Parameter(
                 name: 'q',
                 in: 'query',
-                description: 'Optional case-insensitive substring match against file path; applied before pagination',
+                description: 'Optional case-insensitive substring match against file path; applied before pagination. Non-string values are ignored; truncated to 200 characters.',
                 required: false,
-                schema: new OA\Schema(type: 'string')
+                schema: new OA\Schema(type: 'string', maxLength: self::MAX_Q_LENGTH)
             ),
         ],
         responses: [
@@ -65,7 +67,7 @@ final class FileController
         $queryParams = $request->getQueryParams();
         $offset = max(0, (int) ($queryParams['offset'] ?? 0));
         $limit = min(self::MAX_LIMIT, max(1, (int) ($queryParams['limit'] ?? self::DEFAULT_LIMIT)));
-        $q = trim((string) ($queryParams['q'] ?? ''));
+        $q = $this->searchQuery($queryParams);
 
         $userId = $request->getAttribute('userId'); // set by AuthMiddleware from the token's subject claim
         $userDoc = $GLOBALS['usersCol']->findOne(['_id' => $userId], ['projection' => ['id' => 1]]);
@@ -250,6 +252,28 @@ final class FileController
         $userId = $request->getAttribute('userId'); // set by AuthMiddleware from the token's subject claim
 
         return $this->notImplemented($response, 'uncompressFile');
+    }
+
+    /**
+     * @param array<string, mixed> $queryParams
+     */
+    private function searchQuery(array $queryParams): string
+    {
+        $raw = $queryParams['q'] ?? '';
+        if (!is_string($raw)) {
+            return '';
+        }
+
+        $q = trim($raw);
+        if ($q === '') {
+            return '';
+        }
+
+        if (mb_strlen($q) > self::MAX_Q_LENGTH) {
+            return mb_substr($q, 0, self::MAX_Q_LENGTH);
+        }
+
+        return $q;
     }
 
     private function notImplemented(Response $response, string $operationId): Response
