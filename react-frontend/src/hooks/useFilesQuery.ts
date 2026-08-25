@@ -1,11 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { getUserFiles, type GetUserFilesParams } from '../api/getUserFiles';
+import {
+  getUserFiles,
+  normalizeUserFilesParams,
+  type GetUserFilesParams,
+} from '../api/getUserFiles';
 import { workspaceQueryKeys } from '../api/queryKeys';
 
 export function useFilesQuery(params: GetUserFilesParams = {}) {
+  const normalized = normalizeUserFilesParams(params);
   return useQuery({
-    queryKey: workspaceQueryKeys.files(params),
-    queryFn: () => getUserFiles(params),
+    queryKey: workspaceQueryKeys.files(normalized),
+    queryFn: () => getUserFiles(normalized),
   });
 }
