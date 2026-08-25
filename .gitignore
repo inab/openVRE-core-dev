@@ -27,3 +27,6 @@ front_end/openVRE/public/assets/react/
 # pnpm leftovers (must not live in the repo; use Docker named volumes)
 .pnpm-store/
 react-frontend/.pnpm-store/
+
+# Local Cursor agent rules / settings
+.cursor/
