@@ -980,12 +980,16 @@ class Tooljob
 			switch ($this->launcher) {
 				case "SGE":
 				case "kubernetes_native":
-					$cmd  = $this->setBashCmd_SGE($tool);
+					$cmd  = $this->setBashCmd_SGE($tool); 
 					$this->createSubmitFile_SGE($cmd);
 
 					break;
 				case "docker_SGE":
 					$cmd  = $this->setBashCommandDockerSge($tool);
+					// Register interactive/Guacamole execution info here
+					if ($this->interactive_backend === 'guacamole') {
+						$this->registerInteractiveExecution($tool);
+					}
 					$this->createSubmitFile_SGE($cmd);
 
 					break;
@@ -1056,6 +1060,24 @@ class Tooljob
 	{
 		return $this->getInteractiveAccessMode($tool) === 'guacamole';
 	}
+	protected function registerInteractiveExecution($tool)
+	{
+		$access = $tool['infrastructure']['interactive_access'];
+
+		LoggerFactory::getPersistentLogger()->info(
+			'Interactive execution prepared for tool {toolId}',
+			array(
+				'toolId' => $this->toolId,
+				'execution' => $this->execution,
+				'backend' => 'guacamole',
+				'containerName' => $this->containerName,
+				'protocol' => $access['protocol'],
+				'port' => (int) $access['port'],
+				'containerUrl' => 'vnc://' . $this->containerName . ':' . $access['port'],
+				'status' => 'guacamole_ready'
+			)
+		);
+	}
 
 	protected function setBashCommandDockerSgeInteractive($tool, $customToolParameters)
 	{
@@ -1068,18 +1090,9 @@ class Tooljob
 			? "guacamole"
 			: "direct";
 
-
-		#$container_port = $tool['infrastructure']['container_port'];
-		#$hostPort = $this->getFreePort();
-		#$this->containerName = $tool['infrastructure']['container_image'];
-		#if ($hostPort === null) {
-		#	$this->logger->error("No free ports available to run the interactive tool.");
-		#	throw new UnexpectedValueException("No free ports available to run the interactive tool.");
-		#}
-
 		if (!$usesGuacamole) {
 			$hostPort = $this->getFreePort();
-			$containerName = $tool['infrastructure']['container_image'];
+			#$containerName = $tool['infrastructure']['container_image'];
 			if ($hostPort === null) {
 				$this->logger->error("No free ports available to run the interactive tool.");
 				throw new UnexpectedValueException(
@@ -1088,13 +1101,14 @@ class Tooljob
         	}
     	}
 
-		#$containerName = $this->containerName;
+		
+		$containerName = $this->containerName;
 		$networkName = $GLOBALS['NETWORK_NAME'];
 
 		if ($usesGuacamole) {
-			$containerName = $tool['infrastructure']['container_image'];
-			$accessPort = $tool['infrastructure']['interactive_access']['port'] ?? null;
+			#$containerName = $tool['infrastructure']['container_image'];
 
+			$accessPort = $tool['infrastructure']['interactive_access']['port'] ?? null;
 			if (empty($accessPort)) {
 				$this->logger->error(
 					"Guacamole interactive tool '$this->toolId' is missing interactive_access.port."
@@ -1182,12 +1196,20 @@ class Tooljob
 	fi
 EOF;
 		if ($usesGuacamole) {
+			$this->interactive_protocol = $tool['infrastructure']['interactive_access']['protocol'];
+			$this->interactive_port = (int) $tool['infrastructure']['interactive_access']['port'];
+			$this->interactive_container_name = $this->containerName;
+			$this->interactive_container_url =
+				"vnc://{$this->containerName}:{$this->interactive_port}";
 			$reportContainerInfo = <<<EOF
 				CONTAINER_URL="vnc://$containerName:$accessPort"
 
-				printf '%s | %s\n' "\$(date)" "ContainerID: \$CONTAINER_ID";
-				printf '%s | %s\n' "\$(date)" "AccessMode: guacamole";
-				printf '%s | %s\n' "\$(date)" "VNC endpoint: \$CONTAINER_URL";
+				printf '%s | %s\n' "$(date)" "GUACAMOLE_READY"
+				printf '%s | %s\n' "$(date)" "ContainerID: $CONTAINER_ID"
+				printf '%s | %s\n' "$(date)" "ContainerName: $containerName"
+				printf '%s | %s\n' "$(date)" "Protocol: vnc"
+				printf '%s | %s\n' "$(date)" "Port: $accessPort"
+				printf '%s | %s\n' "$(date)" "VNC endpoint: $CONTAINER_URL"	
 	EOF;
 		} else {
 			$containerPort = $tool['infrastructure']['container_port'];

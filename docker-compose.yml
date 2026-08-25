@@ -106,6 +106,22 @@ services:
         ipv4_address: 172.21.0.14
     restart: on-failure:2
 
+  guacamole-db:
+       container_name: guacamole-db
+       hostname: guacamole-db
+       image: mariadb:11
+       environment:
+         MYSQL_ROOT_PASSWORD: ${GUACAMOLE_DB_ROOT_PASSWORD}
+         MYSQL_DATABASE: ${GUACAMOLE_DB}
+         MYSQL_USER: ${GUACAMOLE_DB_USER}
+         MYSQL_PASSWORD: ${GUACAMOLE_DB_PASSWORD}
+       volumes:
+         - guacamole_db_data:/var/lib/mysql
+         - ./guacamole/db:/docker-entrypoint-initdb.d:ro
+       networks:
+         net_vre:
+           ipv4_address: 172.21.0.29
+       restart: on-failure:2
 
   guacd:
     container_name: guacd
@@ -127,7 +143,11 @@ services:
       GUACD_HOSTNAME: guacd
       GUACD_PORT: 4822
       OPENID_CLIENT_SECRET: "${GUACAMOLE_CLIENT_SECRET}"
-
+      MYSQL_DATABASE: ${GUACAMOLE_DB}
+      MYSQL_USER: ${GUACAMOLE_DB_USER}
+      MYSQL_PASSWORD: ${GUACAMOLE_DB_PASSWORD}
+      MYSQL_ENABLED: "false"
+      OPENID_ENABLED: "true"
     volumes:
      - ./guacamole/configuration:/etc/guacamole:ro
     networks:
@@ -174,6 +194,8 @@ services:
 volumes:
   mongo_data:
     name: ${MONGO_VOLUME}
+  guacamole_db_data:
+    name: guacamole_db_data
 
 networks:
   net_vre:
