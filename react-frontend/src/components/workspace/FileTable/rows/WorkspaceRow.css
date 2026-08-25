@@ -1,0 +1,64 @@
+.workspaceRowName {
+  align-items: center;
+  display: flex;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.workspaceRowNameFolder .workspaceRowFilename {
+  color: var(--color-secondary);
+}
+
+.workspaceRowExpand,
+.workspaceRowExpandSpacer {
+  align-items: center;
+  display: inline-flex;
+  flex-shrink: 0;
+  height: var(--size-icon-sm);
+  justify-content: center;
+  width: var(--size-icon-sm);
+}
+
+.workspaceRowExpand {
+  background: transparent;
+  border: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  padding: 0;
+}
+
+.workspaceRowExpand:hover {
+  color: var(--color-secondary);
+}
+
+.workspaceRowIcon {
+  flex-shrink: 0;
+}
+
+.workspaceRowIconFolder {
+  color: var(--color-secondary);
+}
+
+.workspaceRowIconFolderOpen {
+  fill: none;
+}
+
+.workspaceRowIconFile {
+  color: var(--color-input-addon);
+}
+
+.workspaceRowFilename {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspaceRowBadge {
+  background: var(--color-warning-bg);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--color-warning-text);
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  padding: 1px 6px;
+}
