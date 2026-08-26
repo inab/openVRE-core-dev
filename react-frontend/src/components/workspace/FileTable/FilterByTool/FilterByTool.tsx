@@ -1,9 +1,21 @@
 import { Wrench } from 'lucide-react';
 
 import { ComboBox } from '../../../ui/ComboBox/ComboBox';
-import { FilterByToolProps } from './FilterByToolProps';
 
 import './FilterByTool.css';
+
+interface ToolOption {
+  id: string;
+  name: string;
+  dataTypes: string[];
+}
+
+export interface FilterByToolProps {
+  tools: ToolOption[];
+  value?: string | null;
+  onChange?: (toolId: string | null) => void;
+  placeholder?: string;
+}
 
 export const FilterByTool = ({
   tools,
