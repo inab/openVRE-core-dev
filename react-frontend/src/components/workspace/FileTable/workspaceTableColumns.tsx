@@ -82,12 +82,6 @@ export const workspaceTableColumns = columnHelper.columns([
     header: 'Data type',
     cell: (info) => info.getValue() || '',
   }),
-  columnHelper.display({
-    id: 'execution',
-    header: 'Execution',
-    cell: () => '',
-    enableSorting: false,
-  }),
   columnHelper.accessor('date', {
     header: 'Date',
     cell: (info) => formatFileDate(info.getValue()),

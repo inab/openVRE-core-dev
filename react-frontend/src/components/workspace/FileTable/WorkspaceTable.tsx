@@ -3,16 +3,19 @@ import {
   flexRender,
   useTable,
   type ExpandedState,
+  type OnChangeFn,
   type RowSelectionState,
   type SortingState,
 } from '@tanstack/react-table';
 
 import { formatShowingEntries } from './formatters';
+import type { WorkspacePageSize } from './pagination';
 import type { FileItem } from './types/FileItem';
 import {
   workspaceTableColumns,
   workspaceTableFeatures,
 } from './workspaceTableColumns';
+import { WorkspaceTablePagination } from './WorkspaceTablePagination';
 
 import './WorkspaceTable.css';
 
@@ -23,6 +26,13 @@ export interface WorkspaceTableProps {
   offset: number;
   pageCount: number;
   total: number;
+  pageIndex: number;
+  totalPages: number;
+  pageSize: WorkspacePageSize;
+  rowSelection: RowSelectionState;
+  onRowSelectionChange: OnChangeFn<RowSelectionState>;
+  onPageChange: (pageIndex: number) => void;
+  onPageSizeChange: (pageSize: WorkspacePageSize) => void;
 }
 
 export const WorkspaceTable = ({
@@ -30,10 +40,23 @@ export const WorkspaceTable = ({
   offset,
   pageCount,
   total,
+  pageIndex,
+  totalPages,
+  pageSize,
+  rowSelection,
+  onRowSelectionChange,
+  onPageChange,
+  onPageSizeChange,
 }: WorkspaceTableProps) => {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [expanded, setExpanded] = useState<ExpandedState>(true);
-  const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
+  const [prevData, setPrevData] = useState(data);
+
+  // Page / search changes replace root rows; keep folders expanded by default.
+  if (data !== prevData) {
+    setPrevData(data);
+    setExpanded(true);
+  }
 
   const tableData = data.length > 0 ? data : EMPTY_DATA;
 
@@ -48,10 +71,11 @@ export const WorkspaceTable = ({
     },
     onSortingChange: setSorting,
     onExpandedChange: setExpanded,
-    onRowSelectionChange: setRowSelection,
+    onRowSelectionChange,
     getSubRows: (row) => row.children,
     getRowId: (row) => row.fileId,
     enableRowSelection: true,
+    autoResetExpanded: false,
     sortDescFirst: false,
   });
 
@@ -64,11 +88,10 @@ export const WorkspaceTable = ({
           <colgroup>
             <col className="workspaceTableColSelect" />
             <col className="workspaceTableColFile" />
-            <col />
-            <col />
-            <col />
-            <col />
-            <col />
+            <col className="workspaceTableColFileType" />
+            <col className="workspaceTableColDataType" />
+            <col className="workspaceTableColDate" />
+            <col className="workspaceTableColSize" />
             <col className="workspaceTableColActions" />
           </colgroup>
           <thead>
@@ -142,6 +165,13 @@ export const WorkspaceTable = ({
         <p className="workspaceTableInfo">
           {formatShowingEntries(offset, pageCount, total)}
         </p>
+        <WorkspaceTablePagination
+          pageIndex={pageIndex}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          onPageChange={onPageChange}
+          onPageSizeChange={onPageSizeChange}
+        />
       </div>
     </div>
   );

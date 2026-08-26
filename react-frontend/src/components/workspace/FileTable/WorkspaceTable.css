@@ -4,7 +4,6 @@
 
 .workspaceTableWrap {
   overflow-x: auto;
-  scrollbar-gutter: stable;
   width: 100%;
 }
 
@@ -13,8 +12,17 @@
   color: var(--color-text);
   font-family: var(--font-family-base);
   font-size: var(--font-size-md);
+  min-width: 100%;
   table-layout: fixed;
   width: 100%;
+}
+
+.workspaceTable input[type='checkbox'] {
+  accent-color: var(--color-secondary);
+  cursor: pointer;
+  height: var(--font-size-md);
+  margin: 0;
+  width: var(--font-size-md);
 }
 
 .workspaceTableColSelect {
@@ -22,7 +30,23 @@
 }
 
 .workspaceTableColFile {
-  width: var(--space-8xl);
+  width: var(--space-6xl);
+}
+
+.workspaceTableColFileType {
+  width: var(--space-4xl);
+}
+
+.workspaceTableColDataType {
+  width: var(--space-4xl);
+}
+
+.workspaceTableColDate {
+  width: var(--space-4xl);
+}
+
+.workspaceTableColSize {
+  width: var(--space-4xl);
 }
 
 .workspaceTableColActions {
@@ -119,6 +143,11 @@
 }
 
 .workspaceTableFooter {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm);
+  justify-content: space-between;
   padding-block: var(--space-md);
 }
 
