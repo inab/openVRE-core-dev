@@ -5,6 +5,9 @@ import type { FileItem } from '../types/FileItem';
  * Nest a flat ApiFileItem page into UI roots using parentId → children[].
  * Only links when the parent is on this page; otherwise the row is a page root.
  * Payload fields (kind, status, actions, flags) are left unchanged.
+ *
+ * Preserves input order. Callers that need uploads-first / name order should
+ * pass a list already sorted via {@link orderWorkspaceFiles}.
  */
 export function adaptFilesPage(files: ApiFileItem[]): FileItem[] {
   const byId = new Map<string, FileItem>();
