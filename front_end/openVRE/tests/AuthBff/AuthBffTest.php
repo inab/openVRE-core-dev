@@ -175,6 +175,90 @@ final class AuthBffTest extends TestCase
         $this->assertSame('FORBIDDEN', json_decode($result['body'], true)['code']);
     }
 
+    public function testFilesFixtureServesListWithoutCallingApi(): void
+    {
+        $transport = new FakeTransport();
+        $result = (new AuthBff($transport, true, $this->fixturePath()))->handle(
+            $this->server('/auth-bff/files'),
+            $this->session('session-jwt', 'demo-user@example.com'),
+            '',
+        );
+
+        $this->assertSame(0, $transport->calls);
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('application/json', $result['contentType']);
+
+        $body = json_decode($result['body'], true);
+        $this->assertSame('demo-user@example.com', $body['userId']);
+        $this->assertSame(0, $body['offset']);
+        $this->assertSame(3, $body['limit']);
+        $this->assertSame(3, $body['total']);
+        $this->assertCount(3, $body['files']);
+        $this->assertSame('uploads', $body['files'][0]['filename']);
+        $this->assertContains('download_folder', $body['files'][0]['actions']);
+    }
+
+    public function testFilesFixtureRequiresSessionUser(): void
+    {
+        $transport = new FakeTransport();
+        $result = (new AuthBff($transport, true, $this->fixturePath()))->handle(
+            $this->server('/auth-bff/files'),
+            $this->session('session-jwt'),
+            '',
+        );
+
+        $this->assertSame(401, $result['status']);
+        $this->assertSame(0, $transport->calls);
+        $this->assertSame('UNAUTHORIZED', json_decode($result['body'], true)['code']);
+    }
+
+    public function testFilesFixtureIgnoresQueryParamsAndReturnsFullList(): void
+    {
+        $transport = new FakeTransport();
+        $result = (new AuthBff($transport, true, $this->fixturePath()))->handle(
+            $this->server('/auth-bff/files?offset=0&limit=1&q=fastq', 'offset=0&limit=1&q=fastq'),
+            $this->session('session-jwt', 'demo-user@example.com'),
+            '',
+        );
+
+        $this->assertSame(0, $transport->calls);
+        $body = json_decode($result['body'], true);
+        $this->assertSame(200, $result['status']);
+        $this->assertSame(0, $body['offset']);
+        $this->assertSame(3, $body['limit']);
+        $this->assertSame(3, $body['total']);
+        $this->assertCount(3, $body['files']);
+    }
+
+    public function testFilesFixtureStillRequiresSession(): void
+    {
+        $transport = new FakeTransport();
+        $result = (new AuthBff($transport, true, $this->fixturePath()))->handle(
+            $this->server('/auth-bff/files'),
+            [],
+            '',
+        );
+
+        $this->assertSame(401, $result['status']);
+        $this->assertSame(0, $transport->calls);
+        $this->assertSame('UNAUTHORIZED', json_decode($result['body'], true)['code']);
+    }
+
+    public function testFilesFixtureDoesNotShortCircuitNonGet(): void
+    {
+        $transport = new FakeTransport(200, 'application/json', '{"ok":true}');
+        $result = (new AuthBff($transport, true, $this->fixturePath()))->handle(
+            $this->server('/auth-bff/files', '', 'POST'),
+            $this->session('session-jwt'),
+            '{"name":"x"}',
+        );
+
+        $this->assertSame(1, $transport->calls);
+        $this->assertSame('POST', $transport->method);
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('{"ok":true}', $result['body']);
+    }
+
     #[DataProvider('injectionPathProvider')]
     public function testAuthorizedInjectionPathsDoNotCallApi(string $requestUri): void
     {
@@ -253,11 +337,21 @@ final class AuthBffTest extends TestCase
     /**
      * @return array<string, mixed>
      */
-    private function session(string $accessToken): array
+    private function session(string $accessToken, ?string $userId = null): array
     {
-        return [
+        $session = [
             'userToken' => new AccessToken(['access_token' => $accessToken]),
         ];
+        if ($userId !== null) {
+            $session['User'] = ['id' => $userId];
+        }
+
+        return $session;
+    }
+
+    private function fixturePath(): string
+    {
+        return __DIR__ . '/fixtures/filesList.json';
     }
 
     /**

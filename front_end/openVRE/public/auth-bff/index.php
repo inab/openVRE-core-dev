@@ -35,5 +35,9 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 }
 
 $body = (string) file_get_contents('php://input');
-$authBff = new AuthBff(new CurlTransport());
+$authBff = new AuthBff(
+    new CurlTransport(),
+    getenv('FILES_LIST_FIXTURE') === '1',
+    AuthBff::defaultFilesFixturePath(),
+);
 emitAuthBffResult($authBff->handle($_SERVER, $_SESSION, $body));

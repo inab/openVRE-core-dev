@@ -1,0 +1,50 @@
+[
+  {
+    "fileId": "root-uploads",
+    "parentId": null,
+    "filename": "uploads",
+    "path": "user/uploads",
+    "type": "dir",
+    "format": "",
+    "dataType": "",
+    "date": "2026-01-01T00:00:00.000+00:00",
+    "size": 0,
+    "kind": "folder_uploads",
+    "status": "idle",
+    "actions": ["download_folder"],
+    "isSelectable": false,
+    "isProtected": true
+  },
+  {
+    "fileId": "child-a",
+    "parentId": "root-uploads",
+    "filename": "a.txt",
+    "path": "user/uploads/a.txt",
+    "type": "file",
+    "format": "txt",
+    "dataType": "text",
+    "date": "2026-01-02T00:00:00.000+00:00",
+    "size": 10,
+    "kind": "file",
+    "status": "ready",
+    "actions": ["download"],
+    "isSelectable": true,
+    "isProtected": false
+  },
+  {
+    "fileId": "child-b",
+    "parentId": "root-uploads",
+    "filename": "b.fastq",
+    "path": "user/uploads/b.fastq",
+    "type": "file",
+    "format": "fastq",
+    "dataType": "seq",
+    "date": "2026-01-03T00:00:00.000+00:00",
+    "size": 20,
+    "kind": "file",
+    "status": "ready",
+    "actions": ["download"],
+    "isSelectable": true,
+    "isProtected": false
+  }
+]

@@ -3,7 +3,10 @@
 declare(strict_types=1);
 
 /**
- * OAuth token-handler: session cookie in, Bearer out. No JSON rewrite.
+ * OAuth token-handler: session cookie in, Bearer out. No JSON rewrite of live API responses.
+ *
+ * Temporary: when $filesListFixture is true, GET /auth-bff/files serves a FileItem-shaped
+ * fixture instead of proxying (until FileController::list emits OpenAPI FileItem rows).
  */
 interface AuthBffTransport
 {
@@ -62,8 +65,39 @@ final class AuthBff
 
     private const PREFIX = '/auth-bff';
 
-    public function __construct(private AuthBffTransport $transport)
+    /**
+     * Resolve the shared React fixture JSON (one file in the monorepo).
+     *
+     * Order: FILES_LIST_FIXTURE_PATH env, monorepo-relative path (host),
+     * then docker-compose mount outside the public web tree.
+     */
+    public static function defaultFilesFixturePath(): string
     {
+        $fromEnv = getenv('FILES_LIST_FIXTURE_PATH');
+        if (is_string($fromEnv) && $fromEnv !== '' && is_readable($fromEnv)) {
+            return $fromEnv;
+        }
+
+        $candidates = [
+            __DIR__ . '/../../../../react-frontend/src/fixtures/workspaceFilesData.json',
+            // docker-compose mounts the same JSON outside the public web tree
+            __DIR__ . '/../../fixtures/workspaceFilesData.json',
+        ];
+
+        foreach ($candidates as $path) {
+            if (is_readable($path)) {
+                return $path;
+            }
+        }
+
+        return $candidates[0];
+    }
+
+    public function __construct(
+        private AuthBffTransport $transport,
+        private bool $filesListFixture = false,
+        private ?string $filesFixturePath = null,
+    ) {
     }
 
     /**
@@ -106,6 +140,12 @@ final class AuthBff
 
         $method = strtoupper((string) ($server['REQUEST_METHOD'] ?? 'GET'));
         $query = (string) ($server['QUERY_STRING'] ?? '');
+
+        // Island currently loads the full list and filters/pages in React.
+        if ($this->filesListFixture && $method === 'GET' && $relativePath === 'files') {
+            return $this->filesFixtureResponse($session);
+        }
+
         $target = 'http://127.0.0.1/api/v1/' . $relativePath;
         if ($query !== '') {
             $target .= '?' . $query;
@@ -129,6 +169,86 @@ final class AuthBff
         } catch (RuntimeException) {
             return self::error(502, 'BAD_GATEWAY', 'Failed to reach API');
         }
+    }
+
+    /**
+     * Temporary stand-in for GET /files until the API returns FileItem-shaped rows.
+     * Returns the full fixture list (matches current island: no server-side offset/limit/q).
+     *
+     * TODO(delete): remove when FileController::list emits OpenAPI FileItem rows and
+     * FILES_LIST_FIXTURE is retired — AuthBff should only proxy.
+     *
+     * @param array<string, mixed> $session
+     * @return array{status: int, contentType: string, body: string}
+     */
+    private function filesFixtureResponse(array $session): array
+    {
+        $path = $this->filesFixturePath ?? self::defaultFilesFixturePath();
+        $raw = @file_get_contents($path);
+        if ($raw === false) {
+            return self::error(502, 'BAD_GATEWAY', 'Files fixture not readable');
+        }
+
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            return self::error(502, 'BAD_GATEWAY', 'Files fixture is invalid JSON');
+        }
+
+        /** @var list<array<string, mixed>> $files */
+        $files = [];
+        foreach ($decoded as $row) {
+            if (is_array($row)) {
+                $files[] = $row;
+            }
+        }
+
+        $userId = $this->sessionUserId($session);
+        if ($userId === null) {
+            return self::error(401, 'UNAUTHORIZED', 'No user in session');
+        }
+
+        $total = count($files);
+        $payload = [
+            'userId' => $userId,
+            'offset' => 0,
+            'limit' => $total,
+            'total' => $total,
+            'files' => $files,
+        ];
+
+        return [
+            'status' => 200,
+            'contentType' => 'application/json',
+            'body' => json_encode($payload, JSON_UNESCAPED_SLASHES),
+        ];
+    }
+
+    /**
+     * Same identity the live API puts in GetUserFilesResponse.userId (session login id).
+     * Only used while AuthBff builds the fixture envelope itself.
+     *
+     * TODO(delete): remove with filesFixtureResponse when the live Files API is wired —
+     * userId then comes from FileController, not the BFF.
+     *
+     * @param array<string, mixed> $session
+     * @return non-empty-string|null
+     */
+    private function sessionUserId(array $session): ?string
+    {
+        $user = $session['User'] ?? null;
+        if (!is_array($user)) {
+            return null;
+        }
+
+        // Prefer id (email / login id); _id is the Mongo user document key.
+        foreach (['id', '_id'] as $key) {
+            $value = $user[$key] ?? null;
+            if (is_string($value) && $value !== '') {
+                return $value;
+            }
+        }
+
+        return null;
     }
 
     /**
