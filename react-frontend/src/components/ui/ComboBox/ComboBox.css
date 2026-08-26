@@ -46,6 +46,11 @@
   outline: none;
 }
 
+.comboBoxInput:read-only {
+  caret-color: transparent;
+  cursor: pointer;
+}
+
 .comboBoxTrigger {
   align-items: center;
   background: var(--color-surface);
