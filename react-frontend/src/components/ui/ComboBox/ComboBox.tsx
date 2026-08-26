@@ -14,31 +14,32 @@ import { ComboBoxOption, ComboBoxProps } from './ComboBoxProps';
 
 import './ComboBox.css';
 
-const filterItems = (
-  items: ComboBoxOption[],
+function filterItems(
+  items: readonly ComboBoxOption[],
   inputValue: string,
-): ComboBoxOption[] => {
+): ComboBoxOption[] {
   const query = inputValue.trim().toLocaleLowerCase();
   if (!query) {
-    return items;
+    return [...items];
   }
 
   return items.filter((item) => item.label.toLocaleLowerCase().includes(query));
-};
+}
 
-const getSelectedLabel = (
-  items: ComboBoxOption[],
+function getSelectedLabel(
+  items: readonly ComboBoxOption[],
   value: string | null,
-): string => {
+): string {
   if (!value) {
     return '';
   }
 
   return items.find((item) => item.id === value)?.label ?? '';
-};
+}
 
 export const ComboBox = ({
   'aria-label': ariaLabel,
+  allowsFiltering = true,
   icon: Icon,
   iconClassName,
   items,
@@ -58,6 +59,10 @@ export const ComboBox = ({
   }
 
   const handleInputChange = (nextInputValue: string) => {
+    if (!allowsFiltering) {
+      return;
+    }
+
     setInputValue(nextInputValue);
 
     if (!nextInputValue.trim() && value != null) {
@@ -65,15 +70,15 @@ export const ComboBox = ({
     }
   };
 
-  const filteredItems = useMemo(
-    () => filterItems(items, inputValue),
-    [items, inputValue],
+  const menuItems = useMemo(
+    () => (allowsFiltering ? filterItems(items, inputValue) : items),
+    [allowsFiltering, items, inputValue],
   );
 
   const comboBox = (
     <AriaComboBox<ComboBoxOption>
       className="comboBox"
-      items={filteredItems}
+      items={menuItems}
       value={value}
       inputValue={inputValue}
       menuTrigger="focus"
@@ -89,6 +94,7 @@ export const ComboBox = ({
         <Input
           className="comboBoxInput"
           placeholder={placeholder}
+          readOnly={!allowsFiltering}
         />
         <Button
           className="comboBoxTrigger"
