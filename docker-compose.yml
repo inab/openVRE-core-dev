@@ -99,6 +99,7 @@ services:
       OPENVRE_ENV: ${OPENVRE_ENV:-dev}
       REACT_VITE_DEV_SERVER: ${REACT_VITE_DEV_SERVER:-http://localhost:5173}
       REACT_ISLAND_ENABLED: ${REACT_ISLAND_ENABLED:-false}
+      FILES_LIST_FIXTURE: ${FILES_LIST_FIXTURE:-0}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./front_end/openVRE/public/:/var/www/html/openVRE/public
@@ -108,6 +109,7 @@ services:
       - ./front_end/openVRE/apache/server.conf:/opt/docker/etc/httpd/conf.d/10-server.conf
       - ./tools:/var/www/html/openVRE/public/tools
       - ./shared_data:/shared_data
+      - ./react-frontend/src/fixtures/workspaceFilesData.json:/var/www/html/openVRE/fixtures/workspaceFilesData.json:ro
     ports:
       - "${FRONTEND_PORT}:80"
     networks:
