@@ -7,7 +7,7 @@ import {
   Popover,
 } from 'react-aria-components';
 
-import type { FileItem } from '../types/FileItem';
+import type { FileItem } from '../../../../lib/workspace/FileItem';
 import { FILE_ITEM_ACTION_ICONS } from './fileActionIcons';
 import { FILE_ITEM_ACTION_LABELS, stubFileAction } from './fileActionLabels';
 

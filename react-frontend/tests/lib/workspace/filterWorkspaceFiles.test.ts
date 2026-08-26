@@ -1,12 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { filterFilesBySearch } from '../../../../src/components/workspace/FileTable/adapter/filterWorkspaceFiles';
-import { adaptFilesPage } from '../../../../src/components/workspace/FileTable/adapter/adaptFilesPage';
-import type { ApiFileItem } from '../../../../src/types/ApiFileItem';
+import { filterFilesBySearch } from '../../../src/lib/workspace/filterWorkspaceFiles';
+import { adaptFilesPage } from '../../../src/lib/workspace/adaptFilesPage';
+import type { ApiFileItem } from '../../../src/types/ApiFileItem';
 import {
   FILE_ITEM_KINDS,
   FILE_TYPES,
-} from '../../../../src/types/fileItemConstants';
+} from '../../../src/types/fileItemConstants';
 
 const base = {
   format: '',

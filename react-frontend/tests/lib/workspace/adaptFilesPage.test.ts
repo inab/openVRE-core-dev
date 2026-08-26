@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { adaptFilesPage } from '../../../../src/components/workspace/FileTable/adapter/adaptFilesPage';
-import { orderWorkspaceFiles } from '../../../../src/components/workspace/FileTable/adapter/orderWorkspaceFiles';
-import { workspaceFilesFixture } from '../../../../src/fixtures/workspaceFiles';
-import type { ApiFileItem } from '../../../../src/types/ApiFileItem';
+import { adaptFilesPage } from '../../../src/lib/workspace/adaptFilesPage';
+import { orderWorkspaceFiles } from '../../../src/lib/workspace/orderWorkspaceFiles';
+import { workspaceFilesFixture } from '../../../src/fixtures/workspaceFiles';
+import type { ApiFileItem } from '../../../src/types/ApiFileItem';
 import {
   FILE_ITEM_KINDS,
   FILE_TYPES,
-} from '../../../../src/types/fileItemConstants';
+} from '../../../src/types/fileItemConstants';
 
 const base = {
   format: '',

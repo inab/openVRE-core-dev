@@ -10,7 +10,7 @@ import {
   totalPagesForRoots,
   WORKSPACE_PAGE_SIZE_ALL,
   WORKSPACE_ROOT_PAGE_SIZE,
-} from '../../../../src/components/workspace/FileTable/pagination';
+} from '../../../src/lib/workspace/pagination';
 
 describe('clampPageIndex', () => {
   it('returns 0 when there are no pages', () => {

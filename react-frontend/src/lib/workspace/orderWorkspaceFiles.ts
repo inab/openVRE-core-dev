@@ -1,5 +1,5 @@
-import type { ApiFileItem } from '../../../../types/ApiFileItem';
-import { FILE_ITEM_KINDS } from '../../../../types/fileItemConstants';
+import type { ApiFileItem } from '../../types/ApiFileItem';
+import { FILE_ITEM_KINDS } from '../../types/fileItemConstants';
 
 function compareFilename(
   a: Pick<ApiFileItem, 'filename'>,
