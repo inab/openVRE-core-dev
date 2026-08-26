@@ -28,13 +28,12 @@ function isFolderKind(kind: FileItem['kind']): boolean {
   );
 }
 
-function KindIcon({
-  kind,
-  isExpanded,
-}: {
+interface KindIconProps {
   kind: FileItem['kind'];
   isExpanded: boolean;
-}) {
+}
+
+const KindIcon = ({ kind, isExpanded }: KindIconProps) => {
   if (isFolderKind(kind)) {
     if (isExpanded) {
       return (
@@ -63,7 +62,7 @@ function KindIcon({
       size={16}
     />
   );
-}
+};
 
 export const WorkspaceRowName = ({
   item,
