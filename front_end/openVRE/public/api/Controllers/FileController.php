@@ -23,7 +23,7 @@ final class FileController
 {
     private const DEFAULT_LIMIT = 50;
 
-    private const MAX_LIMIT = 100;
+    private const MAX_LIMIT = 200;
 
     private const MAX_Q_LENGTH = 200;
 
@@ -34,14 +34,16 @@ final class FileController
             new OA\Parameter(
                 name: 'offset',
                 in: 'query',
-                description: 'Number of items to skip before starting to return results',
-                schema: new OA\Schema(type: 'integer', minimum: 0, default: 0)
+                description: 'Optional number of items to skip. Ignored unless `limit` and/or `offset` is provided; defaults to 0 when paging.',
+                required: false,
+                schema: new OA\Schema(type: 'integer', minimum: 0)
             ),
             new OA\Parameter(
                 name: 'limit',
                 in: 'query',
-                description: 'Maximum number of items to return (capped at 100)',
-                schema: new OA\Schema(type: 'integer', minimum: 1, maximum: 100, default: 50)
+                description: 'Optional maximum items to return (capped at 200). When neither `limit` nor `offset` is set, the full list is returned.',
+                required: false,
+                schema: new OA\Schema(type: 'integer', minimum: 1, maximum: self::MAX_LIMIT)
             ),
             new OA\Parameter(
                 name: 'q',
@@ -54,7 +56,7 @@ final class FileController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'List of files and directories belonging to the user',
+                description: 'List of files and directories belonging to the user. Without `limit`/`offset`, returns the full list sorted by path. With either param, applies skip/limit after sorting by path.',
                 content: new OA\JsonContent(ref: '#/components/schemas/GetUserFilesResponse')
             ),
             new OA\Response(response: 401, description: 'Missing or malformed Authorization header', content: new OA\JsonContent(ref: '#/components/schemas/Error')),
@@ -65,8 +67,7 @@ final class FileController
     public function list(Request $request, Response $response, array $args): Response
     {
         $queryParams = $request->getQueryParams();
-        $offset = max(0, (int) ($queryParams['offset'] ?? 0));
-        $limit = min(self::MAX_LIMIT, max(1, (int) ($queryParams['limit'] ?? self::DEFAULT_LIMIT)));
+        $paging = $this->pagingOptions($queryParams);
         $q = $this->searchQuery($queryParams);
 
         $userId = $request->getAttribute('userId'); // set by AuthMiddleware from the token's subject claim
@@ -89,22 +90,24 @@ final class FileController
         }
 
         $total = $GLOBALS['filesCol']->countDocuments($filter);
-        $filesDoc = $GLOBALS['filesCol']->find(
-            $filter,
-            [
-                'projection' => ['atime' => 1, 'files' => 1, 'path' => 1, 'size' => 1, 'type' => 1],
-                'sort' => ['path' => 1],
-                'skip' => $offset,
-                'limit' => $limit,
-            ]
-        );
+        $findOptions = [
+            'projection' => ['atime' => 1, 'files' => 1, 'path' => 1, 'size' => 1, 'type' => 1],
+            'sort' => ['path' => 1],
+        ];
+        if ($paging !== null) {
+            $findOptions['skip'] = $paging['offset'];
+            $findOptions['limit'] = $paging['limit'];
+        }
+
+        $filesDoc = $GLOBALS['filesCol']->find($filter, $findOptions);
+        $files = $filesDoc->toArray();
 
         $payload = json_encode([
             'userId' => $userId,
-            'offset' => $offset,
-            'limit' => $limit,
+            'offset' => $paging['offset'] ?? 0,
+            'limit' => $paging['limit'] ?? $total,
             'total' => $total,
-            'files' => $filesDoc->toArray(),
+            'files' => $files,
         ], JSON_UNESCAPED_SLASHES);
 
         $response->getBody()->write($payload);
@@ -252,6 +255,35 @@ final class FileController
         $userId = $request->getAttribute('userId'); // set by AuthMiddleware from the token's subject claim
 
         return $this->notImplemented($response, 'uncompressFile');
+    }
+
+    /**
+     * @param array<string, mixed> $queryParams
+     * @return array{offset: int, limit: int}|null Null when neither limit nor offset is provided.
+     */
+    private function pagingOptions(array $queryParams): ?array
+    {
+        $hasOffset = $this->hasQueryParam($queryParams, 'offset');
+        $hasLimit = $this->hasQueryParam($queryParams, 'limit');
+        if (!$hasOffset && !$hasLimit) {
+            return null;
+        }
+
+        $offset = $hasOffset ? max(0, (int) $queryParams['offset']) : 0;
+        $rawLimit = $hasLimit ? (int) $queryParams['limit'] : self::DEFAULT_LIMIT;
+        $limit = min(self::MAX_LIMIT, max(1, $rawLimit));
+
+        return ['offset' => $offset, 'limit' => $limit];
+    }
+
+    /**
+     * @param array<string, mixed> $queryParams
+     */
+    private function hasQueryParam(array $queryParams, string $key): bool
+    {
+        return array_key_exists($key, $queryParams)
+            && $queryParams[$key] !== ''
+            && $queryParams[$key] !== null;
     }
 
     /**

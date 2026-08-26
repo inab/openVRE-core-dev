@@ -157,6 +157,46 @@ final class FileControllerTest extends TestCase
         );
     }
 
+    public function testListReturnsFullListWhenPagingParamsAreOmitted(): void
+    {
+        $page = [
+            ['path' => 'a.txt', 'type' => 'file', 'size' => 12],
+            ['path' => 'b.txt', 'type' => 'file', 'size' => 4],
+        ];
+        $filesCol = new FakeFilesCol(2, $page);
+        $GLOBALS['usersCol'] = new FakeUsersCol(['id' => 'internal-user']);
+        $GLOBALS['filesCol'] = $filesCol;
+
+        $response = (new FileController())->list(
+            $this->request('user@example.com'),
+            new Response(),
+            [],
+        );
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(['owner' => 'internal-user'], $filesCol->lastCountFilter);
+        $this->assertSame(['owner' => 'internal-user'], $filesCol->lastFindFilter);
+        $this->assertSame(
+            [
+                'projection' => ['atime' => 1, 'files' => 1, 'path' => 1, 'size' => 1, 'type' => 1],
+                'sort' => ['path' => 1],
+            ],
+            $filesCol->lastFindOptions,
+        );
+        $this->assertArrayNotHasKey('skip', $filesCol->lastFindOptions);
+        $this->assertArrayNotHasKey('limit', $filesCol->lastFindOptions);
+        $this->assertSame(
+            [
+                'userId' => 'user@example.com',
+                'offset' => 0,
+                'limit' => 2,
+                'total' => 2,
+                'files' => $page,
+            ],
+            $this->json($response),
+        );
+    }
+
     public function testListAppliesPaginationAndReturnsTotal(): void
     {
         $page = [['path' => 'a.txt', 'type' => 'file', 'size' => 12]];
@@ -195,24 +235,42 @@ final class FileControllerTest extends TestCase
         );
     }
 
-    public function testListUsesDefaultOffsetAndLimit(): void
+    public function testListUsesDefaultLimitWhenOnlyOffsetIsProvided(): void
     {
         $filesCol = new FakeFilesCol(0, []);
         $GLOBALS['usersCol'] = new FakeUsersCol(['id' => 'internal-user']);
         $GLOBALS['filesCol'] = $filesCol;
 
         $response = (new FileController())->list(
-            $this->request('user@example.com'),
+            $this->request('user@example.com', ['offset' => '10']),
+            new Response(),
+            [],
+        );
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame(10, $filesCol->lastFindOptions['skip']);
+        $this->assertSame(50, $filesCol->lastFindOptions['limit']);
+        $this->assertSame(10, $this->json($response)['offset']);
+        $this->assertSame(50, $this->json($response)['limit']);
+    }
+
+    public function testListUsesDefaultOffsetWhenOnlyLimitIsProvided(): void
+    {
+        $filesCol = new FakeFilesCol(0, []);
+        $GLOBALS['usersCol'] = new FakeUsersCol(['id' => 'internal-user']);
+        $GLOBALS['filesCol'] = $filesCol;
+
+        $response = (new FileController())->list(
+            $this->request('user@example.com', ['limit' => '25']),
             new Response(),
             [],
         );
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame(0, $filesCol->lastFindOptions['skip']);
-        $this->assertSame(50, $filesCol->lastFindOptions['limit']);
+        $this->assertSame(25, $filesCol->lastFindOptions['limit']);
         $this->assertSame(0, $this->json($response)['offset']);
-        $this->assertSame(50, $this->json($response)['limit']);
-        $this->assertSame(0, $this->json($response)['total']);
+        $this->assertSame(25, $this->json($response)['limit']);
     }
 
     public function testListCapsLimitAtMaximum(): void
@@ -228,8 +286,9 @@ final class FileControllerTest extends TestCase
         );
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(100, $filesCol->lastFindOptions['limit']);
-        $this->assertSame(100, $this->json($response)['limit']);
+        $this->assertSame(200, $filesCol->lastFindOptions['limit']);
+        $this->assertSame(0, $filesCol->lastFindOptions['skip']);
+        $this->assertSame(200, $this->json($response)['limit']);
     }
 
     public function testListAppliesPathSearchBeforePagination(): void
@@ -289,6 +348,8 @@ final class FileControllerTest extends TestCase
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame(['owner' => 'internal-user'], $filesCol->lastCountFilter);
         $this->assertSame(['owner' => 'internal-user'], $filesCol->lastFindFilter);
+        $this->assertArrayNotHasKey('skip', $filesCol->lastFindOptions);
+        $this->assertArrayNotHasKey('limit', $filesCol->lastFindOptions);
     }
 
     public function testListIgnoresNonStringSearch(): void
