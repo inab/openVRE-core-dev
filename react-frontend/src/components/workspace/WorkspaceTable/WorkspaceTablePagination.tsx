@@ -4,7 +4,7 @@ import {
   parseWorkspacePageSize,
   WORKSPACE_PAGE_SIZE_ITEMS,
   type WorkspacePageSize,
-} from './pagination';
+} from '../../../lib/workspace/pagination';
 
 import './WorkspaceTablePagination.css';
 

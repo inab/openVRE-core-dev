@@ -11,8 +11,9 @@ import {
   tableFeatures,
 } from '@tanstack/react-table';
 
-import type { FileItem } from './types/FileItem';
-import { formatFileDate, formatFileSize } from './formatters';
+import { formatFileDate } from '../../../lib/format/formatFileDate';
+import { formatFileSize } from '../../../lib/format/formatFileSize';
+import type { FileItem } from '../../../lib/workspace/FileItem';
 import { RowActionsMenu } from './menus/RowActionsMenu';
 import { WorkspaceRowName } from './rows/WorkspaceRow';
 

@@ -1,4 +1,4 @@
-import type { ApiFileItem } from '../../../../types/ApiFileItem';
+import type { ApiFileItem } from '../../types/ApiFileItem';
 
 /**
  * Case-insensitive match on path or filename.

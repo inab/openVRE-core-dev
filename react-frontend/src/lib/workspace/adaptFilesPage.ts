@@ -1,5 +1,5 @@
-import type { ApiFileItem } from '../../../../types/ApiFileItem';
-import type { FileItem } from '../types/FileItem';
+import type { ApiFileItem } from '../../types/ApiFileItem';
+import type { FileItem } from './FileItem';
 
 /**
  * Nest a flat ApiFileItem page into UI roots using parentId → children[].

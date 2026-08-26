@@ -8,9 +8,9 @@ import {
   type SortingState,
 } from '@tanstack/react-table';
 
-import { formatShowingEntries } from './formatters';
-import type { WorkspacePageSize } from './pagination';
-import type { FileItem } from './types/FileItem';
+import type { WorkspacePageSize } from '../../../lib/workspace/pagination';
+import type { FileItem } from '../../../lib/workspace/FileItem';
+import { formatShowingEntries } from './formatShowingEntries';
 import {
   workspaceTableColumns,
   workspaceTableFeatures,

@@ -7,35 +7,21 @@ import { Button } from '../../ui/Button/Button';
 import { SearchField } from '../../ui/SearchField/SearchField';
 import { useFilesQuery } from '../../../hooks/useFilesQuery';
 import { useToolsQuery } from '../../../hooks/useToolsQuery';
-import { adaptFilesPage } from './adapter/adaptFilesPage';
-import { filterFilesBySearch } from './adapter/filterWorkspaceFiles';
-import { orderWorkspaceFiles } from './adapter/orderWorkspaceFiles';
-import { FilterByTool } from './FilterByTool/FilterByTool';
+import { adaptFilesPage } from '../../../lib/workspace/adaptFilesPage';
+import { filterFilesBySearch } from '../../../lib/workspace/filterWorkspaceFiles';
+import { orderWorkspaceFiles } from '../../../lib/workspace/orderWorkspaceFiles';
 import {
   clampPageIndex,
   pageRootFolders,
   totalPagesForRoots,
   WORKSPACE_ROOT_PAGE_SIZE,
   type WorkspacePageSize,
-} from './pagination';
-import { WorkspaceTable } from './WorkspaceTable';
+} from '../../../lib/workspace/pagination';
+import { WorkspaceTable } from '../WorkspaceTable/WorkspaceTable';
+import { FilterByTool } from './FilterByTool/FilterByTool';
+import { getToolParam, setToolParam } from './toolUrlParam';
 
 import './WorkspaceFileTable.css';
-
-function getToolParam(): string | null {
-  const tool = new URLSearchParams(window.location.search).get('tool');
-  return tool && tool.length > 0 ? tool : null;
-}
-
-function setToolParam(toolId: string | null): void {
-  const url = new URL(window.location.href);
-  if (toolId) {
-    url.searchParams.set('tool', toolId);
-  } else {
-    url.searchParams.delete('tool');
-  }
-  window.history.replaceState(null, '', url);
-}
 
 export const WorkspaceFileTable = () => {
   const [searchQuery, setSearchQuery] = useState('');

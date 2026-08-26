@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 
 import { FILE_ITEM_KINDS } from '../../../../types/fileItemConstants';
-import type { FileItem } from '../types/FileItem';
+import type { FileItem } from '../../../../lib/workspace/FileItem';
 
 import './WorkspaceRow.css';
 
