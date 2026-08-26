@@ -1,7 +1,40 @@
 {
   "userId": "mock-user",
   "offset": 0,
-  "limit": 50,
-  "total": 0,
-  "files": []
+  "limit": 2,
+  "total": 2,
+  "files": [
+    {
+      "fileId": "uploads",
+      "parentId": null,
+      "filename": "uploads",
+      "path": "p/uploads",
+      "type": "dir",
+      "format": "",
+      "dataType": "",
+      "date": "2026-07-17T11:41:19.000+00:00",
+      "size": 0,
+      "kind": "folder_uploads",
+      "status": "idle",
+      "actions": ["download_folder"],
+      "isSelectable": false,
+      "isProtected": true
+    },
+    {
+      "fileId": "child",
+      "parentId": "uploads",
+      "filename": "test.csv",
+      "path": "p/uploads/test.csv",
+      "type": "file",
+      "format": "csv",
+      "dataType": "",
+      "date": "2026-07-17T11:41:19.000+00:00",
+      "size": 8,
+      "kind": "file_unvalidated",
+      "status": "unvalidated",
+      "actions": ["validate_metadata", "rename", "move", "delete"],
+      "isSelectable": true,
+      "isProtected": false
+    }
+  ]
 }
