@@ -15,19 +15,19 @@ paths:
         -
           name: offset
           in: query
-          description: 'Number of items to skip before starting to return results'
+          description: 'Optional number of items to skip. Ignored unless `limit` and/or `offset` is provided; defaults to 0 when paging.'
+          required: false
           schema:
             type: integer
-            default: 0
             minimum: 0
         -
           name: limit
           in: query
-          description: 'Maximum number of items to return (capped at 100)'
+          description: 'Optional maximum items to return (capped at 200). When neither `limit` nor `offset` is set, the full list is returned.'
+          required: false
           schema:
             type: integer
-            default: 50
-            maximum: 100
+            maximum: 200
             minimum: 1
         -
           name: q
@@ -39,7 +39,7 @@ paths:
             maxLength: 200
       responses:
         '200':
-          description: 'List of files and directories belonging to the user'
+          description: 'List of files and directories belonging to the user. Without `limit`/`offset`, returns the full list sorted by path. With either param, applies skip/limit after sorting by path.'
           content:
             application/json:
               schema:
@@ -375,7 +375,7 @@ components:
         limit:
           description: 'Maximum number of items returned for this page'
           type: integer
-          maximum: 100
+          maximum: 200
           minimum: 1
         total:
           description: 'Total number of files matching the current filter (owner and optional q), not just this page'
