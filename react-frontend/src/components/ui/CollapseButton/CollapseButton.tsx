@@ -3,7 +3,10 @@ import { CollapseButtonProps } from './CollapseButtonProps';
 
 import './CollapseButton.css';
 
-export function CollapseButton({ isCollapsed, onClick }: CollapseButtonProps) {
+export const CollapseButton = ({
+  isCollapsed,
+  onClick,
+}: CollapseButtonProps) => {
   const label = isCollapsed ? 'Expand' : 'Collapse';
 
   return (
@@ -20,4 +23,4 @@ export function CollapseButton({ isCollapsed, onClick }: CollapseButtonProps) {
       />
     </button>
   );
-}
+};
