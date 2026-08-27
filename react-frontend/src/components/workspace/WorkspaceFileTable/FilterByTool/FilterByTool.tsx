@@ -1,17 +1,12 @@
 import { Wrench } from 'lucide-react';
 
+import type { Tool } from '../../../../types/Tool';
 import { ComboBox } from '../../../ui/ComboBox/ComboBox';
 
 import './FilterByTool.css';
 
-interface ToolOption {
-  id: string;
-  name: string;
-  dataTypes: string[];
-}
-
 export interface FilterByToolProps {
-  tools: ToolOption[];
+  tools: Tool[];
   value?: string | null;
   onChange?: (toolId: string | null) => void;
   placeholder?: string;
@@ -31,6 +26,7 @@ export const FilterByTool = ({
   return (
     <div className="filterByTool">
       <ComboBox
+        allowsClearing
         icon={Wrench}
         iconClassName="filterByToolIcon"
         items={items}
