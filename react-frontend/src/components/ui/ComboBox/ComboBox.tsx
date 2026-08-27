@@ -1,4 +1,4 @@
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import {
   Button,
@@ -39,6 +39,7 @@ function getSelectedLabel(
 
 export const ComboBox = ({
   'aria-label': ariaLabel,
+  allowsClearing = false,
   allowsFiltering = true,
   icon: Icon,
   iconClassName,
@@ -58,6 +59,9 @@ export const ComboBox = ({
     setInputValue(selectedLabel);
   }
 
+  // Non-filterable selects always show the selected label (e.g. page size).
+  const displayedInputValue = allowsFiltering ? inputValue : selectedLabel;
+
   const handleInputChange = (nextInputValue: string) => {
     if (!allowsFiltering) {
       return;
@@ -65,14 +69,22 @@ export const ComboBox = ({
 
     setInputValue(nextInputValue);
 
-    if (!nextInputValue.trim() && value != null) {
+    if (allowsClearing && !nextInputValue.trim() && value != null) {
       onChange?.(null);
     }
   };
 
+  const handleClear = () => {
+    if (!allowsClearing) {
+      return;
+    }
+    setInputValue('');
+    onChange?.(null);
+  };
+
   const menuItems = useMemo(
-    () => (allowsFiltering ? filterItems(items, inputValue) : items),
-    [allowsFiltering, items, inputValue],
+    () => (allowsFiltering ? filterItems(items, displayedInputValue) : items),
+    [allowsFiltering, items, displayedInputValue],
   );
 
   const comboBox = (
@@ -80,10 +92,14 @@ export const ComboBox = ({
       className="comboBox"
       items={menuItems}
       value={value}
-      inputValue={inputValue}
+      inputValue={displayedInputValue}
       menuTrigger="focus"
       onInputChange={handleInputChange}
       onChange={(key) => {
+        // Required selects (no clearing) ignore empty selection events.
+        if (key == null && !allowsClearing) {
+          return;
+        }
         onChange?.(key == null ? null : String(key));
       }}
       isDisabled={isDisabled}
@@ -96,6 +112,19 @@ export const ComboBox = ({
           placeholder={placeholder}
           readOnly={!allowsFiltering}
         />
+        {allowsClearing && value != null ? (
+          <Button
+            slot={null}
+            className="comboBoxClear"
+            aria-label="Clear selection"
+            onPress={handleClear}
+          >
+            <X
+              className="comboBoxClearIcon"
+              aria-hidden
+            />
+          </Button>
+        ) : null}
         <Button
           className="comboBoxTrigger"
           aria-label="Open options"
