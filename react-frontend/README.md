@@ -157,7 +157,7 @@ cd react-frontend
 npm test
 ```
 
-`getUserFiles` always `fetch`es `/auth-bff/files`; tests stub `fetch`. For a local UI demo before the Files API is FileItem-shaped, set `FILES_LIST_FIXTURE=1` (and recreate/restart `front_end` so compose picks up the env + fixture mount). AuthBff then serves `src/fixtures/workspaceFilesData.json`. Add new cases under `tests/**/*.test.ts`.
+`getUserFiles` and `getTools` always `fetch` `/auth-bff/files` and `/auth-bff/tools`; tests stub `fetch`. For a local UI demo before the live APIs exist, set `REACT_ISLAND_USE_FIXTURES=1` (and recreate/restart `front_end` so compose picks up the env + fixture mount). AuthBff then serves `src/fixtures/workspaceFixtures.json` (`files` / `tools` sections). Add new cases under `tests/**/*.test.ts`.
 
 `npm run check` runs lint, format, TypeScript, and the same tests.
 
