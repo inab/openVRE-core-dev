@@ -1,5 +1,5 @@
 import type { ApiFileItem } from '../types/ApiFileItem';
-import workspaceFilesData from './workspaceFilesData.json';
+import workspaceFixtures from './workspaceFixtures.json';
 
 /** Same shape as GetUserFilesResponse; kept local to avoid a cycle with getUserFiles. */
 export interface WorkspaceFilesFixture {
@@ -13,12 +13,13 @@ export interface WorkspaceFilesFixture {
 /**
  * Semi-real workspace list derived from an IMPaCT VRE `filesAll` dump.
  * Test data only (adapter / order / filter). Live UI loads via GET /auth-bff/files;
- * when FILES_LIST_FIXTURE=1 the BFF serves this same JSON file.
+ * when REACT_ISLAND_USE_FIXTURES=1 the BFF serves the `files` section of
+ * `workspaceFixtures.json`.
  *
  * One cast at the JSON import boundary — trusted fixture data, not a live API body.
  */
 export const workspaceFilesAll: ApiFileItem[] =
-  workspaceFilesData as ApiFileItem[];
+  workspaceFixtures.files as ApiFileItem[];
 
 export const workspaceFilesFixture: WorkspaceFilesFixture = {
   userId: 'fixture-user',
