@@ -51,6 +51,7 @@
   cursor: pointer;
 }
 
+.comboBoxClear,
 .comboBoxTrigger {
   align-items: center;
   background: var(--color-surface);
@@ -64,17 +65,26 @@
   padding: 0 var(--space-sm);
 }
 
+.comboBoxField:focus-within .comboBoxClear,
 .comboBoxField:focus-within .comboBoxTrigger,
+.comboBox[data-open] .comboBoxClear,
 .comboBox[data-open] .comboBoxTrigger {
   border-left-color: var(--color-border);
 }
 
+.comboBoxClear:hover,
 .comboBoxTrigger:hover {
   color: var(--color-text);
 }
 
+.comboBoxClear:focus,
 .comboBoxTrigger:focus {
   outline: none;
+}
+
+.comboBoxClearIcon {
+  height: var(--size-icon-xs);
+  width: var(--size-icon-xs);
 }
 
 .comboBoxTriggerIcon {

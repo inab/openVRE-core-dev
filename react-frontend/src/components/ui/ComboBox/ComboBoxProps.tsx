@@ -7,6 +7,7 @@ export interface ComboBoxOption {
 
 export interface ComboBoxProps {
   'aria-label'?: string;
+  allowsClearing?: boolean;
   allowsFiltering?: boolean;
   icon?: LucideIcon;
   iconClassName?: string;
