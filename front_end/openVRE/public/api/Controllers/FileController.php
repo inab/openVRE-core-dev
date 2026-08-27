@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace OpenVREAPI\Controllers;
 
 use OpenApi\Attributes as OA;
+use OpenVREAPI\Services\FileService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use RuntimeException;
 
 /**
  * Handles all file-related endpoints under /files.
@@ -15,7 +17,6 @@ use Psr\Http\Message\ServerRequestInterface as Request;
  * Bearer token's subject claim (see AuthMiddleware), so a request can only
  * ever act on the caller's own files.
  *
- * All methods are stubs for now — no business logic / processing implemented.
  * OA attributes document the intended contract; docs/openapi.yaml is
  * regenerated from these via `composer run docs`.
  */
@@ -26,6 +27,10 @@ final class FileController
     private const MAX_LIMIT = 200;
 
     private const MAX_Q_LENGTH = 200;
+
+    public function __construct(private readonly ?FileService $fileService = null)
+    {
+    }
 
     #[OA\Get(
         path: '/files',
@@ -66,48 +71,35 @@ final class FileController
     )]
     public function list(Request $request, Response $response, array $args): Response
     {
+        $userId = $request->getAttribute('userId'); // set by AuthMiddleware from the token's subject claim
         $queryParams = $request->getQueryParams();
         $paging = $this->pagingOptions($queryParams);
         $q = $this->searchQuery($queryParams);
 
-        $userId = $request->getAttribute('userId'); // set by AuthMiddleware from the token's subject claim
-        $userDoc = $GLOBALS['usersCol']->findOne(['_id' => $userId], ['projection' => ['id' => 1]]);
-        if ($userDoc === null) {
-            return $this->jsonError($response, 404, 'NOT_FOUND', 'User not found');
+        try {
+            $result = $this->fileService()->findByUserId(
+                $userId,
+                $paging['offset'] ?? null,
+                $paging['limit'] ?? null,
+                $q,
+            );
+        } catch (RuntimeException $e) {
+            if ($e->getCode() === 404) {
+                return $this->jsonError($response, 404, 'NOT_FOUND', 'User not found');
+            }
+
+            return $this->jsonError($response, 500, 'DATABASE_ERROR', 'Failed to fetch files: ' . $e->getMessage());
+        } catch (\Throwable $e) {
+            return $this->jsonError($response, 500, 'DATABASE_ERROR', 'Failed to fetch files: ' . $e->getMessage());
         }
 
-        $ownerId = $userDoc['id'] ?? null;
-        if ($ownerId === null || $ownerId === '') {
-            return $this->jsonError($response, 404, 'NOT_FOUND', 'User not found');
-        }
-
-        $filter = ['owner' => $ownerId];
-        if ($q !== '') {
-            $filter['path'] = [
-                '$regex' => preg_quote($q, '/'),
-                '$options' => 'i',
-            ];
-        }
-
-        $total = $GLOBALS['filesCol']->countDocuments($filter);
-        $findOptions = [
-            'projection' => ['atime' => 1, 'files' => 1, 'path' => 1, 'size' => 1, 'type' => 1],
-            'sort' => ['path' => 1],
-        ];
-        if ($paging !== null) {
-            $findOptions['skip'] = $paging['offset'];
-            $findOptions['limit'] = $paging['limit'];
-        }
-
-        $filesDoc = $GLOBALS['filesCol']->find($filter, $findOptions);
-        $files = $filesDoc->toArray();
-
+        $total = $result['total'];
         $payload = json_encode([
             'userId' => $userId,
             'offset' => $paging['offset'] ?? 0,
             'limit' => $paging['limit'] ?? $total,
             'total' => $total,
-            'files' => $files,
+            'files' => $result['files'],
         ], JSON_UNESCAPED_SLASHES);
 
         $response->getBody()->write($payload);
@@ -306,6 +298,11 @@ final class FileController
         }
 
         return $q;
+    }
+
+    private function fileService(): FileService
+    {
+        return $this->fileService ?? new FileService();
     }
 
     private function notImplemented(Response $response, string $operationId): Response
