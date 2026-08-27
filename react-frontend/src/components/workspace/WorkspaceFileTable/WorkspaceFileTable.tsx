@@ -8,7 +8,10 @@ import { SearchField } from '../../ui/SearchField/SearchField';
 import { useFilesQuery } from '../../../hooks/useFilesQuery';
 import { useToolsQuery } from '../../../hooks/useToolsQuery';
 import { adaptFilesPage } from '../../../lib/workspace/adaptFilesPage';
-import { filterFilesBySearch } from '../../../lib/workspace/filterWorkspaceFiles';
+import {
+  filterFilesBySearch,
+  filterFilesByTool,
+} from '../../../lib/workspace/filterWorkspaceFiles';
 import { orderWorkspaceFiles } from '../../../lib/workspace/orderWorkspaceFiles';
 import {
   clampPageIndex,
@@ -37,10 +40,19 @@ export const WorkspaceFileTable = () => {
   const filesQuery = useFilesQuery();
   const tools = toolsQuery.data?.tools ?? [];
   const allFiles = filesQuery.data?.files ?? [];
+  const selectedTool = useMemo(
+    () => tools.find((tool) => tool.id === selectedToolId) ?? null,
+    [tools, selectedToolId],
+  );
+
+  const toolFilteredFiles = useMemo(
+    () => filterFilesByTool(allFiles, selectedTool?.dataTypes ?? null),
+    [allFiles, selectedTool],
+  );
 
   const filteredFiles = useMemo(
-    () => filterFilesBySearch(allFiles, searchQuery),
-    [allFiles, searchQuery],
+    () => filterFilesBySearch(toolFilteredFiles, searchQuery),
+    [toolFilteredFiles, searchQuery],
   );
 
   const orderedFiles = useMemo(
@@ -72,6 +84,8 @@ export const WorkspaceFileTable = () => {
   const handleToolChange = (toolId: string | null) => {
     setSelectedToolId(toolId);
     setToolParam(toolId);
+    setPageIndex(0);
+    setRowSelection({});
   };
 
   return (
