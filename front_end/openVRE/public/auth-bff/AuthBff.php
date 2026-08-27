@@ -5,8 +5,8 @@ declare(strict_types=1);
 /**
  * OAuth token-handler: session cookie in, Bearer out. No JSON rewrite of live API responses.
  *
- * Temporary: when $filesListFixture is true, GET /auth-bff/files serves a FileItem-shaped
- * fixture instead of proxying (until FileController::list emits OpenAPI FileItem rows).
+ * Temporary: when $useFixtures is true, GET /auth-bff/files and GET /auth-bff/tools
+ * serve sections from one shared React fixture JSON (until the live APIs emit those shapes).
  */
 interface AuthBffTransport
 {
@@ -61,27 +61,27 @@ final class CurlTransport implements AuthBffTransport
 
 final class AuthBff
 {
-    public const ALLOWED_FIRST_SEGMENTS = ['files'];
+    public const ALLOWED_FIRST_SEGMENTS = ['files', 'tools'];
 
     private const PREFIX = '/auth-bff';
 
     /**
-     * Resolve the shared React fixture JSON (one file in the monorepo).
+     * Resolve the shared React island fixtures JSON (`{ files, tools }`).
      *
-     * Order: FILES_LIST_FIXTURE_PATH env, monorepo-relative path (host),
+     * Order: REACT_ISLAND_FIXTURES_PATH env, monorepo-relative path (host),
      * then docker-compose mount outside the public web tree.
      */
-    public static function defaultFilesFixturePath(): string
+    public static function defaultFixturesPath(): string
     {
-        $fromEnv = getenv('FILES_LIST_FIXTURE_PATH');
+        $fromEnv = getenv('REACT_ISLAND_FIXTURES_PATH');
         if (is_string($fromEnv) && $fromEnv !== '' && is_readable($fromEnv)) {
             return $fromEnv;
         }
 
         $candidates = [
-            __DIR__ . '/../../../../react-frontend/src/fixtures/workspaceFilesData.json',
+            __DIR__ . '/../../../../react-frontend/src/fixtures/workspaceFixtures.json',
             // docker-compose mounts the same JSON outside the public web tree
-            __DIR__ . '/../../fixtures/workspaceFilesData.json',
+            __DIR__ . '/../../fixtures/workspaceFixtures.json',
         ];
 
         foreach ($candidates as $path) {
@@ -95,8 +95,8 @@ final class AuthBff
 
     public function __construct(
         private AuthBffTransport $transport,
-        private bool $filesListFixture = false,
-        private ?string $filesFixturePath = null,
+        private bool $useFixtures = false,
+        private ?string $fixturesPath = null,
     ) {
     }
 
@@ -142,8 +142,12 @@ final class AuthBff
         $query = (string) ($server['QUERY_STRING'] ?? '');
 
         // Island currently loads the full list and filters/pages in React.
-        if ($this->filesListFixture && $method === 'GET' && $relativePath === 'files') {
+        if ($this->useFixtures && $method === 'GET' && $relativePath === 'files') {
             return $this->filesFixtureResponse($session);
+        }
+
+        if ($this->useFixtures && $method === 'GET' && $relativePath === 'tools') {
+            return $this->toolsFixtureResponse();
         }
 
         $target = 'http://127.0.0.1/api/v1/' . $relativePath;
@@ -176,30 +180,16 @@ final class AuthBff
      * Returns the full fixture list (matches current island: no server-side offset/limit/q).
      *
      * TODO(delete): remove when FileController::list emits OpenAPI FileItem rows and
-     * FILES_LIST_FIXTURE is retired — AuthBff should only proxy.
+     * REACT_ISLAND_USE_FIXTURES is retired — AuthBff should only proxy.
      *
      * @param array<string, mixed> $session
      * @return array{status: int, contentType: string, body: string}
      */
     private function filesFixtureResponse(array $session): array
     {
-        $path = $this->filesFixturePath ?? self::defaultFilesFixturePath();
-        $raw = @file_get_contents($path);
-        if ($raw === false) {
-            return self::error(502, 'BAD_GATEWAY', 'Files fixture not readable');
-        }
-
-        $decoded = json_decode($raw, true);
-        if (!is_array($decoded)) {
-            return self::error(502, 'BAD_GATEWAY', 'Files fixture is invalid JSON');
-        }
-
-        /** @var list<array<string, mixed>> $files */
-        $files = [];
-        foreach ($decoded as $row) {
-            if (is_array($row)) {
-                $files[] = $row;
-            }
+        $loaded = $this->loadFixtures();
+        if ($loaded['error'] !== null) {
+            return $loaded['error'];
         }
 
         $userId = $this->sessionUserId($session);
@@ -207,6 +197,7 @@ final class AuthBff
             return self::error(401, 'UNAUTHORIZED', 'No user in session');
         }
 
+        $files = $loaded['files'];
         $total = count($files);
         $payload = [
             'userId' => $userId,
@@ -221,6 +212,83 @@ final class AuthBff
             'contentType' => 'application/json',
             'body' => json_encode($payload, JSON_UNESCAPED_SLASHES),
         ];
+    }
+
+    /**
+     * Temporary stand-in for GET /tools until a live Tools API exists.
+     * Serves the `tools` section of workspaceFixtures.json as { tools: [...] }.
+     *
+     * TODO(delete): remove with filesFixtureResponse when REACT_ISLAND_USE_FIXTURES is retired.
+     *
+     * @return array{status: int, contentType: string, body: string}
+     */
+    private function toolsFixtureResponse(): array
+    {
+        $loaded = $this->loadFixtures();
+        if ($loaded['error'] !== null) {
+            return $loaded['error'];
+        }
+
+        return [
+            'status' => 200,
+            'contentType' => 'application/json',
+            'body' => json_encode(['tools' => $loaded['tools']], JSON_UNESCAPED_SLASHES),
+        ];
+    }
+
+    /**
+     * @return array{
+     *   files: list<array<string, mixed>>,
+     *   tools: list<array<string, mixed>>,
+     *   error: array{status: int, contentType: string, body: string}|null
+     * }
+     */
+    private function loadFixtures(): array
+    {
+        $path = $this->fixturesPath ?? self::defaultFixturesPath();
+        $raw = @file_get_contents($path);
+        if ($raw === false) {
+            return [
+                'files' => [],
+                'tools' => [],
+                'error' => self::error(502, 'BAD_GATEWAY', 'Fixtures not readable'),
+            ];
+        }
+
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            return [
+                'files' => [],
+                'tools' => [],
+                'error' => self::error(502, 'BAD_GATEWAY', 'Fixtures are invalid JSON'),
+            ];
+        }
+
+        return [
+            'files' => $this->objectList($decoded['files'] ?? null),
+            'tools' => $this->objectList($decoded['tools'] ?? null),
+            'error' => null,
+        ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function objectList(mixed $value): array
+    {
+        if (!is_array($value)) {
+            return [];
+        }
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = [];
+        foreach ($value as $row) {
+            if (is_array($row)) {
+                $rows[] = $row;
+            }
+        }
+
+        return $rows;
     }
 
     /**

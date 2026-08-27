@@ -165,7 +165,7 @@ final class AuthBffTest extends TestCase
     {
         $transport = new FakeTransport();
         $result = (new AuthBff($transport))->handle(
-            $this->server('/auth-bff/tools'),
+            $this->server('/auth-bff/jobs'),
             $this->session('session-jwt'),
             '',
         );
@@ -175,10 +175,30 @@ final class AuthBffTest extends TestCase
         $this->assertSame('FORBIDDEN', json_decode($result['body'], true)['code']);
     }
 
+    public function testAuthorizedToolsForwardsToPinnedApi(): void
+    {
+        $transport = new FakeTransport(200, 'application/json', '{"tools":[]}');
+        $result = (new AuthBff($transport))->handle(
+            $this->server('/auth-bff/tools'),
+            $this->session('session-jwt'),
+            '',
+        );
+
+        $this->assertSame(1, $transport->calls);
+        $this->assertSame('http://127.0.0.1/api/v1/tools', $transport->url);
+        $this->assertSame('GET', $transport->method);
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('{"tools":[]}', $result['body']);
+    }
+
     public function testFilesFixtureServesListWithoutCallingApi(): void
     {
         $transport = new FakeTransport();
-        $result = (new AuthBff($transport, true, $this->fixturePath()))->handle(
+        $result = (new AuthBff(
+            $transport,
+            true,
+            $this->fixturesPath(),
+        ))->handle(
             $this->server('/auth-bff/files'),
             $this->session('session-jwt', 'demo-user@example.com'),
             '',
@@ -201,7 +221,7 @@ final class AuthBffTest extends TestCase
     public function testFilesFixtureRequiresSessionUser(): void
     {
         $transport = new FakeTransport();
-        $result = (new AuthBff($transport, true, $this->fixturePath()))->handle(
+        $result = (new AuthBff($transport, true, $this->fixturesPath()))->handle(
             $this->server('/auth-bff/files'),
             $this->session('session-jwt'),
             '',
@@ -215,7 +235,7 @@ final class AuthBffTest extends TestCase
     public function testFilesFixtureIgnoresQueryParamsAndReturnsFullList(): void
     {
         $transport = new FakeTransport();
-        $result = (new AuthBff($transport, true, $this->fixturePath()))->handle(
+        $result = (new AuthBff($transport, true, $this->fixturesPath()))->handle(
             $this->server('/auth-bff/files?offset=0&limit=1&q=fastq', 'offset=0&limit=1&q=fastq'),
             $this->session('session-jwt', 'demo-user@example.com'),
             '',
@@ -233,7 +253,7 @@ final class AuthBffTest extends TestCase
     public function testFilesFixtureStillRequiresSession(): void
     {
         $transport = new FakeTransport();
-        $result = (new AuthBff($transport, true, $this->fixturePath()))->handle(
+        $result = (new AuthBff($transport, true, $this->fixturesPath()))->handle(
             $this->server('/auth-bff/files'),
             [],
             '',
@@ -247,7 +267,7 @@ final class AuthBffTest extends TestCase
     public function testFilesFixtureDoesNotShortCircuitNonGet(): void
     {
         $transport = new FakeTransport(200, 'application/json', '{"ok":true}');
-        $result = (new AuthBff($transport, true, $this->fixturePath()))->handle(
+        $result = (new AuthBff($transport, true, $this->fixturesPath()))->handle(
             $this->server('/auth-bff/files', '', 'POST'),
             $this->session('session-jwt'),
             '{"name":"x"}',
@@ -257,6 +277,66 @@ final class AuthBffTest extends TestCase
         $this->assertSame('POST', $transport->method);
         $this->assertSame(200, $result['status']);
         $this->assertSame('{"ok":true}', $result['body']);
+    }
+
+    public function testToolsFixtureServesCatalogWithoutCallingApi(): void
+    {
+        $transport = new FakeTransport();
+        $result = (new AuthBff($transport, true, $this->fixturesPath()))->handle(
+            $this->server('/auth-bff/tools'),
+            $this->session('session-jwt'),
+            '',
+        );
+
+        $this->assertSame(0, $transport->calls);
+        $this->assertSame(200, $result['status']);
+        $this->assertSame('application/json', $result['contentType']);
+
+        $body = json_decode($result['body'], true);
+        $this->assertSame(
+            [
+                [
+                    'id' => 'seq',
+                    'name' => 'Seq',
+                    'dataTypes' => ['seq'],
+                ],
+                [
+                    'id' => 'text',
+                    'name' => 'Text',
+                    'dataTypes' => ['text'],
+                ],
+            ],
+            $body['tools'],
+        );
+    }
+
+    public function testToolsFixtureStillRequiresSession(): void
+    {
+        $transport = new FakeTransport();
+        $result = (new AuthBff($transport, true, $this->fixturesPath()))->handle(
+            $this->server('/auth-bff/tools'),
+            [],
+            '',
+        );
+
+        $this->assertSame(401, $result['status']);
+        $this->assertSame(0, $transport->calls);
+        $this->assertSame('UNAUTHORIZED', json_decode($result['body'], true)['code']);
+    }
+
+    public function testToolsFixtureDoesNotShortCircuitNonGet(): void
+    {
+        $transport = new FakeTransport(200, 'application/json', '{"ok":true}');
+        $result = (new AuthBff($transport, true, $this->fixturesPath()))->handle(
+            $this->server('/auth-bff/tools', '', 'POST'),
+            $this->session('session-jwt'),
+            '{"name":"x"}',
+        );
+
+        $this->assertSame(1, $transport->calls);
+        $this->assertSame('http://127.0.0.1/api/v1/tools', $transport->url);
+        $this->assertSame('POST', $transport->method);
+        $this->assertSame(200, $result['status']);
     }
 
     #[DataProvider('injectionPathProvider')]
@@ -349,9 +429,9 @@ final class AuthBffTest extends TestCase
         return $session;
     }
 
-    private function fixturePath(): string
+    private function fixturesPath(): string
     {
-        return __DIR__ . '/fixtures/filesList.json';
+        return __DIR__ . '/fixtures/workspaceFixtures.json';
     }
 
     /**
