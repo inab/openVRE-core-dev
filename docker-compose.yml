@@ -143,13 +143,10 @@ services:
       GUACD_HOSTNAME: guacd
       GUACD_PORT: 4822
       OPENID_CLIENT_SECRET: "${GUACAMOLE_CLIENT_SECRET}"
-      MYSQL_DATABASE: ${GUACAMOLE_DB}
-      MYSQL_USER: ${GUACAMOLE_DB_USER}
-      MYSQL_PASSWORD: ${GUACAMOLE_DB_PASSWORD}
-      MYSQL_ENABLED: "false"
       OPENID_ENABLED: "true"
     volumes:
-     - ./guacamole/configuration:/etc/guacamole:ro
+     - ./guacamole/configuration:/etc/guacamole:rw
+
     networks:
       net_vre:
         ipv4_address: 172.21.0.21

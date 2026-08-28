@@ -1122,7 +1122,6 @@ class Tooljob
 		
 		$checkEnvironment = <<<EOF
 			FREE_PORT=$hostPort
-
 			current_user=\$(whoami)
 			current_groups=\$(groups)
 			checking=\$(getent group | grep docker)
@@ -1155,10 +1154,7 @@ class Tooljob
 		if ($usesGuacamole) {
 				$runContainer = <<<EOF
 					CONTAINER_ID=\$(docker run \
-					--rm \
-					--privileged \
-					-v /var/run/docker.sock:/var/run/docker.sock \
-					-d \
+					-v /var/run/docker.sock:/var/run/docker.sock -d \
 					--net $networkName\
 					--name $containerName \
 					$cmd_envs \
@@ -1202,14 +1198,14 @@ EOF;
 			$this->interactive_container_url =
 				"vnc://{$this->containerName}:{$this->interactive_port}";
 			$reportContainerInfo = <<<EOF
-				CONTAINER_URL="vnc://$containerName:$accessPort"
+
 
 				printf '%s | %s\n' "$(date)" "GUACAMOLE_READY"
 				printf '%s | %s\n' "$(date)" "ContainerID: $CONTAINER_ID"
 				printf '%s | %s\n' "$(date)" "ContainerName: $containerName"
 				printf '%s | %s\n' "$(date)" "Protocol: vnc"
 				printf '%s | %s\n' "$(date)" "Port: $accessPort"
-				printf '%s | %s\n' "$(date)" "VNC endpoint: $CONTAINER_URL"	
+				printf '%s | %s\n' "$(date)" "VNC endpoint: $this->interactive_container_url"	
 	EOF;
 		} else {
 			$containerPort = $tool['infrastructure']['container_port'];
@@ -1228,23 +1224,33 @@ EOF;
 			*/
 			$monitorContainer = <<<EOF
 				docker logs -f \$CONTAINER_ID &> $this->log_file_virtual &
+				CONTAINER_URL="http://$this->containerName";
+				EXIT_CODE_FILE="/tmp/exit_code_$this->containerName"
+				printf '%s | %s\n' "\$(date)" "Waiting for VNC service on $containerName...";
 
-				printf '%s | %s\n' "\$(date)" "Waiting for VNC service on $containerName:$accessPort...";
-
-				if timeout 420 bash -c 'until (echo > /dev/tcp/$containerName/$accessPort) 2>/dev/null; do sleep 2; done'; then
-					printf '%s | %s\n' "\$(date)" "VNC service UP";
+				if timeout 420 wget --retry-connrefused --tries=0 --wait=7 -O /dev/null \$CONTAINER_URL; then
+					printf '%s | %s\n' "\$(date)" "Service UP";
 				else
-					printf '%s | %s\n' "\$(date)" "VNC service TIMEOUT (7 minutes)";
+					printf '%s | %s\n' "\$(date)" "Service TIMEOUT (7 minutes)";
 				fi
 
-				printf '%s | %s\n' "\$(date)" "Waiting while container is running...";
-
-				exit_code="\$(docker wait \$CONTAINER_ID)";
-
+				
+			cleanup() {
+				printf '%s | %s\n' "\$(date)" "Stop container...";
+				docker stop $this->containerName 2>/dev/null
+				wait $!  2>/dev/null
+				exit_code=$(cat \$EXIT_CODE_FILE)
+				rm -f \$EXIT_CODE_FILE
 				printf '%s | Container has stopped (exit code = %s) \n' "\$(date)" "\$exit_code";
+				exit 0
+			}
 
-				echo '# End time:' \$(date) >> $this->log_file_virtual;
-	EOF;
+			trap cleanup SIGTERM SIGUSR1 SIGUSR2
+
+			printf '%s | %s\n' "\$(date)" "Wait while container is running...";
+			docker wait $this->containerName > \$EXIT_CODE_FILE &
+			wait $!
+		EOF;
 		} else {
 
 		$monitorContainer = <<<EOF
