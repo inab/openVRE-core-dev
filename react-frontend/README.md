@@ -37,6 +37,26 @@ REACT_VITE_DEV_SERVER=http://localhost:5173
 
 Set automatically by `docker-compose.yml`. Leave unset in production.
 
+### `REACT_ISLAND_FIXTURES_PATH`
+
+Absolute path to the shared fixtures JSON used by AuthBff for island API stand-ins. The file must contain `{ "files": [...], "tools": [...] }` (see `src/fixtures/workspaceFixtures.json`).
+
+AuthBff resolves the path in this order:
+
+1. `REACT_ISLAND_FIXTURES_PATH` env var (if set and readable)
+2. Monorepo path `react-frontend/src/fixtures/workspaceFixtures.json` (host / non-Docker dev)
+3. `front_end/openVRE/fixtures/workspaceFixtures.json` (Docker bind mount)
+
+Default in Docker Compose:
+
+```bash
+REACT_ISLAND_FIXTURES_PATH=/var/www/html/openVRE/fixtures/workspaceFixtures.json
+```
+
+`docker-compose.yml` bind-mounts `react-frontend/src/fixtures/workspaceFixtures.json` to that path inside `front_end`. Edit the source file under `react-frontend/src/fixtures/` — no copy step needed. Override the env var only if you keep fixtures elsewhere (e.g. custom test data).
+
+Used when `REACT_ISLAND_USE_FIXTURES=1` (GET `/auth-bff/files`) and always for GET `/auth-bff/tools` until a live Tools API exists.
+
 ### Development (`OPENVRE_ENV=dev`)
 
 ```bash
@@ -157,7 +177,7 @@ cd react-frontend
 npm test
 ```
 
-`getUserFiles` and `getTools` always `fetch` `/auth-bff/files` and `/auth-bff/tools`; tests stub `fetch`. For a local UI demo before the live APIs exist, set `REACT_ISLAND_USE_FIXTURES=1` (and recreate/restart `front_end` so compose picks up the env + fixture mount). AuthBff then serves `src/fixtures/workspaceFixtures.json` (`files` / `tools` sections). Add new cases under `tests/**/*.test.ts`.
+`getUserFiles` and `getTools` always `fetch` `/auth-bff/files` and `/auth-bff/tools`; tests stub `fetch`. For a local UI demo before the live files API exists, set `REACT_ISLAND_USE_FIXTURES=1` and recreate/restart `front_end` so compose picks up the env. AuthBff serves fixture data from `REACT_ISLAND_FIXTURES_PATH` (default: bind-mounted `src/fixtures/workspaceFixtures.json`). GET `/auth-bff/tools` always uses the `tools` section of that file. Add new cases under `tests/**/*.test.ts`.
 
 `npm run check` runs lint, format, TypeScript, and the same tests.
 
