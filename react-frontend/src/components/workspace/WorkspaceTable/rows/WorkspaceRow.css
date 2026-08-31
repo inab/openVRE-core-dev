@@ -37,6 +37,7 @@
 
 .workspaceRowIconFolder {
   color: var(--color-secondary);
+  fill: var(--color-icon-fill-muted);
 }
 
 .workspaceRowIconFolderOpen {

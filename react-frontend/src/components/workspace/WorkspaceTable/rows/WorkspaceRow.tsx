@@ -49,7 +49,6 @@ const KindIcon = ({ kind, isExpanded }: KindIconProps) => {
       <Folder
         aria-hidden
         className="workspaceRowIcon workspaceRowIconFolder"
-        fill="currentColor"
         size={16}
       />
     );
