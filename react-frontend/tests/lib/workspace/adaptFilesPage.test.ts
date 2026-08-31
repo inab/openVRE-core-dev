@@ -16,8 +16,6 @@ const base = {
   size: 0,
   status: 'idle' as const,
   actions: [] as ApiFileItem['actions'],
-  isSelectable: true,
-  isProtected: false,
 };
 
 function api(
@@ -44,15 +42,12 @@ describe('adaptFilesPage', () => {
     expect(uploads?.children.map((c) => c.filename)).toEqual(
       expect.arrayContaining(['test.csv', 'sample_test.dta']),
     );
-    expect(
-      uploads?.children.find((c) => c.filename === 'test.csv')?.kind,
-    ).toBe(FILE_ITEM_KINDS.file_unvalidated);
+    expect(uploads?.children.find((c) => c.filename === 'test.csv')?.kind).toBe(
+      FILE_ITEM_KINDS.file_unvalidated,
+    );
 
     expect(repository?.children.map((c) => c.filename)).toEqual(
-      expect.arrayContaining([
-        'simulacion_B2F3_BSC_impact.csv',
-        '186v2-1.vcf',
-      ]),
+      expect.arrayContaining(['simulacion_B2F3_BSC_impact.csv', '186v2-1.vcf']),
     );
   });
 
@@ -65,8 +60,6 @@ describe('adaptFilesPage', () => {
         path: 'p/repository',
         type: FILE_TYPES.dir,
         kind: FILE_ITEM_KINDS.folder_repository,
-        isSelectable: false,
-        isProtected: true,
       }),
       api({
         fileId: 'zebra',
@@ -83,8 +76,6 @@ describe('adaptFilesPage', () => {
         path: 'p/uploads',
         type: FILE_TYPES.dir,
         kind: FILE_ITEM_KINDS.folder_uploads,
-        isSelectable: false,
-        isProtected: true,
       }),
       api({
         fileId: 'alpha',
@@ -122,8 +113,6 @@ describe('adaptFilesPage', () => {
         path: 'p/uploads',
         type: FILE_TYPES.dir,
         kind: FILE_ITEM_KINDS.folder_uploads,
-        isSelectable: false,
-        isProtected: true,
       }),
       api({
         fileId: 'child',
@@ -175,14 +164,47 @@ describe('adaptFilesPage', () => {
         type: FILE_TYPES.dir,
         kind: FILE_ITEM_KINDS.folder_uploads,
         actions: customActions,
-        isSelectable: false,
-        isProtected: true,
       }),
     ];
 
     const [root] = adaptFilesPage(files);
     expect(root?.kind).toBe(FILE_ITEM_KINDS.folder_uploads);
     expect(root?.actions).toEqual(customActions);
+  });
+
+  it('does not invent status or actions for live FileDto rows', () => {
+    const files: ApiFileItem[] = [
+      {
+        fileId: 'repo',
+        parentId: null,
+        filename: 'repository',
+        path: 'p/repository',
+        type: FILE_TYPES.dir,
+        format: '',
+        dataType: '',
+        date: '2026-07-17T11:41:19.000+00:00',
+        size: 0,
+        kind: FILE_ITEM_KINDS.folder_repository,
+      },
+      {
+        fileId: 'f1',
+        parentId: 'repo',
+        filename: 'sample.fastq',
+        path: 'p/repository/sample.fastq',
+        type: FILE_TYPES.file,
+        format: 'fastq',
+        dataType: 'seq',
+        date: '2026-07-17T11:41:19.000+00:00',
+        size: 10,
+        kind: FILE_ITEM_KINDS.file,
+      },
+    ];
+
+    const [root] = adaptFilesPage(files);
+    expect(root?.status).toBeUndefined();
+    expect(root?.actions).toBeUndefined();
+    expect(root?.children[0]?.status).toBeUndefined();
+    expect(root?.children[0]?.actions).toBeUndefined();
   });
 
   it('preserves input order when not pre-sorted', () => {

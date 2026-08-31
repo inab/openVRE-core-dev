@@ -15,8 +15,6 @@ const base = {
   size: 0,
   status: 'idle' as const,
   actions: [] as ApiFileItem['actions'],
-  isSelectable: true,
-  isProtected: false,
 };
 
 function api(
@@ -64,8 +62,6 @@ describe('orderWorkspaceFiles', () => {
         path: 'p/uploads',
         type: FILE_TYPES.dir,
         kind: FILE_ITEM_KINDS.folder_uploads,
-        isSelectable: false,
-        isProtected: true,
       }),
       api({
         fileId: 'up-b',

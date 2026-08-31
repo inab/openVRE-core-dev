@@ -18,9 +18,11 @@ export interface RowActionsMenuProps {
 }
 
 export const RowActionsMenu = ({ item }: RowActionsMenuProps) => {
-  if (item.actions.length === 0) {
+  if (item.actions == null || item.actions.length === 0) {
     return null;
   }
+
+  const actions = item.actions;
 
   return (
     <MenuTrigger>
@@ -47,12 +49,12 @@ export const RowActionsMenu = ({ item }: RowActionsMenuProps) => {
           className="rowActionsMenu"
           onAction={(key) => {
             stubFileAction(
-              String(key) as (typeof item.actions)[number],
+              String(key) as (typeof actions)[number],
               item.fileId,
             );
           }}
         >
-          {item.actions.map((action) => {
+          {actions.map((action) => {
             const Icon = FILE_ITEM_ACTION_ICONS[action];
             return (
               <MenuItem
