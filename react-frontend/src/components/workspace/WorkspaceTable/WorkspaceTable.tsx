@@ -12,6 +12,7 @@ import type { WorkspacePageSize } from '../../../lib/workspace/pagination';
 import type { FileItem } from '../../../lib/workspace/FileItem';
 import { formatShowingEntries } from './formatShowingEntries';
 import {
+  getWorkspaceTableColClass,
   workspaceTableColumns,
   workspaceTableFeatures,
 } from './workspaceTableColumns';
@@ -86,13 +87,12 @@ export const WorkspaceTable = ({
       <div className="workspaceTableWrap">
         <table className="workspaceTable">
           <colgroup>
-            <col className="workspaceTableColSelect" />
-            <col className="workspaceTableColFile" />
-            <col className="workspaceTableColFileType" />
-            <col className="workspaceTableColDataType" />
-            <col className="workspaceTableColDate" />
-            <col className="workspaceTableColSize" />
-            <col className="workspaceTableColActions" />
+            {table.getAllLeafColumns().map((column) => (
+              <col
+                key={column.id}
+                className={getWorkspaceTableColClass(column.id)}
+              />
+            ))}
           </colgroup>
           <thead>
             {table.getHeaderGroups().map((headerGroup) => (

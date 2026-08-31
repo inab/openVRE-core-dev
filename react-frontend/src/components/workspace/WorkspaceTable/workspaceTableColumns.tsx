@@ -100,3 +100,17 @@ export const workspaceTableColumns = columnHelper.columns([
     enableSorting: false,
   }),
 ]);
+
+const WORKSPACE_TABLE_COL_CLASS_BY_ID: Record<string, string> = {
+  select: 'workspaceTableColSelect',
+  filename: 'workspaceTableColFile',
+  format: 'workspaceTableColFileType',
+  dataType: 'workspaceTableColDataType',
+  date: 'workspaceTableColDate',
+  size: 'workspaceTableColSize',
+  actions: 'workspaceTableColActions',
+};
+
+export function getWorkspaceTableColClass(columnId: string): string | undefined {
+  return WORKSPACE_TABLE_COL_CLASS_BY_ID[columnId];
+}
