@@ -16,9 +16,9 @@
       "size": 0,
       "kind": "folder_uploads",
       "status": "idle",
-      "actions": ["download_folder"],
-      "isSelectable": false,
-      "isProtected": true
+      "actions": [
+        "download_folder"
+      ]
     },
     {
       "fileId": "child",
@@ -32,9 +32,12 @@
       "size": 8,
       "kind": "file_unvalidated",
       "status": "unvalidated",
-      "actions": ["validate_metadata", "rename", "move", "delete"],
-      "isSelectable": true,
-      "isProtected": false
+      "actions": [
+        "validate_metadata",
+        "rename",
+        "move",
+        "delete"
+      ]
     }
   ]
 }

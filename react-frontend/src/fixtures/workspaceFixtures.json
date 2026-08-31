@@ -12,8 +12,6 @@
       "size": 0,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -33,8 +31,6 @@
       "size": 15453668,
       "kind": "folder_repository",
       "status": "idle",
-      "isSelectable": false,
-      "isProtected": true,
       "actions": [
         "download_folder"
       ]
@@ -51,8 +47,6 @@
       "size": 1053094,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -74,8 +68,6 @@
       "size": 9209867,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -97,8 +89,6 @@
       "size": 5190707,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -120,8 +110,6 @@
       "size": 234102,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -141,8 +129,6 @@
       "size": 96397,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -164,8 +150,6 @@
       "size": 729,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -187,8 +171,6 @@
       "size": 4096,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -210,8 +192,6 @@
       "size": 11733,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -233,8 +213,6 @@
       "size": 4096,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -256,8 +234,6 @@
       "size": 847931,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -277,8 +253,6 @@
       "size": 847931,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -300,8 +274,6 @@
       "size": 17689,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -321,8 +293,6 @@
       "size": 17689,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -344,8 +314,6 @@
       "size": 19096,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -365,8 +333,6 @@
       "size": 19096,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -388,8 +354,6 @@
       "size": 20023,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -409,8 +373,6 @@
       "size": 20023,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -432,8 +394,6 @@
       "size": 212,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -453,8 +413,6 @@
       "size": 212,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -476,8 +434,6 @@
       "size": 0,
       "kind": "folder_empty",
       "status": "idle",
-      "isSelectable": false,
-      "isProtected": false,
       "actions": [
         "delete_folder",
         "download_folder"
@@ -495,8 +451,6 @@
       "size": 19160,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -516,8 +470,6 @@
       "size": 19160,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -539,8 +491,6 @@
       "size": 1147,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -560,8 +510,6 @@
       "size": 1147,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -583,8 +531,6 @@
       "size": 1147,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -604,8 +550,6 @@
       "size": 1147,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -627,8 +571,6 @@
       "size": 170,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -648,8 +590,6 @@
       "size": 170,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -671,8 +611,6 @@
       "size": 1187,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -692,8 +630,6 @@
       "size": 1187,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -715,8 +651,6 @@
       "size": 130,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -736,8 +670,6 @@
       "size": 130,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -759,8 +691,6 @@
       "size": 1159,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -780,8 +710,6 @@
       "size": 1159,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -803,8 +731,6 @@
       "size": 130,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -824,8 +750,6 @@
       "size": 130,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -847,8 +771,6 @@
       "size": 0,
       "kind": "folder_empty",
       "status": "idle",
-      "isSelectable": false,
-      "isProtected": false,
       "actions": [
         "delete_folder",
         "download_folder"
@@ -866,8 +788,6 @@
       "size": 1147,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -887,8 +807,6 @@
       "size": 1147,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -910,8 +828,6 @@
       "size": 0,
       "kind": "folder_empty",
       "status": "idle",
-      "isSelectable": false,
-      "isProtected": false,
       "actions": [
         "delete_folder",
         "download_folder"
@@ -929,8 +845,6 @@
       "size": 0,
       "kind": "folder_empty",
       "status": "idle",
-      "isSelectable": false,
-      "isProtected": false,
       "actions": [
         "delete_folder",
         "download_folder"
@@ -948,8 +862,6 @@
       "size": 0,
       "kind": "folder_empty",
       "status": "idle",
-      "isSelectable": false,
-      "isProtected": false,
       "actions": [
         "delete_folder",
         "download_folder"
@@ -967,8 +879,6 @@
       "size": 0,
       "kind": "folder_empty",
       "status": "idle",
-      "isSelectable": false,
-      "isProtected": false,
       "actions": [
         "delete_folder",
         "download_folder"
@@ -986,8 +896,6 @@
       "size": 0,
       "kind": "folder_empty",
       "status": "idle",
-      "isSelectable": false,
-      "isProtected": false,
       "actions": [
         "delete_folder",
         "download_folder"
@@ -1005,8 +913,6 @@
       "size": 0,
       "kind": "folder_empty",
       "status": "idle",
-      "isSelectable": false,
-      "isProtected": false,
       "actions": [
         "delete_folder",
         "download_folder"
@@ -1024,8 +930,6 @@
       "size": 0,
       "kind": "folder_empty",
       "status": "idle",
-      "isSelectable": false,
-      "isProtected": false,
       "actions": [
         "delete_folder",
         "download_folder"
@@ -1043,8 +947,6 @@
       "size": 0,
       "kind": "folder_empty",
       "status": "idle",
-      "isSelectable": false,
-      "isProtected": false,
       "actions": [
         "delete_folder",
         "download_folder"
@@ -1062,8 +964,6 @@
       "size": 104476,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -1083,8 +983,6 @@
       "size": 104476,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -1106,8 +1004,6 @@
       "size": 152,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -1127,8 +1023,6 @@
       "size": 152,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -1150,8 +1044,6 @@
       "size": 18853,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -1171,8 +1063,6 @@
       "size": 18853,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -1194,8 +1084,6 @@
       "size": 895,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -1215,8 +1103,6 @@
       "size": 895,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -1238,8 +1124,6 @@
       "size": 1147,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -1259,8 +1143,6 @@
       "size": 1147,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -1282,8 +1164,6 @@
       "size": 98990,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -1303,8 +1183,6 @@
       "size": 98990,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -1326,8 +1204,6 @@
       "size": 662,
       "kind": "folder",
       "status": "idle",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "rename",
         "move",
@@ -1347,8 +1223,6 @@
       "size": 6,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -1370,8 +1244,6 @@
       "size": 656,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -1393,8 +1265,6 @@
       "size": 172,
       "kind": "folder_uploads",
       "status": "idle",
-      "isSelectable": false,
-      "isProtected": true,
       "actions": [
         "download_folder"
       ]
@@ -1411,8 +1281,6 @@
       "size": 164,
       "kind": "file_unvalidated",
       "status": "unvalidated",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "validate_metadata",
         "rename",
@@ -1432,8 +1300,6 @@
       "size": 8,
       "kind": "file_unvalidated",
       "status": "unvalidated",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "validate_metadata",
         "rename",
@@ -1453,8 +1319,6 @@
       "size": 96397,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -1476,8 +1340,6 @@
       "size": 729,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -1499,8 +1361,6 @@
       "size": 4096,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -1522,8 +1382,6 @@
       "size": 11733,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",
@@ -1545,8 +1403,6 @@
       "size": 4096,
       "kind": "file",
       "status": "ready",
-      "isSelectable": true,
-      "isProtected": false,
       "actions": [
         "edit_metadata",
         "rename",

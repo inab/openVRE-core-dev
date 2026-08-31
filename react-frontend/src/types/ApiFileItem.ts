@@ -5,7 +5,13 @@ import type {
   FileType,
 } from './fileItemConstants';
 
-/** Flat list item from GET /files (no children on the wire). */
+/**
+ * Flat list item from GET /files (no children on the wire).
+ *
+ * OpenAPI FileDto: identity + path + type + kind + parentId.
+ * `status` / `actions` are optional — omit them and the UI shows neither a
+ * status badge nor an actions menu.
+ */
 export interface ApiFileItem {
   fileId: string;
   parentId: string | null;
@@ -17,8 +23,6 @@ export interface ApiFileItem {
   date: string;
   size: number;
   kind: FileItemKind;
-  status: FileItemStatus;
-  actions: FileItemAction[];
-  isSelectable: boolean;
-  isProtected: boolean;
+  status?: FileItemStatus;
+  actions?: FileItemAction[];
 }

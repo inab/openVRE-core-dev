@@ -14,9 +14,7 @@
       "status": "idle",
       "actions": [
         "download_folder"
-      ],
-      "isSelectable": false,
-      "isProtected": true
+      ]
     },
     {
       "fileId": "child-a",
@@ -32,9 +30,7 @@
       "status": "ready",
       "actions": [
         "download"
-      ],
-      "isSelectable": true,
-      "isProtected": false
+      ]
     },
     {
       "fileId": "child-b",
@@ -50,9 +46,7 @@
       "status": "ready",
       "actions": [
         "download"
-      ],
-      "isSelectable": true,
-      "isProtected": false
+      ]
     }
   ],
   "tools": [
