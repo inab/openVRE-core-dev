@@ -5,8 +5,9 @@ declare(strict_types=1);
 /**
  * OAuth token-handler: session cookie in, Bearer out. No JSON rewrite of live API responses.
  *
- * Temporary: when $useFixtures is true, GET /auth-bff/files and GET /auth-bff/tools
- * serve sections from one shared React fixture JSON (until the live APIs emit those shapes).
+ * Temporary fixtures:
+ * - GET /auth-bff/files when $useFixtures is true (until live files shape is enough)
+ * - GET /auth-bff/tools always (no /api/v1/tools yet)
  */
 interface AuthBffTransport
 {
@@ -146,7 +147,9 @@ final class AuthBff
             return $this->filesFixtureResponse($session);
         }
 
-        if ($this->useFixtures && $method === 'GET' && $relativePath === 'tools') {
+        // No /api/v1/tools yet — always serve the tools fixture for GET,
+        // even when REACT_ISLAND_USE_FIXTURES=0 (live files API).
+        if ($method === 'GET' && $relativePath === 'tools') {
             return $this->toolsFixtureResponse();
         }
 
@@ -217,8 +220,9 @@ final class AuthBff
     /**
      * Temporary stand-in for GET /tools until a live Tools API exists.
      * Serves the `tools` section of workspaceFixtures.json as { tools: [...] }.
+     * Always used for GET /tools (independent of REACT_ISLAND_USE_FIXTURES).
      *
-     * TODO(delete): remove with filesFixtureResponse when REACT_ISLAND_USE_FIXTURES is retired.
+     * TODO(delete): remove when /api/v1/tools exists — AuthBff should only proxy.
      *
      * @return array{status: int, contentType: string, body: string}
      */

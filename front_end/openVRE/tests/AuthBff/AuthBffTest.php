@@ -175,20 +175,35 @@ final class AuthBffTest extends TestCase
         $this->assertSame('FORBIDDEN', json_decode($result['body'], true)['code']);
     }
 
-    public function testAuthorizedToolsForwardsToPinnedApi(): void
+    public function testAuthorizedToolsServesFixtureWithoutCallingApi(): void
     {
         $transport = new FakeTransport(200, 'application/json', '{"tools":[]}');
-        $result = (new AuthBff($transport))->handle(
+        $result = (new AuthBff($transport, false, $this->fixturesPath()))->handle(
             $this->server('/auth-bff/tools'),
             $this->session('session-jwt'),
             '',
         );
 
-        $this->assertSame(1, $transport->calls);
-        $this->assertSame('http://127.0.0.1/api/v1/tools', $transport->url);
-        $this->assertSame('GET', $transport->method);
+        $this->assertSame(0, $transport->calls);
         $this->assertSame(200, $result['status']);
-        $this->assertSame('{"tools":[]}', $result['body']);
+        $this->assertSame('application/json', $result['contentType']);
+
+        $body = json_decode($result['body'], true);
+        $this->assertSame(
+            [
+                [
+                    'id' => 'seq',
+                    'name' => 'Seq',
+                    'dataTypes' => ['seq'],
+                ],
+                [
+                    'id' => 'text',
+                    'name' => 'Text',
+                    'dataTypes' => ['text'],
+                ],
+            ],
+            $body['tools'],
+        );
     }
 
     public function testFilesFixtureServesListWithoutCallingApi(): void
@@ -313,7 +328,7 @@ final class AuthBffTest extends TestCase
     public function testToolsFixtureStillRequiresSession(): void
     {
         $transport = new FakeTransport();
-        $result = (new AuthBff($transport, true, $this->fixturesPath()))->handle(
+        $result = (new AuthBff($transport, false, $this->fixturesPath()))->handle(
             $this->server('/auth-bff/tools'),
             [],
             '',
