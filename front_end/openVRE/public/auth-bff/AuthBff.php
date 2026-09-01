@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/SessionTokenRefresher.php';
+
 /**
  * OAuth token-handler: session cookie in, Bearer out. No JSON rewrite of live API responses.
  *
@@ -98,7 +100,13 @@ final class AuthBff
         private AuthBffTransport $transport,
         private bool $useFixtures = false,
         private ?string $fixturesPath = null,
+        private ?SessionTokenRefresherInterface $tokenRefresher = null,
     ) {
+    }
+
+    private function tokenRefresher(): SessionTokenRefresherInterface
+    {
+        return $this->tokenRefresher ??= new SessionTokenRefresher();
     }
 
     /**
@@ -122,11 +130,10 @@ final class AuthBff
      * @param array<string, mixed> $session
      * @return array{status: int, contentType: string, body: string}
      */
-    public function handle(array $server, array $session, string $body): array
+    public function handle(array $server, array &$session, string $body): array
     {
-        $accessToken = $this->sessionAccessToken($session);
-        if ($accessToken === null) {
-            return self::error(401, 'UNAUTHORIZED', 'Not logged in');
+        if ($this->sessionAccessToken($session) === null) {
+            return self::notLoggedInError();
         }
 
         $relativePath = $this->relativeApiPath($server);
@@ -134,14 +141,83 @@ final class AuthBff
             return self::error(403, 'FORBIDDEN', 'Invalid path');
         }
 
-        $firstSegment = explode('/', $relativePath, 2)[0];
-        if (!in_array($firstSegment, self::ALLOWED_FIRST_SEGMENTS, true)) {
+        if (!$this->isAllowedPath($relativePath)) {
             return self::error(403, 'FORBIDDEN', 'Path is not allowed');
         }
 
         $method = strtoupper((string) ($server['REQUEST_METHOD'] ?? 'GET'));
         $query = (string) ($server['QUERY_STRING'] ?? '');
 
+        $fixtureResponse = $this->fixtureResponseIfApplicable($method, $relativePath, $session);
+        if ($fixtureResponse !== null) {
+            return $fixtureResponse;
+        }
+
+        return $this->proxyLiveApi($server, $session, $body, $relativePath, $query, $method);
+    }
+
+    /**
+     * @param array<string, mixed> $server
+     * @param array<string, mixed> $session
+     * @return array{status: int, contentType: string, body: string}
+     */
+    private function proxyLiveApi(
+        array $server,
+        array &$session,
+        string $body,
+        string $relativePath,
+        string $query,
+        string $method,
+    ): array {
+        $accessToken = $this->refreshAndResolveAccessToken($session, $server);
+        if ($accessToken === null) {
+            return self::sessionExpiredError();
+        }
+
+        $result = $this->proxyToApi($server, $accessToken, $relativePath, $query, $method, $body);
+        if ($result['status'] !== 403) {
+            return $result;
+        }
+
+        $accessToken = $this->refreshAndResolveAccessToken($session, $server, force: true);
+        if ($accessToken === null) {
+            return self::sessionExpiredError();
+        }
+
+        $result = $this->proxyToApi($server, $accessToken, $relativePath, $query, $method, $body);
+
+        return $result['status'] === 403 ? self::sessionExpiredError() : $result;
+    }
+
+    /**
+     * @param array<string, mixed> $session
+     * @return non-empty-string|null
+     */
+    private function refreshAndResolveAccessToken(array &$session, array $server, bool $force = false): ?string
+    {
+        if (!$this->tokenRefresher()->ensureFreshToken($session, $server, $force)) {
+            return null;
+        }
+
+        return $this->sessionAccessToken($session);
+    }
+
+    private function isAllowedPath(string $relativePath): bool
+    {
+        $firstSegment = explode('/', $relativePath, 2)[0];
+
+        return in_array($firstSegment, self::ALLOWED_FIRST_SEGMENTS, true);
+    }
+
+    /**
+     * @param array<string, mixed> $session
+     * @return array{status: int, contentType: string, body: string}|null
+     */
+    private function fixtureResponseIfApplicable(
+        string $method,
+        string $relativePath,
+        array $session,
+    ): ?array {
         // Island currently loads the full list and filters/pages in React.
         if ($this->useFixtures && $method === 'GET' && $relativePath === 'files') {
             return $this->filesFixtureResponse($session);
@@ -153,6 +229,37 @@ final class AuthBff
             return $this->toolsFixtureResponse();
         }
 
+        return null;
+    }
+
+    /**
+     * @return array{status: int, contentType: string, body: string}
+     */
+    private static function notLoggedInError(): array
+    {
+        return self::error(401, 'UNAUTHORIZED', 'Not logged in');
+    }
+
+    /**
+     * @return array{status: int, contentType: string, body: string}
+     */
+    private static function sessionExpiredError(): array
+    {
+        return self::error(401, 'UNAUTHORIZED', 'Session expired');
+    }
+
+    /**
+     * @param array<string, mixed> $server
+     * @return array{status: int, contentType: string, body: string}
+     */
+    private function proxyToApi(
+        array $server,
+        string $accessToken,
+        string $relativePath,
+        string $query,
+        string $method,
+        string $body,
+    ): array {
         $target = 'http://127.0.0.1/api/v1/' . $relativePath;
         if ($query !== '') {
             $target .= '?' . $query;
