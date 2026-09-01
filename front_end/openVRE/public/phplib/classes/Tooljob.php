@@ -1155,14 +1155,14 @@ class Tooljob
 				$runContainer = <<<EOF
 					CONTAINER_ID=\$(docker run \
 					-v /var/run/docker.sock:/var/run/docker.sock -d \
-					--net $networkName\
+					--net $networkName \
 					--name $containerName \
 					$cmd_envs \
 					-v {$this->pub_dir_volumes}:{$GLOBALS['shared']}public_tmp/ \
 					-v {$this->root_dir_volumes}:{$GLOBALS['shared']}userdata_tmp/{$_SESSION['User']['id']} \
 					--hostname $containerName \
 					{$tool['infrastructure']['container_image']});
-		EOF;
+					EOF;
 		} else {
 
 			$runContainer = <<<EOF
@@ -1170,7 +1170,7 @@ class Tooljob
 				--rm \
 				--privileged \
 				-v /var/run/docker.sock:/var/run/docker.sock -d \
-				--net $networkName\
+				--net $networkName  \
 				--name $this->containerName \
 				$cmd_envs \
 				-v {$this->pub_dir_volumes}:{$GLOBALS['shared']}public_tmp/ \
@@ -1181,32 +1181,29 @@ class Tooljob
 		}
 
 		$checkContainerStatus = <<<EOF
-	if ! docker top \$CONTAINER_ID &>/dev/null; then
-		printf '%s | %s\n' "$(date)" "Container crashed unexpectedly...";
-		exit 1;
-	fi
+			if ! docker top \$CONTAINER_ID &>/dev/null; then
+				printf '%s | %s\n' "$(date)" "Container crashed unexpectedly...";
+				exit 1;
+			fi
 
-	if ! docker inspect --format='{{.State.Running}}' \$CONTAINER_ID | grep -q true; then
-		printf '%s | %s\n' "$(date)" "Container not running anymore";
-		exit 1;
-	fi
-EOF;
+			if ! docker inspect --format='{{.State.Running}}' \$CONTAINER_ID | grep -q true; then
+				printf '%s | %s\n' "$(date)" "Container not running anymore";
+				exit 1;
+			fi
+		EOF;
 		if ($usesGuacamole) {
 			$this->interactive_protocol = $tool['infrastructure']['interactive_access']['protocol'];
 			$this->interactive_port = (int) $tool['infrastructure']['interactive_access']['port'];
 			$this->interactive_container_name = $this->containerName;
-			$this->interactive_container_url =
-				"vnc://{$this->containerName}:{$this->interactive_port}";
+			$this->interactive_container_url = "vnc://{$this->containerName}:{$this->interactive_port}";
 			$reportContainerInfo = <<<EOF
-
-
-				printf '%s | %s\n' "$(date)" "GUACAMOLE_READY"
-				printf '%s | %s\n' "$(date)" "ContainerID: $CONTAINER_ID"
+				CONTAINER_URL="http://$this->containerName:$container_port"
+				printf '%s | %s\n' "\$(date)" "ContainerID: \$CONTAINER_ID";
 				printf '%s | %s\n' "$(date)" "ContainerName: $containerName"
 				printf '%s | %s\n' "$(date)" "Protocol: vnc"
 				printf '%s | %s\n' "$(date)" "Port: $accessPort"
-				printf '%s | %s\n' "$(date)" "VNC endpoint: $this->interactive_container_url"	
-	EOF;
+				printf '%s | %s\n' "$(date)" "VNC endpoint: $this->interactive_container_url"
+		EOF;
 		} else {
 			$containerPort = $tool['infrastructure']['container_port'];
 			$reportContainerInfo = <<<EOF
@@ -1224,16 +1221,33 @@ EOF;
 			*/
 			$monitorContainer = <<<EOF
 				docker logs -f \$CONTAINER_ID &> $this->log_file_virtual &
-				CONTAINER_URL="http://$this->containerName";
-				EXIT_CODE_FILE="/tmp/exit_code_$this->containerName"
-				printf '%s | %s\n' "\$(date)" "Waiting for VNC service on $containerName...";
+				START_TIME=$(date +%s)
 
-				if timeout 420 wget --retry-connrefused --tries=0 --wait=7 -O /dev/null \$CONTAINER_URL; then
-					printf '%s | %s\n' "\$(date)" "Service UP";
-				else
-					printf '%s | %s\n' "\$(date)" "Service TIMEOUT (7 minutes)";
+			while true; do
+				STATUS=$(docker inspect \
+					-f '{{.State.Status}}' \
+					"\$CONTAINER_ID" 2>/dev/null)
+				if [ "\$STATUS" = "exited" ] || [ "\$STATUS" = "dead" ]; then
+					printf '%s | %s\n' "$(date)" \
+						"Container stopped unexpectedly."
+					break
 				fi
-
+				HEALTH=$(docker inspect \
+					-f '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' \
+					"\$CONTAINER_ID" 2>/dev/null)
+				if [ "\$HEALTH" = "healthy" ]; then
+					printf '%s | %s\n' "$(date)" \
+						"Stata VNC service UP."
+					break
+				fi
+				NOW=$(date +%s)
+				if [ $((NOW - START_TIME)) -ge 420 ]; then
+					printf '%s | %s\n' "$(date)" \
+						"Stata VNC service TIMEOUT (7 minutes)."
+					break
+				fi
+				sleep 5
+			done
 				
 			cleanup() {
 				printf '%s | %s\n' "\$(date)" "Stop container...";
@@ -1251,6 +1265,7 @@ EOF;
 			docker wait $this->containerName > \$EXIT_CODE_FILE &
 			wait $!
 		EOF;
+
 		} else {
 
 		$monitorContainer = <<<EOF
