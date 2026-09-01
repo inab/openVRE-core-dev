@@ -9,12 +9,18 @@ declare(strict_types=1);
  * PHP      same method/query/body /api/v1/{path}?query    + Authorization: Bearer
  * Browser  ← status + body unchanged
  *
+ * JWT refresh: SessionTokenRefresher updates userToken from OIDC proxy headers
+ * before proxying to /api/v1, and retries once on downstream 403. Irrecoverable
+ * auth failures return 401 JSON (islands should treat as "log in again"). No
+ * React session wrapper is required.
+ *
  * Add first-path-segment entries to AuthBff::ALLOWED_FIRST_SEGMENTS when a new island exists.
  */
 
 require_once __DIR__ . '/../../vendor/autoload.php';
 require_once __DIR__ . '/../../config/globals.inc.php';
 require_once __DIR__ . '/../phplib/session.inc';
+require_once __DIR__ . '/SessionTokenRefresher.php';
 require_once __DIR__ . '/AuthBff.php';
 
 /**

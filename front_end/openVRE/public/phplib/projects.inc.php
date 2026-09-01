@@ -1954,6 +1954,12 @@ function refresh_token($force = false)
 	$existingToken = $_SESSION['userToken'];
 
 	if ($force || $existingToken->hasExpired()) {
+		require_once __DIR__ . '/../auth-bff/SessionTokenRefresher.php';
+		$refresher = new SessionTokenRefresher();
+		if ($refresher->ensureFreshToken($_SESSION, $_SERVER, $force)) {
+			return true;
+		}
+
 		$freshAccessToken = $_SERVER['OIDC_access_token'] ?? null;
 
 		if (!$freshAccessToken) {
@@ -1970,12 +1976,7 @@ function refresh_token($force = false)
 			exit;
 		}
 
-		$_SESSION['userToken'] = new AccessToken([
-			'access_token' => $freshAccessToken,
-			'expires'      => (int)($_SERVER['OIDC_access_token_expires'] ?? 0),
-		]);
-
-		return true;
+		return false;
 	} else {
 		getProjectLogger()->error("Access token not expired yet.");
 		return false;
