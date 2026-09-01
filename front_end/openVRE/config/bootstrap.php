@@ -1,7 +1,7 @@
 <?php
 
 // import vendor libs
-require dirname(__FILE__) . "/../vendor/autoload.php";
+require_once dirname(__FILE__) . "/../vendor/autoload.php";
 
 use OpenVRE\LoggerFactory;
 
@@ -20,18 +20,15 @@ set_exception_handler(function (Throwable $e) {
 });
 
 // set up app settings
-require dirname(__FILE__) . "/../config/globals.inc.php";
-
-// import vendor libs
-require dirname(__FILE__) . "/../vendor/autoload.php";
+require_once dirname(__FILE__) . "/../config/globals.inc.php";
 
 // import local libs
 foreach (glob(dirname(__FILE__) . "/../public/phplib/*.php") as $lib) {
-    require $lib;
+    require_once $lib;
 }
 
 // Explicit for static analysis (glob requires are not resolved by IDEs)
 require_once dirname(__FILE__) . "/../public/phplib/react-islands.inc.php";
 
 // initialize session
-require dirname(__FILE__) . "/../public/phplib/session.inc";
+require_once dirname(__FILE__) . "/../public/phplib/session.inc";
