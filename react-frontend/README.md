@@ -183,6 +183,7 @@ npm test
 
 ## Related documentation
 
+- [AuthBff just-in-time token refresh](docs/auth-bff-token-refresh.md) — why islands need JWT refresh, how AuthBff handles it, and what is out of scope
 - [Install.md](../Install.md) — local development setup
 - [Install-prod.md](../Install-prod.md) — production deployment
 - [openVRE wiki — Extending Frontend Components](https://github.com/inab/openVRE/wiki/Extending-Frontend-Components) — broader UI extension docs (production wiki)
