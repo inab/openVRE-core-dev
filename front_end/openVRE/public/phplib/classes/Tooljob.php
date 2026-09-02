@@ -1154,6 +1154,8 @@ class Tooljob
 		if ($usesGuacamole) {
 				$runContainer = <<<EOF
 					CONTAINER_ID=\$(docker run \
+					--rm \
+					--privileged \
 					-v /var/run/docker.sock:/var/run/docker.sock -d \
 					--net $networkName \
 					--name $containerName \
@@ -1220,34 +1222,25 @@ class Tooljob
 			* Just wait for the TCP port to become available.
 			*/
 			$monitorContainer = <<<EOF
-				docker logs -f \$CONTAINER_ID &> $this->log_file_virtual &
-				START_TIME=$(date +%s)
+			
+			EXIT_CODE_FILE="/tmp/exit_code_$this->containerName"
 
-			while true; do
-				STATUS=$(docker inspect \
-					-f '{{.State.Status}}' \
-					"\$CONTAINER_ID" 2>/dev/null)
-				if [ "\$STATUS" = "exited" ] || [ "\$STATUS" = "dead" ]; then
-					printf '%s | %s\n' "$(date)" \
-						"Container stopped unexpectedly."
-					break
-				fi
-				HEALTH=$(docker inspect \
-					-f '{{if .State.Health}}{{.State.Health.Status}}{{else}}no-healthcheck{{end}}' \
-					"\$CONTAINER_ID" 2>/dev/null)
-				if [ "\$HEALTH" = "healthy" ]; then
-					printf '%s | %s\n' "$(date)" \
-						"Stata VNC service UP."
-					break
-				fi
-				NOW=$(date +%s)
-				if [ $((NOW - START_TIME)) -ge 420 ]; then
-					printf '%s | %s\n' "$(date)" \
-						"Stata VNC service TIMEOUT (7 minutes)."
-					break
-				fi
-				sleep 5
-			done
+			printf '%s | %s\n' "\$(date)" "Wait while container is running...";
+				
+			if ! docker top "\$CONTAINER_ID" &>/dev/null; then
+				printf '%s | %s\n' "\$(date)" \
+					"Container is not running.";
+				exit 1;
+			fi
+
+			if ! docker inspect --format='{{.State.Running}}' "\$CONTAINER_ID" | grep -q true; then
+				printf '%s | %s\n' "\$(date)" \
+					"Container is not running anymore.";
+				exit 1
+			fi
+			
+			printf '%s | %s\n' "\$(date)" \
+				"Stata VNC service UP.";
 				
 			cleanup() {
 				printf '%s | %s\n' "\$(date)" "Stop container...";
@@ -1260,10 +1253,9 @@ class Tooljob
 			}
 
 			trap cleanup SIGTERM SIGUSR1 SIGUSR2
-
-			printf '%s | %s\n' "\$(date)" "Wait while container is running...";
 			docker wait $this->containerName > \$EXIT_CODE_FILE &
 			wait $!
+			
 		EOF;
 
 		} else {
@@ -1298,16 +1290,16 @@ class Tooljob
 		}
 
 		return $checkEnvironment
-    . "\n"
-    . $configureDockerGroup
-    . "\n"
-    . $runContainer
-    . "\n"
-    . $checkContainerStatus
-    . "\n"
-    . $reportContainerInfo
-    . "\n"
-    . $monitorContainer;
+				. "\n"
+				. $configureDockerGroup
+				. "\n"
+				. $runContainer
+				. "\n"
+				. $checkContainerStatus
+				. "\n"
+				. $reportContainerInfo
+				. "\n"
+				. $monitorContainer;
 	}
 	
 	protected function setBashCommandDockerCompose($tool, $customToolParameters)
