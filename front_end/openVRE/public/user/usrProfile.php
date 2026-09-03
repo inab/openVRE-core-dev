@@ -167,7 +167,7 @@ $includeOpenStack = getenv('INCLUDE_OPENSTACK_DATASETS') === 'true';
                                                     <form role="form" action="javascript:;" id="form-change-profile">
                                                         <input type="hidden" id="base-url"
                                                             value="<?php echo $GLOBALS['BASEURL']; ?>" />
-                                                        <?php if (is_null($user->getLastLogin())) { ?>
+                                                        <?php if (!$user->getTermsAccepted()) { ?>
                                                             <input type="hidden" id="is-first-time" value="1" />
                                                         <?php } ?>
                                                         <div class="form-group">
