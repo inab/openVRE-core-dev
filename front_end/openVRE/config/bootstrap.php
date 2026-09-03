@@ -22,9 +22,6 @@ set_exception_handler(function (Throwable $e) {
 // set up app settings
 require_once dirname(__FILE__) . "/../config/globals.inc.php";
 
-// import vendor libs
-require_once dirname(__FILE__) . "/../vendor/autoload.php";
-
 // import local libs
 foreach (glob(dirname(__FILE__) . "/../public/phplib/*.php") as $lib) {
     require_once $lib;
