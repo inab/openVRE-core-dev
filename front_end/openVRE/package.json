@@ -22,7 +22,7 @@
     "jquery-blockui": "^2.7.0",
     "jquery-validation": "1.20.0",
     "jquery.cookiebar": "0.0.1",
-    "marked": "2.0.2",
+    "marked": "4.3.0",
     "progress-tracker": "1.4.0",
     "select2": "4.0.3",
     "select2-bootstrap-theme": "0.1.0-beta.4",

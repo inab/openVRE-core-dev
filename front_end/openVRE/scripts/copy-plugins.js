@@ -66,6 +66,9 @@ const COPY_FILES = [
   ['jquery-validation/dist/additional-methods.min.js', 'jquery-validation/js/additional-methods.min.js'],
   ['jquery-validation/README.md', 'jquery-validation/README.md'],
 
+  // marked (browser build for help markdown preview; version pinned by package.json)
+  ['marked/marked.min.js', 'markdown/marked.min.js'],
+
   // easy-pie-chart (jquery-easypiechart)
   ['easy-pie-chart/dist/jquery.easypiechart.js', 'jquery-easypiechart/jquery.easypiechart.js'],
   ['easy-pie-chart/dist/jquery.easypiechart.min.js', 'jquery-easypiechart/jquery.easypiechart.min.js'],
@@ -295,17 +298,6 @@ const REMOTE_DOWNLOADS = [
     files: [
       ['css/bootstrap-markdown-editor.css', 'bootstrap-markdown-editor.css'],
       ['js/bootstrap-markdown-editor.js', 'bootstrap-markdown-editor.js'],
-    ],
-  },
-  {
-    // marked@0.3.2 required by markdown editor (newer npm marked is incompatible).
-    type: 'cdn',
-    name: 'marked',
-    version: '0.3.2',
-    base: 'https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.2',
-    dest: 'markdown',
-    files: [
-      ['marked.min.js', 'marked.min.js'],
     ],
   },
   {
