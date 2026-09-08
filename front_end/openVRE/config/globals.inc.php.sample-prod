@@ -24,8 +24,9 @@ $GLOBALS['queueTask']  = "local.q"; //default queue
 $GLOBALS['root']       = dirname(__DIR__); // VRE root directory
 $GLOBALS['shared']     = "/shared_data/"; // VRE data directory
 $GLOBALS['logFile']    = $GLOBALS['root']."/logs/application.log"; // Log file path
-$GLOBALS['dataDir']    = $GLOBALS['shared']."userdata/"; // User data directory
-$GLOBALS['pubDir']     = $GLOBALS['shared']."public/"; // Public data directory
+$GLOBALS['userDataDir']    = $GLOBALS['shared']."userdata"; // User data directory
+$GLOBALS['pubDir']     = $GLOBALS['shared']."public"; // Public data directory
+$GLOBALS['scriptsDir'] = $GLOBALS['shared']."scripts"; // Public data directory
 $GLOBALS['sampleDataPath'] = "/var/www/html/openVRE/data/sampleData/"; // Sample data directory
 $GLOBALS['sampleData_default'] = "basic"; // Default workspace's dataset entry
 

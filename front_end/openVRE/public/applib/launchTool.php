@@ -4,16 +4,11 @@ require __DIR__ . "/../../config/bootstrap.php";
 
 use OpenVRE\DataTransfer;
 use OpenVRE\LoggerFactory;
+use OpenVRE\NotFoundException;
 use OpenVRE\Site;
 use OpenVRE\Tooljob;
 
 redirectOutside();
-
-function internalErrorRedirect()
-{
-	$_SESSION['errorData']['Internal'][] = "There was an internal error launching the tool.";
-	redirect($GLOBALS['BASEURL'] . "workspace/");
-}
 
 $logger = LoggerFactory::getLogger('Tool launcher');
 
@@ -31,22 +26,22 @@ $user = getUserById($_SESSION['userId']);
 
 if (is_null($tool)) {
 	$logger->error("Tool not found: " . $_REQUEST['tool']);
-	internalErrorRedirect();
+	throw new NotFoundException("Tool not found: " . $_REQUEST['tool']);
 }
 
 if (empty($_REQUEST['execution'])) {
 	$logger->error("Execution is missing");
-	internalErrorRedirect();
+	throw new NotFoundException("Execution is missing");
 }
 
 if (empty($_REQUEST['project'])) {
 	$logger->error("Project is missing");
-	internalErrorRedirect();
+	throw new NotFoundException("Project is missing");
 }
 
 if (empty($tool['infrastructure']['interactive']) && empty($_REQUEST['input_files']) && empty($_REQUEST['input_files_public_dir'])) {
 	$logger->error("Input files are missing");
-	internalErrorRedirect();
+	throw new NotFoundException("Input files are missing");
 }
 
 $site = getSite($_REQUEST['site']);
@@ -72,7 +67,7 @@ foreach ($filesId as $fileId) {
 
 	if (is_null($file)) {
 		$logger->error("File not found: " . $fileId);
-		internalErrorRedirect();
+		throw new NotFoundException("File not found: " . $fileId);
 	}
 
 	$files[$file['_id']] = $file;
@@ -81,7 +76,7 @@ foreach ($filesId as $fileId) {
 		$assocFile = getGSFile_fromId($assocId);
 		if (is_null($assocFile)) {
 			$logger->error("Associated file " . $assocId . " not found");
-			internalErrorRedirect();
+			throw new NotFoundException("Associated file " . $assocId . " not found");
 		}
 		$files[$assocFile['_id']] = $assocFile;
 	}

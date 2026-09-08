@@ -120,13 +120,13 @@ function getRunningJobInfo($pid, $launcherType = null)
         throw new UnexpectedValueException("Cannot monitor job '$pid' of type '$launcherType'. Launcher not implemented.");
     }
 
-    if ($launcherType == Launcher::SGE) {
+    if ($launcherType == Launcher::SGE->value || $launcherType == Launcher::docker_SGE->value) {
         $process = new ProcessSGE();
         $job = $process->getRunningJobInfo($pid);
-    } elseif ($launcherType == Launcher::kubernetes_native) {
+    } elseif ($launcherType == Launcher::kubernetes_native->value) {
         $process = new ProcessK8s();
         $job = $process->getRunningJobInfo($pid);
-    } elseif ($launcherType == Launcher::slurm) {
+    } elseif ($launcherType == Launcher::slurm->value) {
         $process = new ProcessSlurm();
         $job = $process->getRunningJobInfo($pid);
     }

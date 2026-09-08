@@ -8,11 +8,11 @@ class JobDirectoriesFactory
     public static function create($cloudName)
     {
         return new JobDirectories(
-            $GLOBALS["host_path"].$GLOBALS['pubDir'],
+            $GLOBALS['clouds'][$cloudName]["pubDir_host"],
             $GLOBALS['pubDir'],
             $GLOBALS['clouds'][$cloudName]['scriptsDir_host'],
             $GLOBALS['userDataDir'] . "/" . $_SESSION['internalUserId'],
-            $GLOBALS["host_path"].$GLOBALS['userDataDir'] . "/" . $_SESSION['internalUserId']
+            $GLOBALS['clouds'][$cloudName]["dataDir_host"] . "/" . $_SESSION['internalUserId']
         );
     }
 }

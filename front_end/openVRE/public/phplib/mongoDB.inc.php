@@ -2,7 +2,6 @@
 
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
-use OpenVRE\User;
 
 
 function getMongoLogger()
@@ -231,7 +230,7 @@ function getGSFiles_filteredBy($filters, $asRoot = 0)
 			$files[$id] = $file;
 		}
 	} elseif (count($filter_filesMetaCol)) {
-		# Find in FilesMetadata by filter, and find the resulting files into Files 
+		# Find in FilesMetadata by filter, and find the resulting files into Files
 		$metadataFiles = $GLOBALS['filesMetaCol']->find($filter_filesMetaCol)->toArray();
 		$fileMeta_arr = indexArray($metadataFiles);
 		if (empty($metadataFiles)) {
@@ -943,12 +942,12 @@ function getUserPermissions(string $userId): array {
 		throw new NotFoundException("Cannot find user with id = $userId.");
 	}
 
-	if (is_null($user['roles'])) {
+	if (is_null($user->getRoles())) {
 		getMongoLogger()->error("Cannot find roles for user with id = $userId.");
 		return array();
 	}
 
-	$userPermissionsDoc = $GLOBALS['rolePermissions']->find(array('_id' => array('$in' => $user['roles'])), array('projection' => array('permissions' => 1, '_id' => 0)));
+	$userPermissionsDoc = $GLOBALS['rolePermissions']->find(array('_id' => array('$in' => $user->getRoles())), array('projection' => array('permissions' => 1, '_id' => 0)));
 	if (is_null($userPermissionsDoc)) {
 		getMongoLogger()->error("Cannot find permissions for user with id = $userId.");
 		return array();

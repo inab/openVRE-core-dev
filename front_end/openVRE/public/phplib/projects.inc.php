@@ -2,7 +2,7 @@
 
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
-use OpenVRE\Oauth2Provider;
+use League\OAuth2\Client\Token\AccessToken;
 use OpenVRE\User;
 use OpenVRE\UserType;
 
@@ -1359,8 +1359,6 @@ function processFinishedJobInfo($projectDir, $job, $pid, $title, &$filesPending)
 		return;
 	}
 
-	getProjectLogger()->debug("Building output from toolINFO + stageout_file + stageout_data.");
-
 	// build output list merging: stageout_file + stageout_data + tool defintion data
 	$outs_files = build_outputs_list($tool, $job['stageout_data'], $job['executionDirectories']['executionStageoutFile']);
 	getProjectLogger()->debug("Finished building output from toolINFO + stageout_file + stageout_data: " . json_encode($outs_files));
@@ -1576,7 +1574,6 @@ function processPendingFiles($projectDir, $sessionId, $lastJobs)
 	$SGE_updated = array(); // jobs to be monitored. Stored in SESSION. Updated by checkPendingJobs.php (called by ajax)
 	$filesPending = array(); // files to be listed
 
-	$lastJobs = getUserJobs($sessionId);
 	if (empty($lastJobs)) {
 		getProjectLogger()->debug("No pending jobs");
 		return [];
@@ -1592,7 +1589,7 @@ function processPendingFiles($projectDir, $sessionId, $lastJobs)
 
 		//get qstat info
 		getProjectLogger()->info("Start processPendingFiles -> getRunningJobInfo $pid. Log= " . $job['executionDirectories']['executionLogFile']);
-		$jobProcess = getRunningJobInfo($pid, $job['launcher'], $job['cloudName']);
+		$jobProcess = getRunningJobInfo($pid, $job['launcher']);
 		$title   = $job['title'] ?? "Job " . $job['execution'];
 		$descrip = getJobDescription($job['description'], $jobProcess, $lastJobs);
 

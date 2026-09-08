@@ -6,12 +6,17 @@ var CountdownToken = function () {
 	return {
 		//main function to initiate the module
 		init: function () {
+			if (window.countdownTokenInterval) {
+				clearInterval(window.countdownTokenInterval);
+			}
+
+			window.tokenRefreshTriggered = false;
 
 			var countDownDate = $('#exp-token').val() * 1000;
 
 			var iteration = 0;
 
-			var x = setInterval(function () {
+			window.countdownTokenInterval = setInterval(function () {
 
 				//var now = new Date().getTime();
 				var now = ($('#curr-time').val() - iteration) * 1000;
@@ -30,10 +35,12 @@ var CountdownToken = function () {
 				$("#token-exp-date").val("Token will expire in " + minutes.substr(-2) + "m " + seconds.substr(-2) + "s, at " + formattedTime);
 
 				if (distance < 30000) {
-					clearInterval(x);
+					clearInterval(window.countdownTokenInterval);
 					$("#token-exp-date").val("Token is about to expire, refreshing...");
-					globalThis.location.href = 'applib/refreshToken.php?force=1';
-
+					if (!window.tokenRefreshTriggered) {
+						window.tokenRefreshTriggered = true;
+						globalThis.location.href = 'applib/refreshToken.php?force=1';
+					}
 				}
 
 				iteration--;

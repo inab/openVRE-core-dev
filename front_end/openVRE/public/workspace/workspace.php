@@ -75,15 +75,15 @@ if (isset($_REQUEST['op'])) {
 
 				$fls = "";
 
-			foreach ($_GET['fn'] as $v) {
-				if ($v !== 'undefined') {
-					$filePath2 = getAttr_fromGSFileId($v, 'path');
-					$relpath = implode("/", array_slice(explode('/', $filePath2), 0, -1));
-					$filnam = end(explode('/', $filePath2));
-					$rfn2      = $GLOBALS['userDataDir'] . "/$relpath";
-					$fls .= "-C $rfn2 $filnam ";
+				foreach ($_GET['fn'] as $v) {
+					if ($v !== 'undefined') {
+						$filePath2 = getAttr_fromGSFileId($v, 'path');
+						$relpath = implode("/", array_slice(explode('/', $filePath2), 0, -1));
+						$filnam = end(explode('/', $filePath2));
+						$rfn2      = $GLOBALS['userDataDir'] . "/$relpath";
+						$fls .= "-C $rfn2 $filnam ";
+					}
 				}
-			}
 
 				$cmd = "/bin/tar czf $tmpZip $fls 2>&1";
 
@@ -105,16 +105,17 @@ if (isset($_REQUEST['op'])) {
 			break;
 
 		case 'downloadtgz':
-			if (filetype($rfn) != 'dir') {
-				$_SESSION['errorData']['Error'][] = "Cannot tar " . $_REQUEST['fn'] . " File is not a directory";
-				break;
-			}
-			if (trim($rfn, "/") == trim($GLOBALS['userDataDir'], "/")) {
-				$_SESSION['errorData']['Error'][] = "Cannot tar " . $_REQUEST['fn'] . " . Make sure your user session is active.";
-				break;
-			}
-			$newName = $_REQUEST['fn'] . ".tar.gz";
-			$tmpZip = $GLOBALS['userDataDir'] . "/" . $userPath . "/" . $GLOBALS['tmpUser_dir'] . "/" . basename($newName);
+			if (hasPermissions($_SESSION['userId'], Permission::DownloadFile)) {
+				if (filetype($rfn) != 'dir') {
+					$_SESSION['errorData']['Error'][] = "Cannot tar " . $_REQUEST['fn'] . " File is not a directory";
+					break;
+				}
+				if (trim($rfn, "/") == trim($GLOBALS['userDataDir'], "/")) {
+					$_SESSION['errorData']['Error'][] = "Cannot tar " . $_REQUEST['fn'] . " . Make sure your user session is active.";
+					break;
+				}
+				$newName = $_REQUEST['fn'] . ".tar.gz";
+				$tmpZip = $GLOBALS['userDataDir'] . "/" . $userPath . "/" . $GLOBALS['tmpUser_dir'] . "/" . basename($newName);
 
 				$cmd = "/bin/tar -czf $tmpZip -C $rfn . 2>&1";
 
@@ -191,9 +192,9 @@ if (isset($_REQUEST['op'])) {
 					throw new UnexpectedValueException("Cannot open file. Variable 'fnPath' not received.");
 				}
 
-			$rfn = (preg_match('/^\//', $_REQUEST['fnPath'])
-				? $_REQUEST['fnPath']
-				: $GLOBALS['userDataDir'] . "/" . $_REQUEST['fnPath']);
+				$rfn = (preg_match('/^\//', $_REQUEST['fnPath'])
+					? $_REQUEST['fnPath']
+					: $GLOBALS['userDataDir'] . "/" . $_REQUEST['fnPath']);
 
 				$fileInfo = pathinfo($rfn);
 				$contentType = "text/plain";

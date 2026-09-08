@@ -14,7 +14,6 @@ class Tooljob
 	public $execution;         // User defined. Correspond to the execution folder name
 	public $project;           // User defined. Correspond to the project
 	public $toolId;
-	public $cloudName;         // Cloud name where tool should be executed. Available clouds set in GLOBALS['clouds']
 	public $description;
 	public $outputDir;
 	public Launcher $launcher;
