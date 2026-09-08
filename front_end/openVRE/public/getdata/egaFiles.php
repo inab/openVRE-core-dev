@@ -211,10 +211,11 @@
 
     function addFilesToWorkspace(datasetIds, fileIds, displayNames, fileSizes) {
         fetch(`applib/getData.php?uploadType=EGA&datasetIds=${datasetIds}&fileIds=${fileIds}&displayNames=${displayNames}&fileSizes=${fileSizes}`).then(response => {
-            console.log('Response:', response);
             if (!response.ok) {
                 throw new Error('Network response was not ok');
             }
+
+            location.href = "/workspace/";
         }).catch(error => {
             console.error('Error:', error);
         });
