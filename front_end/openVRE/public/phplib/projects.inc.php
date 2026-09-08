@@ -1922,7 +1922,8 @@ function refresh_token($force = false)
 
 		if (!$freshAccessToken) {
 			getProjectLogger()->error("No access token in OIDC headers.");
-			return false;
+			header('Location: ' . $GLOBALS['BASEURL'] . '/logout.php?reason=session_expired');
+			exit;
 		}
 
 		if ($freshAccessToken === $existingToken->getToken()) {

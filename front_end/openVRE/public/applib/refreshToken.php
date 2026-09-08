@@ -11,9 +11,9 @@ $force = isset($_REQUEST['force']);
 
 $r = refresh_token($force);
 if (!$r) {
-    $_SESSION['errorData']['Error'][] = "An error occurred while refreshing access token. Sorry, try it again.";
-    // don't propagate error_code params forward — strip query string before redirecting
-    $referer = strtok($referer, '?') . '#tab_1_4';
+    $_SESSION['errorData']['Error'][] = "Your session has expired. Please log in again.";
+    redirect($GLOBALS['BASEURL'] . '/logout.php');
+    exit;
 }
 
 redirect($referer);
