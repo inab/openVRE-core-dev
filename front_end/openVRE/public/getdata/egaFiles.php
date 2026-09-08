@@ -130,8 +130,8 @@
                 }
 
                 fileListBody.innerHTML = ''; // Clear previous file list
-
-                data.filter(file => file.locations.includes('crg')).forEach(file => {
+                egaLocations = ['crg', 'spain'];
+                data.filter(file => file.locations.some(location => egaLocations.includes(location))).forEach(file => {
                     const row = document.createElement('tr');
                     row.dataset.datasetId = accessionId;
 
