@@ -711,7 +711,7 @@ class Tooljob
 		if ($tool['external'] === false) {
 			if ($this->launcher == Launcher::SGE) {
 				$cmd = $this->setBashCmd_withoutApp($tool, $metadata);
-				$this->createSubmitFile_SGE($cmd);
+				$this->createSubmitFile($cmd);
 			} else {
 				$this->logger->error("Internal tool not properly registered. Launcher for '" . $this->toolId . "' is set to \"" . $this->launcher->value . "\". Case not implemented.");
 				throw new UnexpectedValueException("Internal tool not properly registered. Launcher for '" . $this->toolId . "' is set to \"" . $this->launcher->value . "\". Case not implemented.");
@@ -728,17 +728,17 @@ class Tooljob
 				case Launcher::SGE:
 				case Launcher::kubernetes_native:
 					$cmd  = $this->setBashCmd_SGE($tool);
-					$this->createSubmitFile_SGE($cmd);
+					$this->createSubmitFile($cmd);
 
 					break;
 				case Launcher::docker_SGE:
 					$cmd  = $this->setBashCommandDockerSge($tool);
-					$this->createSubmitFile_SGE($cmd);
+					$this->createSubmitFile($cmd);
 
 					break;
 				case Launcher::docker_SGE_EGA:
-					$cmd  = $this->setBashCmd_docker_EGA($tool);
-					$this->createSubmitFile_EGA($cmd);
+					$cmd  = $this->setBashCommandEGA($tool);
+					$this->createSubmitFile($cmd);
 
 					break;
 				case "Slurm_Singularity":
@@ -761,16 +761,8 @@ class Tooljob
 
 	protected function setBashCmd_SGE($tool)
 	{
-		if (is_null($tool['infrastructure']['executable'])) {
-			$this->logger->error("Tool '$this->toolId' not properly registered. Missing 'executable' property");
-			throw new UnexpectedValueException("Tool '$this->toolId' not properly registered.");
-		}
-
-		return $tool['infrastructure']['executable'] .
-			" --config "         . $this->executionDirectories->executionConfigFile .
-			" --in_metadata "    . $this->executionDirectories->executionMetadataFile .
-			" --out_metadata "   . $this->executionDirectories->executionStageoutFile .
-			" --log_file "       . $this->executionDirectories->executionLogFile;
+		$this->assertToolRegistered($tool);
+		return $this->buildVreCommand($tool);
 	}
 
 
@@ -930,17 +922,10 @@ class Tooljob
 
 	protected function setBashCommandDockerSge($tool)
 	{
-		if (is_null($tool['infrastructure']['executable']) && is_null($tool['infrastructure']['container_image'])) {
-			$this->logger->error("Tool '$this->toolId' not properly registered. Missing 'executable' or 'container_image' properties");
-			throw new UnexpectedValueException("Tool '$this->toolId' not properly registered.");
-		}
-
+		$this->assertToolRegistered($tool);
 		$this->containerName = $tool['infrastructure']['container_image'] . "_" . $this->project;
-		$customToolParameters = "";
-		$envReplacements = ['$this->containerName' => $this->containerName];
-		foreach ($tool['infrastructure']['container_env'] as $env_key => $env_value) {
-			$env_value = str_replace(array_keys($envReplacements), array_values($envReplacements), $env_value);
-			$customToolParameters .= "-e $env_key=$env_value ";
+		if (isset($tool['infrastructure']['container_env'])) {
+			$customToolParameters = $this->buildEnvParams($tool['infrastructure']['container_env'], ['$this->containerName' => $this->containerName]);
 		}
 
 		foreach ($tool['infrastructure']['volumes'] as $hostDir => $containerDir) {
@@ -978,12 +963,7 @@ class Tooljob
 				$cmd = $this->setBashCommandDockerSgeInteractive($tool, $customToolParameters);
 			}
 		} else {
-			$cmd_vre = $tool['infrastructure']['executable'] .
-				" --config "         . $this->executionDirectories->executionConfigFile .
-				" --in_metadata "    . $this->executionDirectories->executionMetadataFile .
-				" --out_metadata "   . $this->executionDirectories->executionStageoutFile .
-				" --log_file "       . $this->executionDirectories->executionLogFile;
-
+			$cmd_vre = $this->buildVreCommand($tool);
 
 			$cmd =  "docker run --privileged -v /var/run/docker.sock:/var/run/docker.sock -d" .
 				" " . $customToolParameters .
@@ -1043,22 +1023,12 @@ class Tooljob
 	}
 
 
-	protected function setBashCmd_docker_EGA($tool)
+	protected function setBashCommandEGA($tool)
 	{
-		if (is_null($tool['infrastructure']['executable']) && is_null($tool['infrastructure']['container_image'])) {
-			$this->logger->error("Tool '$this->toolId' not properly registered. Missing 'executable' or 'container_image' properties");
-			throw new UnexpectedValueException("Tool '$this->toolId' not properly registered.");
-		}
-
-		$cmd_vre = $tool['infrastructure']['executable'] .
-			" --config "       . $this->executionDirectories->executionConfigFile .
-			" --in_metadata "  . $this->executionDirectories->executionMetadataFile .
-			" --out_metadata " . $this->executionDirectories->executionStageoutFile .
-			" --log_file "     . $this->executionDirectories->executionLogFile;
-
-		$customToolParameters = "";
-		foreach ($tool['infrastructure']['container_env'][0] as $env_key => $env_value) {
-			$customToolParameters .= "-e $env_key=$env_value ";
+		$this->assertToolRegistered($tool);
+		$cmd_vre = $this->buildVreCommand($tool);
+		if (isset($tool['infrastructure']['container_env'])) {
+		    $customToolParameters = $this->buildEnvParams($tool['infrastructure']['container_env'], ['$this->containerName' => $this->containerName]);
 		}
 
 		$vaultKey = $_SESSION['userVaultInfo']['vaultKey'];
@@ -1073,17 +1043,38 @@ class Tooljob
 			throw new UnexpectedValueException("Failed to write configuration file: $configFilePath");
 		}
 
-		$cmd = "docker run --device /dev/fuse --security-opt apparmor:unconfined --cap-add SYS_ADMIN -v /var/run/docker.sock:/var/run/docker.sock " .
+		return "docker run --device /dev/fuse --security-opt apparmor:unconfined --cap-add SYS_ADMIN -v /var/run/docker.sock:/var/run/docker.sock " .
 			" " . $customToolParameters .
-			" -v " . $this->jobDirectories->projectDirHost .                            ":" . $GLOBALS['shared'] . "public_tmp/ " .
+			" -v " . $this->jobDirectories->projectDirHost . ":" . $GLOBALS['shared'] . "public_tmp/ " .
 			" -v " . $this->jobDirectories->userDirHost . "/" . $_SESSION['internalUserId'] . ":" . $GLOBALS['shared'] . "userdata_tmp/" . $_SESSION['internalUserId'] .
 			" --tmpfs " . "/clean_files:rw,uid=1000,gid=1000" .
 			" --env-file " . $configFilePath .
-			" --network=new_vre_open-vre" .
+			" --net " . $GLOBALS['NETWORK_NAME'] .
 			" -v " . $this->jobDirectories->scriptsDirHost . ":/shared_scripts_tmp" .
 			" " . $tool['infrastructure']['container_image'] . " $cmd_vre";
+	}
 
-		return $cmd;
+
+	protected function buildVreCommand($tool)
+	{
+		return $tool['infrastructure']['executable'] .
+			" --config "       . $this->executionDirectories->executionConfigFile .
+			" --in_metadata "  . $this->executionDirectories->executionMetadataFile .
+			" --out_metadata " . $this->executionDirectories->executionStageoutFile .
+			" --log_file "     . $this->executionDirectories->executionLogFile;
+	}
+
+
+	protected function buildEnvParams(array $envVars, array $replacements = [])
+	{
+		$params = "";
+		foreach ($envVars as $key => $value) {
+			if ($replacements) {
+				$value = str_replace(array_keys($replacements), array_values($replacements), $value);
+			}
+			$params .= "-e $key=$value ";
+		}
+		return $params;
 	}
 
 
@@ -1111,26 +1102,6 @@ class Tooljob
 		return $cmd;
 	}
 
-
-	protected function createSubmitFile_SGE($cmd)
-	{
-		$fout = fopen($this->executionDirectories->executionSubmissionFile, "w");
-		if ($fout === false) {
-			$this->logger->error('Failed to create tool configuration file: ' . $this->executionDirectories->executionSubmissionFile);
-			throw new UnexpectedValueException('Failed to create queue submission file: ' . $this->executionDirectories->executionSubmissionFile);
-		}
-
-		fwrite($fout, "#!/bin/bash\n");
-		fwrite($fout, "# Generated by MuG VRE\n");
-		fwrite($fout, "cd " . $this->executionDirectories->executionDir . "\n");
-
-		fwrite($fout, "\n# Running $this->toolId tool ...\n");
-		fwrite($fout, "\necho '# Start time:' \$(date) > " . $this->executionDirectories->executionLogFile . "\n");
-
-		fwrite($fout, "\n$cmd >> " . $this->executionDirectories->executionLogFile . " 2>&1\n");
-		fwrite($fout, "\necho '# End time:' \$(date) >> " . $this->executionDirectories->executionLogFile . "\n");
-		fclose($fout);
-	}
 
 	protected function createSubmitFile_Slurm($cmd)
 	{
@@ -1161,32 +1132,31 @@ class Tooljob
 	}
 
 
-	protected function createSubmitFile_EGA($cmd)
+	protected function createSubmitFile(string $cmd)
 	{
-		if (!is_file($this->executionDirectories->executionSubmissionFile)) {
-			$this->logger->error("Failed to create queue submission file. " . "File '" . $this->executionDirectories->executionSubmissionFile . "' does not exist");
-			throw new UnexpectedValueException("Failed to create queue submission file. " . "File '" . $this->executionDirectories->executionSubmissionFile . "' does not exist");
-		}
-
 		$fout = fopen($this->executionDirectories->executionSubmissionFile, "w");
 		if ($fout === false) {
-			$this->logger->error('Failed to create tool configuration file: ' . $this->executionDirectories->executionSubmissionFile);
-			throw new UnexpectedValueException('Failed to create tool configuration file: ' . $this->executionDirectories->executionSubmissionFile);
+			$this->logger->error('Failed to create queue submission file: ' . $this->executionDirectories->executionSubmissionFile);
+			throw new UnexpectedValueException('Failed to create queue submission file: ' . $this->executionDirectories->executionSubmissionFile);
 		}
 
 		fwrite($fout, "#!/bin/bash\n");
-		fwrite($fout, "# Generated by  VRE\n");
-
-		fwrite($fout, "\n# Running $this->toolId tool ...\n");
-
+		fwrite($fout, "# Generated by VRE\n");
 		fwrite($fout, "cd " . $this->executionDirectories->executionDir . "\n");
+		fwrite($fout, "\n# Running $this->toolId tool ...\n");
 		fwrite($fout, "\necho '# Start time:' \$(date) > " . $this->executionDirectories->executionLogFile . "\n");
-
-
 		fwrite($fout, "\n$cmd >> " . $this->executionDirectories->executionLogFile . " 2>&1\n");
 		fwrite($fout, "\necho '# End time:' \$(date) >> " . $this->executionDirectories->executionLogFile . "\n");
-
 		fclose($fout);
+	}
+
+
+	protected function assertToolRegistered($tool)
+	{
+		if (is_null($tool['infrastructure']['executable']) && is_null($tool['infrastructure']['container_image'])) {
+			$this->logger->error("Tool '$this->toolId' not properly registered. Missing 'executable' or 'container_image' properties");
+			throw new UnexpectedValueException("Tool '$this->toolId' not properly registered.");
+		}
 	}
 
 	/**
