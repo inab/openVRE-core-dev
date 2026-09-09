@@ -1,13 +1,8 @@
 #!/bin/bash
 
-#Remove the previous alternatives
-
 echo "installing dependencies"
 apt update
-apt -y install curl jq ca-certificates pkg-config git gcc-10 make automake autoconf libtool bzip2 zlib1g-dev libssl-dev libedit-dev ninja-build cmake udev libc6-dev python3 python3-pip libglib2.0-dev libatlas-base-dev sshfs
-
-#gcc-10 --version
-#sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-10 10
+apt -y install autoconf automake bzip2 ca-certificates cmake curl gcc-10 git jq libatlas-base-dev libc6-dev libedit-dev libglib2.0-dev libssl-dev libtool make ninja-build pkg-config python3 python3-pip samtools sshfs tabix udev zlib1g-dev
 
 gcc --version
 
@@ -29,7 +24,7 @@ echo "installing crypt4ghfs"
 
 pip install --upgrade pip wheel
 ln -s $(which pip) /usr/bin/pip
-pip install git+https://github.com/inab/crypt4ghfs.git@v1.2.2
+pip install git+https://github.com/inab/crypt4ghfs.git@v1.2.6
 
 #echo "user_allow_other" >> /usr/local/etc/fuse.conf
 echo "user_allow_other" >> /etc/fuse.conf

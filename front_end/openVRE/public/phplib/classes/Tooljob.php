@@ -476,12 +476,12 @@ class Tooljob
                 $fileMuG['sources'] = $source_list;
             }
 
-            if ($fileMuG['data_source'] == Site::EGA->value) {
-                $fileMuG['file_path'] = "/clean_files/" . $file['ega_path']; // hardcoded ega path
-            }
-
             if ($fileMuG['file_path']) {
                 $fileMuG['file_path'] = $this->jobDirectories->userDir . "/" . $fileMuG['file_path'];
+            }
+
+            if ($fileMuG['data_source'] == Site::EGA->value) {
+                $fileMuG['file_path'] = "/clean_files/" . $file['ega_path']; // hardcoded ega path
             }
 
             if ($fileMuG['parentDir']) {
@@ -732,7 +732,8 @@ class Tooljob
 
                     break;
                 case Launcher::docker_SGE:
-                    $cmd  = $this->setBashCommandDockerSge($tool);
+                    //$cmd  = $this->setBashCommandDockerSge($tool);
+                    $cmd  = $this->setBashCommandEGA($tool);
                     $this->createSubmitFile($cmd);
 
                     break;
@@ -924,6 +925,7 @@ class Tooljob
     {
         $this->assertToolRegistered($tool);
         $this->containerName = $tool['infrastructure']['container_image'] . "_" . $this->project;
+        $customToolParameters = "";
         if (isset($tool['infrastructure']['container_env'])) {
             $customToolParameters = $this->buildEnvParams($tool['infrastructure']['container_env'], ['$this->containerName' => $this->containerName]);
         }
@@ -1027,11 +1029,13 @@ class Tooljob
     {
         $this->assertToolRegistered($tool);
         $cmd_vre = $this->buildVreCommand($tool);
+        $customToolParameters = "";
         if (isset($tool['infrastructure']['container_env'])) {
             $customToolParameters = $this->buildEnvParams($tool['infrastructure']['container_env'], ['$this->containerName' => $this->containerName]);
         }
 
-        $vaultKey = $_SESSION['userVaultInfo']['vaultKey'];
+        $tokenProvider = new VaultTokenProvider($_SESSION['userToken']->getToken(), $GLOBALS['vaultRolename'], $GLOBALS['vaultUrl']);
+        $vaultKey = $tokenProvider->getToken();
         $user = getUserById($_SESSION['userId']);
         $vaultAddress = $GLOBALS['vaultUrl'] . "/" . $GLOBALS['secretPath'] . $user->getSecretsId() . '/EGA';
         $userFolder = "/shared_data/userdata/" . $_SESSION['internalUserId'];
@@ -1046,11 +1050,11 @@ class Tooljob
         return "docker run --device /dev/fuse --security-opt apparmor:unconfined --cap-add SYS_ADMIN -v /var/run/docker.sock:/var/run/docker.sock " .
             " " . $customToolParameters .
             " -v " . $this->jobDirectories->projectDirHost . ":" . $GLOBALS['shared'] . "public_tmp/ " .
-            " -v " . $this->jobDirectories->userDirHost . "/" . $_SESSION['internalUserId'] . ":" . $GLOBALS['shared'] . "userdata_tmp/" . $_SESSION['internalUserId'] .
+            " -v " . $this->jobDirectories->userDirHost . ":" . $GLOBALS['shared'] . "userdata_tmp/" . $_SESSION['internalUserId'] .
             " --tmpfs " . "/clean_files:rw,uid=1000,gid=1000" .
             " --env-file " . $configFilePath .
             " --net " . $GLOBALS['NETWORK_NAME'] .
-            " -v " . $this->jobDirectories->scriptsDirHost . ":/shared_scripts_tmp" .
+            " -v " . $this->jobDirectories->scriptsDirHost . "/ega" . ":/shared_scripts_tmp" .
             " " . $tool['infrastructure']['container_image'] . " $cmd_vre";
     }
 

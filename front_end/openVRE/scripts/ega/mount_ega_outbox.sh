@@ -1,8 +1,5 @@
 #!/bin/bash
 
-echo "VAULT_TOKEN: $VAULT_TOKEN"
-echo "VAULT_ADDRESS: $VAULT_ADDRESS"
-
 EGA_ENCRYPTED_FILES_MOUNTINGPOINT="/encrypted_files"
 EGA_USERNAME=$(curl --header "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDRESS" -s | jq -r '.data.data.EGA.username')
 
@@ -15,7 +12,7 @@ echo $USER_ID
 echo $GROUP_ID
 
 user_private_key_file="/tmp/ega_secret_key"
-USER_PRIVATE_KEY=$(curl --header "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDRESS" -s | jq -r '.data.data.EGA.crypt4gh_priv')
+USER_PRIVATE_KEY=$(curl --header "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDRESS" -s | jq -r '.data.data.EGA.privateKey')
 
 echo "$USER_PRIVATE_KEY" | base64 --decode > $user_private_key_file
 chmod 600  $user_private_key_file
@@ -24,7 +21,7 @@ echo -e "\nMounting remote EGA OUTBOX..."
 
 EGA_OUTBOX_ENDPOINT="outbox.spain.ega-archive.org"
 
-sshfs -P 2233 -o reconnect -o BatchMode=yes -o IdentityFile="$user_private_key_file" -o allow_other -o default_permissions -o uid=$USER_ID -o gid=$GROUP_ID -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$EGA_USERNAME"@"$EGA_OUTBOX_ENDPOINT":./ "$EGA_ENCRYPTED_FILES_MOUNTINGPOINT"
+sshfs --debug -p 2233 -o reconnect -o BatchMode=yes -o IdentityFile="$user_private_key_file" -o allow_other -o default_permissions -o uid=$USER_ID -o gid=$GROUP_ID -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$EGA_USERNAME"@"$EGA_OUTBOX_ENDPOINT":./ "$EGA_ENCRYPTED_FILES_MOUNTINGPOINT"
 
 if [[ $(mountpoint $EGA_ENCRYPTED_FILES_MOUNTINGPOINT) ]]; then
         echo "Mounted"
@@ -71,5 +68,3 @@ fi
 
 echo "list $EGA_CLEAN_FILES_MOUNTINGPOINT"
 ls -la $EGA_CLEAN_FILES_MOUNTINGPOINT
-
-
