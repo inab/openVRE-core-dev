@@ -87,7 +87,7 @@ const COPY_FILES = [
   ['bootstrap-switch/LICENSE', 'bootstrap-switch/LICENSE'],
   ['bootstrap-switch/README.md', 'bootstrap-switch/README.md'],
 
-  // typeahead.js
+  // typeahead.js + handlebars (browser UMD for custom tool UIs / typeahead templates; version pinned by package.json)
   ['typeahead.js/dist/typeahead.bundle.min.js', 'typeahead/typeahead.bundle.min.js'],
   ['typeahead.js/LICENSE', 'typeahead/LICENSE'],
   ['handlebars/dist/handlebars.min.js', 'typeahead/handlebars.min.js'],
