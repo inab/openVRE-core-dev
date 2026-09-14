@@ -567,7 +567,7 @@ function copyCodemirror() {
     return;
   }
 
-  log.step('Copying codemirror 5.6.0 from npm...');
+  log.step('Copying codemirror 5.65.21 from npm...');
   for (const rel of CODEMIRROR_FILES) {
     const dest = toPlugins('codemirror', rel);
     if (copyFile(path.join(pkgRoot, rel), dest)) {
