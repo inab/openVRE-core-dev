@@ -95,7 +95,7 @@ const COPY_FILES = [
   // bootstrap-fileinput (jasny-bootstrap)
   ['jasny-bootstrap/js/fileinput.js', 'bootstrap-fileinput/bootstrap-fileinput.js'],
 
-  // select2 (js/css dirs via COPY_DIRS)
+  // select2 (js/css dirs via COPY_DIRS; version pinned by package.json)
   ['select2/README.md', 'select2/README.md'],
   ['select2-bootstrap-theme/dist/select2-bootstrap.min.css', 'select2/css/select2-bootstrap.min.css'],
   ['select2-bootstrap-theme/src/select2-bootstrap.scss', 'select2/sass/select2-bootstrap.min.scss'],
@@ -160,8 +160,8 @@ const REMOTE_DOWNLOADS = [
     // LICENSE.md is not copied by the select2 npm package layout used here.
     type: 'cdn',
     name: 'select2-license',
-    version: '4.0.3',
-    base: 'https://raw.githubusercontent.com/select2/select2/4.0.3',
+    version: '4.0.13',
+    base: 'https://raw.githubusercontent.com/select2/select2/4.0.13',
     files: [
       ['LICENSE.md', 'select2/LICENSE.md'],
     ],
