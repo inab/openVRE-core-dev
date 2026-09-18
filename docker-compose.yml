@@ -90,6 +90,12 @@ services:
       VAULT_API_VERSION: ${VAULT_API_VERSION}
       VAULT_ROLENAME: ${VAULT_ROLENAME}
       VAULT_SECRET_PATH: ${VAULT_SECRET_PATH}
+      GUACAMOLE_DB: ${GUACAMOLE_DB}
+      GUACAMOLE_DB_HOST: ${GUACAMOLE_DB_HOST}
+      GUACAMOLE_DB_PORT: ${GUACAMOLE_DB_PORT}
+      GUACAMOLE_DB_USER: ${GUACAMOLE_DB_USER}
+      GUACAMOLE_DB_PASSWORD: ${GUACAMOLE_DB_PASSWORD}
+      GUACAMOLE_DB_ROOT_PASSWORD: ${GUACAMOLE_DB_ROOT_PASSWORD}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./front_end/openVRE/public/:/var/www/html/openVRE/public

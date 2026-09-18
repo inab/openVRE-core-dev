@@ -35,3 +35,25 @@ $GLOBALS['sampleDataCol']   = $GLOBALS['db']->sampleData;
 $GLOBALS['actionLogs']      = $GLOBALS['db']->action_logs;
 //adding new cred for SITES collection
 $GLOBALS['sitesCol']   = $GLOBALS['db']->sites;
+
+
+
+// Guacamole MariaDB connection
+$guacamoleDsn =
+    "mysql:host=" . getenv('GUACAMOLE_DB_HOST') .
+    ";port=" . getenv('GUACAMOLE_DB_PORT') .
+    ";dbname=" . getenv('GUACAMOLE_DB') .
+    ";charset=utf8mb4";
+
+$guacamoleConn = new PDO(
+    $guacamoleDsn,
+    getenv('GUACAMOLE_DB_USER'),
+    getenv('GUACAMOLE_DB_PASSWORD'),
+    array(
+        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES => false
+    )
+);
+
+$GLOBALS['guacamoleConn'] = $guacamoleConn;

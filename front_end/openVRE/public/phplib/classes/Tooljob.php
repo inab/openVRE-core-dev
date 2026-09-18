@@ -1199,7 +1199,7 @@ class Tooljob
 			$this->interactive_container_name = $this->containerName;
 			$this->interactive_container_url = "vnc://{$this->containerName}:{$this->interactive_port}";
 			$reportContainerInfo = <<<EOF
-				CONTAINER_URL="http://$this->containerName:$container_port"
+				CONTAINER_URL="http://$this->containerName:$this->interactive_port"
 				printf '%s | %s\n' "\$(date)" "ContainerID: \$CONTAINER_ID";
 				printf '%s | %s\n' "$(date)" "ContainerName: $containerName"
 				printf '%s | %s\n' "$(date)" "Protocol: vnc"
@@ -1207,7 +1207,7 @@ class Tooljob
 				printf '%s | %s\n' "$(date)" "VNC endpoint: $this->interactive_container_url"
 		EOF;
 		} else {
-			$containerPort = $tool['infrastructure']['container_port'];
+			$container_port = $tool['infrastructure']['container_port'];
 			$reportContainerInfo = <<<EOF
 				CONTAINER_URL="http://$this->containerName:$container_port"
 				printf '%s | %s\n' "\$(date)" "ContainerID: \$CONTAINER_ID";
@@ -1240,7 +1240,7 @@ class Tooljob
 			fi
 			
 			printf '%s | %s\n' "\$(date)" \
-				"Stata VNC service UP.";
+				"Service UP";
 				
 			cleanup() {
 				printf '%s | %s\n' "\$(date)" "Stop container...";
@@ -1380,6 +1380,7 @@ class Tooljob
 			$user = getUserById($_SESSION['User']['_id']);
 			$dataDir = $user['id'] . "/" . $user['activeProject'];
 			$upDirId  = createGSDirBNS($dataDir . $hostDir, 1);
+			#getProjectLogger()->info("User:" . print_r($user));
 			getProjectLogger()->info("Creating directory:" . $dataDir . $hostDir . "($upDirId)");
 			addMetadataToFile($upDirId, array(
 				"expiration" => -1,
