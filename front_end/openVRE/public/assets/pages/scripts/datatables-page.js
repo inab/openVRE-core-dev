@@ -409,10 +409,10 @@ $(document).ready(function() {
 				ensureFolderRowPresentation($row);
 
 		 }else {
-		
-			 	if(!($(row).children('td').context.innerHTML.indexOf('mt-checkbox') != -1)) {
-			 		$(row).css('color', '#87a2b9'); 
-					$(row).addClass('row-disabled'); 
+			 	// jQuery 3 removed .context; check for mt-checkbox via DOM query instead.
+			 	if ($row.find('.mt-checkbox').length === 0) {
+			 		$row.css('color', '#87a2b9');
+					$row.addClass('row-disabled');
 				}
 
 		 }
