@@ -35,7 +35,7 @@ var FormValidation = function () {
             },
 
             errorPlacement: function (error, element) { // render error placement for each input type
-                if (element.closest('.input-icon').size() === 1) {
+                if (element.closest('.input-icon').length === 1) {
                     error.insertAfter(element.closest('.input-icon'));
                 } else {
                     if ($(element).parent().hasClass('btn-file')) {
@@ -129,7 +129,7 @@ var FormValidation = function () {
             },
 
             errorPlacement: function (error, element) { // render error placement for each input type
-                if (element.closest('.input-icon').size() === 1) {
+                if (element.closest('.input-icon').length === 1) {
                     error.insertAfter(element.closest('.input-icon'));
                 } else {
                     if ($(element).parent().hasClass('btn-file')) {

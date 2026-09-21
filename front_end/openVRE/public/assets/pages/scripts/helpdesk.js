@@ -54,7 +54,7 @@ var Helpdesk = function() {
 
             errorPlacement: function(error, element) {
 
-							if (element.closest('.input-icon').size() === 1) {
+							if (element.closest('.input-icon').length === 1) {
                     error.insertAfter(element.closest('.input-icon'));
                 } else {
                     error.insertAfter(element);
