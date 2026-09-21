@@ -12,7 +12,7 @@ $force = isset($_REQUEST['force']);
 $r = refresh_token($force);
 if (!$r) {
     $_SESSION['errorData']['Error'][] = "Your session has expired. Please log in again.";
-    redirect($GLOBALS['BASEURL'] . '/logout.php');
+    redirect($GLOBALS['URL'] . 'redirect_uri?logout=' . $GLOBALS['URL_logout']);
     exit;
 }
 

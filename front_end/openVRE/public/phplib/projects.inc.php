@@ -1405,7 +1405,7 @@ function processFinishedJobInfo($projectDir, $job, $pid, $title, &$filesPending)
 						print "<br/>Recovering path from remote_paths: $remote_path<br/>";
 						$_SESSION['errorData']['Error'][] = "Recovering path from remote_paths: $remote_path";
 					}
-					
+
 					$out_data['path'] = $remote_path;
 				} else {
 					if ($is_required) {
@@ -1922,16 +1922,13 @@ function refresh_token($force = false)
 
 		if (!$freshAccessToken) {
 			getProjectLogger()->error("No access token in OIDC headers.");
-			header('Location: ' . $GLOBALS['BASEURL'] . '/logout.php?reason=session_expired');
+			header('Location: ' . $GLOBALS['URL'] . 'redirect_uri?logout=' . $GLOBALS['URL_logout']);
 			exit;
 		}
 
 		if ($freshAccessToken === $existingToken->getToken()) {
-			$redirectUri  = $GLOBALS['URL'] . '/redirect_uri';
-			$currentUrl   = $GLOBALS['URL'] . $_SERVER['REQUEST_URI'];
-			header('Location: ' . $redirectUri
-				. '?refresh='      . urlencode($currentUrl)
-				. '&access_token=' . urlencode($freshAccessToken));
+			getProjectLogger()->error("Token refresh did not produce a new token; forcing re-authentication.");
+			header('Location: ' . $GLOBALS['URL'] . 'redirect_uri?logout=' . $GLOBALS['URL_logout']);
 			exit;
 		}
 
