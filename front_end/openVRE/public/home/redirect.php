@@ -10,6 +10,7 @@
 <body>
     <input type="hidden" id="base-url" value="<?php echo $GLOBALS['BASEURL']; ?>" />
     <script src="assets/global/plugins/jquery.min.js" type="text/javascript"></script>
+    <script src="assets/global/plugins/jquery-migrate.min.js" type="text/javascript"></script>
     <script src="assets/global/plugins/js.cookie.min.js" type="text/javascript"></script>
     <script src="assets/pages/scripts/cookie-header.js" type="text/javascript"></script>
 </body>

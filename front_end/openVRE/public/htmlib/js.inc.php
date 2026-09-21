@@ -3,6 +3,7 @@
 
 <!-- BEGIN CORE PLUGINS -->
 <script src="assets/global/plugins/jquery.min.js" type="text/javascript"></script>
+<script src="assets/global/plugins/jquery-migrate.min.js" type="text/javascript"></script>
 <script src="assets/global/plugins/bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
 <script src="assets/global/plugins/js.cookie.min.js" type="text/javascript"></script>
 <script src="assets/global/plugins/jquery-slimscroll/jquery.slimscroll.min.js" type="text/javascript"></script>

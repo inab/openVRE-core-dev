@@ -45,8 +45,11 @@ const COPY_FILES = [
   ['bootstrap/dist/js/bootstrap.js', 'bootstrap/js/bootstrap.js'],
   ['bootstrap/dist/js/bootstrap.min.js', 'bootstrap/js/bootstrap.min.js'],
 
-  // jquery
+  // jquery (version pinned by package.json)
   ['jquery/dist/jquery.min.js', 'jquery.min.js'],
+
+  // jquery-migrate (bridge for jQuery 1.x → 3.x; keep loaded for multi-instance tools)
+  ['jquery-migrate/dist/jquery-migrate.min.js', 'jquery-migrate.min.js'],
 
   // jquery-cookiebar
   ['jquery.cookiebar/jquery.cookieBar.min.js', 'jquery-cookiebar/jquery.cookieBar.min.js'],
@@ -602,6 +605,41 @@ function copyPluginOverlays() {
   walkOverlayDir('');
 }
 
+// Bootstrap 3.3.6 aborts when jQuery major is 3+ (`version[0] > 2` / `b[0]>2`).
+// Keep Bootstrap 3 for Metronic; loosen the gate so jQuery 3.7.x can register plugins
+// (tooltip, modal, dropdown). Without this, App.init() fails with tooltip is not a function.
+function patchBootstrapJqueryGate() {
+  const targets = [
+    toPlugins('bootstrap/js/bootstrap.js'),
+    toPlugins('bootstrap/js/bootstrap.min.js'),
+  ];
+  log.step('Patching Bootstrap 3 jQuery version gate for jQuery 3…');
+  for (const file of targets) {
+    if (!fs.existsSync(file)) {
+      log.skip(`missing: ${path.relative(PLUGINS, file)}`);
+      continue;
+    }
+    const src = fs.readFileSync(file, 'utf8');
+    const next = src
+      .replace(/\(version\[0\] > 2\)/g, '(version[0] > 3)')
+      .replace(/b\[0\]>2/g, 'b[0]>3')
+      .replace(
+        /requires jQuery version 1\.9\.1 or higher, but lower than version 3/g,
+        'requires jQuery version 1.9.1 or higher, but lower than version 4'
+      );
+    if (next === src) {
+      if (/version\[0\] > 3/.test(src) || /b\[0\]>3/.test(src)) {
+        log.skip(`${path.basename(file)} already patched for jQuery 3`);
+      } else {
+        log.skip(`${path.basename(file)}: version gate pattern not found`);
+      }
+      continue;
+    }
+    fs.writeFileSync(file, next);
+    log.copied(`${path.relative(PLUGINS, file)} (jquery 3 gate)`);
+  }
+}
+
 function extractZip(zipPath, destDir) {
   ensureDir(destDir);
   execSync(`unzip -q -o ${JSON.stringify(zipPath)} -d ${JSON.stringify(destDir)}`, { stdio: 'pipe' });
@@ -622,7 +660,8 @@ function copyNpmDirs() {
 // --- Pipeline ---
 //
 // Order matters: remote flot min files must exist before buildFlotAllMin().
-// plugin-overlays must stay last so vendored/custom files override npm/CDN copies.
+// plugin-overlays overrides npm/CDN copies; Bootstrap jQuery gate patch runs after
+// so Bootstrap 3 works with jQuery 3.7.x.
 
 const STEPS = [
   { name: 'npm files', run: copyNpmFiles },
@@ -632,6 +671,7 @@ const STEPS = [
   { name: 'flot bundle', run: buildFlotAllMin },
   { name: 'codemirror', run: copyCodemirror },
   { name: 'plugin overlays', run: copyPluginOverlays },
+  { name: 'bootstrap jquery gate', run: patchBootstrapJqueryGate },
 ];
 
 async function copyPlugins() {
