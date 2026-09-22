@@ -21,24 +21,25 @@ services:
         ipv4_address: 172.21.0.10
     restart: on-failure:2
 
-  vault-server:
-    container_name: vault-server
-    hostname: vault-server
-    image: hashicorp/vault:1.20
+  bao-server:
+    container_name: bao-server
+    hostname: bao-server
+    image: openbao/openbao:2.4.0
     environment:
-      VAULT_ADDR: ${VAULT_ADDR}
-      VAULT_DEV_ROOT_TOKEN_ID: myroot
-      VAULT_DEV_LISTEN_ADDRESS: ${VAULT_DEV_LISTEN_ADDRESS}
+      VAULT_ADDR: ${BAO_ADDR}
+      BAO_DEV_ROOT_TOKEN_ID: ${BAO_DEV_ROOT_TOKEN_ID}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
       KEYCLOAK_SERVER: ${KEYCLOAK_SERVER}
     ports:
-      - "${VAULT_PORT}:8200"
+      - "${BAO_PORT}:8200"
     volumes:
-      - ./vault/config:/vault/config
-      - ./vault/vault-init.sh:/vault-init.sh
+      - ./openbao/config:/openbao/config
+      - ./openbao/bao-init.sh:/bao-init.sh
+      - ./openbao/bao-config.sh:/bao-config.sh
+      - ./openbao/data:/openbao/data
     cap_add:
       - IPC_LOCK
-    command: /bin/sh -c "vault server -dev & sleep 30 && /vault-init.sh && wait"
+    entrypoint: ["/bin/sh", "/bao-init.sh"]
     networks:
       net_vre:
         ipv4_address: 172.21.0.18
@@ -91,10 +92,10 @@ services:
       SERVER_DOMAIN: ${SERVER_DOMAIN}
       SERVER_PORT: ${FRONTEND_PORT}
       SERVER_DOMAIN_PROTOCOL: ${SERVER_DOMAIN_PROTOCOL}
-      VAULT_ADDR: ${VAULT_ADDR}
-      VAULT_API_VERSION: ${VAULT_API_VERSION}
-      VAULT_ROLENAME: ${VAULT_ROLENAME}
-      VAULT_SECRET_PATH: ${VAULT_SECRET_PATH}
+      VAULT_ADDR: ${BAO_ADDR}
+      VAULT_API_VERSION: ${BAO_API_VERSION}
+      VAULT_ROLENAME: ${BAO_ROLENAME}
+      VAULT_SECRET_PATH: ${BAO_SECRET_PATH}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./front_end/openVRE/public/:/var/www/html/openVRE/public

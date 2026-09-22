@@ -5,10 +5,11 @@ front_end/openVRE/config/globals.inc.php
 shared_data
 tools/*
 !tools/mock_tool
-vault/config/public-key.pem
-vault/file/*
-vault/config/jwt-user-policies.hcl
+openbao/config/public-key.pem
+openbao/data/*
+openbao/config/jwt-user-policies.hcl
 vendor/
+guacamole/
 
 #Volumes environment
 volumes/
