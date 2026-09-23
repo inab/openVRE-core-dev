@@ -133,7 +133,7 @@ foreach ($list as $file) {
 		$html .= '</td>';
 	}
 	$html .= '<td>' . $file["file"] . ' <a href="javascript:;" onmouseover="javascript:;" class="tooltips" data-trigger="hover" data-container="body" 
-																					data-html="true" data-placement="right" data-original-title="<p align=\'left\' style=\'margin:0\'><strong>' . $file["data_type"] . '</strong><br>' . $file["description"] . '</p>"><i class="fa fa-info-circle"></i></a>';
+																					data-html="true" data-placement="right" data-original-title="<p align=\'left\' style=\'margin:0\'><strong>' . htmlspecialchars((string)($file["data_type"] ?? ''), ENT_QUOTES, 'UTF-8') . '</strong><br>' . htmlspecialchars((string)($file["description"] ?? ''), ENT_QUOTES, 'UTF-8') . '</p>"><i class="fa fa-info-circle"></i></a>';
 	$html .= '<td>' . $file['project_name'] . '</td>';
 	$html .= '<td>' . $file["execution"] . '</td>';
 	$html .= '</tr>';
