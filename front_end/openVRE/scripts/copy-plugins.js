@@ -605,14 +605,17 @@ function copyPluginOverlays() {
   walkOverlayDir('');
 }
 
-// Bootstrap 3.3.6 aborts when jQuery major is 3+ (`version[0] > 2` / `b[0]>2`).
-// Keep Bootstrap 3 for Metronic; loosen the gate so jQuery 3.7.x can register plugins
-// (tooltip, modal, dropdown). Without this, App.init() fails with tooltip is not a function.
+// Bootstrap 3.3.x aborts when jQuery major is 3+ (`version[0] > 2` / `b[0]>2`).
+// Bootstrap 3.4.1 already allows jQuery 3 (`version[0] > 3` / `3<e[0]`).
+// Keep this patch for older pins; treat 3.4.1-native gates as already compatible so
+// Metronic App.init() can register tooltip/modal/dropdown under jQuery 3.7.x.
 function patchBootstrapJqueryGate() {
   const targets = [
     toPlugins('bootstrap/js/bootstrap.js'),
     toPlugins('bootstrap/js/bootstrap.min.js'),
   ];
+  const alreadyOk =
+    /version\[0\] > 3|b\[0\]>3|3<e\[0\]|lower than version 4/;
   log.step('Patching Bootstrap 3 jQuery version gate for jQuery 3…');
   for (const file of targets) {
     if (!fs.existsSync(file)) {
@@ -628,8 +631,8 @@ function patchBootstrapJqueryGate() {
         'requires jQuery version 1.9.1 or higher, but lower than version 4'
       );
     if (next === src) {
-      if (/version\[0\] > 3/.test(src) || /b\[0\]>3/.test(src)) {
-        log.skip(`${path.basename(file)} already patched for jQuery 3`);
+      if (alreadyOk.test(src)) {
+        log.skip(`${path.basename(file)} already compatible with jQuery 3`);
       } else {
         log.skip(`${path.basename(file)}: version gate pattern not found`);
       }
