@@ -29,6 +29,10 @@ class VaultTokenProvider
         $headers = array("Content-Type: application/json",);
         $url = $this->url . "/auth/jwt/login";
 
+        $this->logger->info("Vault/OpenBao base URL: " . $this->url);
+        $this->logger->info("Vault JWT login URL: " . $url);
+        $this->logger->info("Vault JWT role: " . $this->rolename);
+
         $data = [
             'role' => $this->rolename,
             'jwt' => $this->jwt

@@ -92,10 +92,10 @@ services:
       SERVER_DOMAIN: ${SERVER_DOMAIN}
       SERVER_PORT: ${FRONTEND_PORT}
       SERVER_DOMAIN_PROTOCOL: ${SERVER_DOMAIN_PROTOCOL}
-      VAULT_ADDR: ${BAO_ADDR}
-      VAULT_API_VERSION: ${BAO_API_VERSION}
-      VAULT_ROLENAME: ${BAO_ROLENAME}
-      VAULT_SECRET_PATH: ${BAO_SECRET_PATH}
+      BAO_ADDR: ${BAO_ADDR}
+      BAO_API_VERSION: ${BAO_API_VERSION}
+      BAO_ROLENAME: ${BAO_ROLENAME}
+      BAO_SECRET_PATH: ${BAO_SECRET_PATH}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./front_end/openVRE/public/:/var/www/html/openVRE/public
