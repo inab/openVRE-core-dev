@@ -65,7 +65,14 @@ class VaultTokenProvider
                 $this->logger->error($error);
             }
 
-            throw new UnexpectedValueException("Failed to fetch the Vault token.");
+            $profileUrl = 'http://localhost:8088/user/usrProfile.php';
+            $keysTabUrl = 'http://localhost:8088/#tab_1_4';
+            $this->logger->error("Vault login failed; user must re-login at $profileUrl (Keys tab: $keysTabUrl)");
+
+            // create an HTML link so the UI can render a clickable "re-login" link
+            $link = htmlspecialchars($profileUrl . '#tab_1_4', ENT_QUOTES, 'UTF-8');
+            $msg = "Failed to fetch the Vault token. Please <a href=\"$link\">re-login to your profile (Keys tab)</a>.";
+            throw new UnexpectedValueException($msg);
         }
 
 
