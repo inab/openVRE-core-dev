@@ -139,10 +139,10 @@ $siteList = $_REQUEST['sites']['site_list'] ?? [];
 
 
 $logger->debug("SYNC DEBUG - Starting sync check", [
-    'doSync' => $doSync,
-    'sync_files' => $_REQUEST['sync_files'] ?? null,
-    'siteList' => $siteList,
-    'isMareNostrum' => in_array(Site::MareNostrum->value, $siteList),
+	'doSync' => $doSync,
+	'sync_files' => $_REQUEST['sync_files'] ?? null,
+	'siteList' => $siteList,
+	'isMareNostrum' => in_array(Site::MareNostrum, $siteList),
 ]);
 
 

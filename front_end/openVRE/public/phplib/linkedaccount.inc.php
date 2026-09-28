@@ -138,32 +138,33 @@ function handleSSHAccount($action, $userId, $site_id, $postData)
 			redirect($_SERVER['HTTP_REFERER']);
 		}
 	} elseif ($action === "delete") {
-		// Reset data for "delete" action
-		$data = [];
-		if (isset($postData['private_key'])) {
-			$postData['private_key'] = null;
-			$postData['username'] = null;
-		}
-		$postData['timestamp'] = null;
-		$userId = null;
-
-		$_SESSION['errorData']['Info'][] = "Credentials for user erased, please provide new ones.";
-
 		if (isset($site_id)) {
+			try {
+				$vaultClient = VaultClientFactory::create();
+				$vaultClient->deleteDataFromVault(Site::SSH);
+			} catch (\Throwable $e) {
+				$_SESSION['errorData']['Error'][] = "Failed to remove credentials from Vault: " . $e->getMessage();
+			}
+
 			$updateResult = $GLOBALS['sitesCol']->updateOne(
-				['_id' => $site_id],  // Match document by siteId    
-				['$set' => [  // Use the $unset operator to remove fields
-					'launcher.access_credentials.username' => null
-				]]
+				['_id' => $site_id],
+				[
+					'$unset' => [
+						'launcher.access_credentials.username' => '',
+						'launcher.access_credentials.private_key' => '',
+						'launcher.access_credentials.public_key' => '',
+						'launcher.access_credentials.server' => '',
+					]      
+				]
 			);
 
-			// Check if the update was successful
-			if ($updateResult->getModifiedCount() > 0) {
+			if ($updateResult->getMatchedCount() > 0) {
 				$_SESSION['errorData']['Info'][] = "Credentials removed from the database.";
 			} else {
 				$_SESSION['errorData']['Error'][] = "Failed to remove credentials from the database.";
 			}
 		}
+
 		redirect($_SERVER['HTTP_REFERER']);
 	} else {
 		handleInvalidAction();
