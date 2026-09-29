@@ -65,7 +65,7 @@ class VaultTokenProvider
                 $this->logger->error($error);
             }
 
-            $profileUrl = 'http://localhost:8088/user/usrProfile.php';
+            $profileUrl = $GLOBALS['URL'] . 'user/usrProfile.php';
             $keysTabUrl = 'http://localhost:8088/#tab_1_4';
             $this->logger->error("Vault login failed; user must re-login at $profileUrl (Keys tab: $keysTabUrl)");
 
