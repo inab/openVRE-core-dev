@@ -251,7 +251,7 @@ var Dashboard = function() {
 				}
          		  });
 
-            //if (($('#site_statistics').size() != 0) && (mailsList.length > 0)) {
+            //if (($('#site_statistics').length != 0) && (mailsList.length > 0)) {
             function fillPlotWithData() {
             	
                 $('#site_statistics_loading').hide();
@@ -528,7 +528,7 @@ var Dashboard = function() {
 			}
 
 			function chart4() {
-                if ($('#chart_4').size() != 1) {
+                if ($('#chart_4').length != 1) {
                     return;
                 }
                 //server load
@@ -577,7 +577,7 @@ var Dashboard = function() {
             }
 
 			function chart5() {
-                if ($('#chart_5').size() != 1) {
+                if ($('#chart_5').length != 1) {
                     return;
                 }
                 //server load

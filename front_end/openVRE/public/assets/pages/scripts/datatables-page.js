@@ -409,10 +409,10 @@ $(document).ready(function() {
 				ensureFolderRowPresentation($row);
 
 		 }else {
-		
-			 	if(!($(row).children('td').context.innerHTML.indexOf('mt-checkbox') != -1)) {
-			 		$(row).css('color', '#87a2b9'); 
-					$(row).addClass('row-disabled'); 
+			 	// jQuery 3 removed .context; check for mt-checkbox via DOM query instead.
+			 	if ($row.find('.mt-checkbox').length === 0) {
+			 		$row.css('color', '#87a2b9');
+					$row.addClass('row-disabled');
 				}
 
 		 }
@@ -631,14 +631,25 @@ $(document).ready(function() {
     }
   }
 
+  // Escape for safe embedding into HTML attribute values (data-content).
+  // Browser unescapes entities when reading the attribute, so table HTML is preserved.
+  escapeHtmlAttr = function(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  };
+
   // add / remove file to the run tools portlet
   drawToolsList = function(ch, id, fl, fd, id_or, meta, fileId){
     if(ch){
       var str_meta = '';
-      meta = (meta || '').replace(/"/g, "\'");
+      meta = meta || '';
 
       if(meta != ''){
-      str_meta = 	' <a href="javascript:;" onmouseover="javascript:;" class="popovers" data-trigger="hover" data-container="body" data-content="<table>' + meta  + '</table>" data-original-title="Metadata">' + 
+      str_meta = 	' <a href="javascript:;" onmouseover="javascript:;" class="popovers" data-trigger="hover" data-container="body" data-content="' + escapeHtmlAttr('<table>' + meta + '</table>') + '" data-original-title="Metadata">' + 
           '<i class="fa fa-info-circle"></i>' + 
           '</a>';
       }

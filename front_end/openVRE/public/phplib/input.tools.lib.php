@@ -186,7 +186,7 @@ function InputTool_printSelectFile($input, $ff, $multiple, $required)
 		$labelopt = (!$required) ? " (optional)" : "";
 
 		$output = '<div class="form-group">
-			<label class="control-label">' . $input['description'] . $labelopt . ' <i class="icon-question tooltips" data-container="body" data-html="true" data-placement="right" data-original-title="<p align=\'left\' style=\'margin:0\'>' . $input['help'] . '</p>"></i></label>
+			<label class="control-label">' . $input['description'] . $labelopt . ' <i class="icon-question tooltips" data-container="body" data-html="true" data-placement="right" data-original-title="<p align=\'left\' style=\'margin:0\'>' . htmlspecialchars((string)($input['help'] ?? ''), ENT_QUOTES, 'UTF-8') . '</p>"></i></label>
 			<div class="input-group">
 					<span class="input-group-addon"><i class="fa fa-file"></i></span>
 					<input type="text" 
@@ -217,7 +217,7 @@ function InputTool_printSelectFile($input, $ff, $multiple, $required)
 
 
 		$output = '<div class="form-group">
-			<label class="control-label">' . $input['description'] . $labelopt . ' <i class="icon-question tooltips" data-container="body" data-html="true" data-placement="right" data-original-title="<p align=\'left\' style=\'margin:0\'>' . $input['help'] . '</p>"></i></label>
+			<label class="control-label">' . $input['description'] . $labelopt . ' <i class="icon-question tooltips" data-container="body" data-html="true" data-placement="right" data-original-title="<p align=\'left\' style=\'margin:0\'>' . htmlspecialchars((string)($input['help'] ?? ''), ENT_QUOTES, 'UTF-8') . '</p>"></i></label>
 			      <div class="input-group">
 					<span class="input-group-addon"><i class="fa fa-file"></i></span>
 					<textarea 
@@ -251,7 +251,7 @@ function InputTool_printListOfFiles($input, $rerun, $required)
 	if ($required) $req = "field_required";
 
 	$output = '<div class="form-group">
-		<label class="control-label">' . $input['description'] . ' <i class="icon-question tooltips" data-container="body" data-html="true" data-placement="right" data-original-title="<p align=\'left\' style=\'margin:0\'>' . $input['help'] . '</p>"></i></label>
+		<label class="control-label">' . $input['description'] . ' <i class="icon-question tooltips" data-container="body" data-html="true" data-placement="right" data-original-title="<p align=\'left\' style=\'margin:0\'>' . htmlspecialchars((string)($input['help'] ?? ''), ENT_QUOTES, 'UTF-8') . '</p>"></i></label>
 		<div class="input-group">
 			<span class="input-group-addon"><i class="fa fa-file"></i></span>
 			<select name="input_files_public_dir[' . $input['name'] . ']" class="form-control ' . $req . '">
@@ -307,7 +307,7 @@ function InputTool_printInput($input, $type)
 	if (isset($input['default']) && ($input['default'] !== null) && ($input['default'] !== "null")) $value = $input['default'];
 	else $value = "";
 	$output = '<div class="form-group">
-				<label class="control-label">' . $input['description'] . ' <i class="icon-question tooltips" data-container="body" data-html="true" data-placement="right" data-original-title="<p align=\'left\' style=\'margin:0\'>' . $input['help'] . '</p>"></i></label>
+				<label class="control-label">' . $input['description'] . ' <i class="icon-question tooltips" data-container="body" data-html="true" data-placement="right" data-original-title="<p align=\'left\' style=\'margin:0\'>' . htmlspecialchars((string)($input['help'] ?? ''), ENT_QUOTES, 'UTF-8') . '</p>"></i></label>
 				<input type="' . $type . '" ' . $range . ' ' . $step . ' name="arguments[' . $input['name'] . ']" id="' . str_replace(":", "_", $input['name']) . '" class="form-control form-field-enabled ' . $req . '" value="' . $value . '">
 				</div>';
 	return $output;
@@ -348,7 +348,7 @@ function InputTool_printSelect($input)
 		$tool_options = $input['enum_items'];
 	}
 	$output = '<div class="form-group">
-				<label class="control-label">' . $input['description'] . ' <i class="icon-question tooltips" data-container="body" data-html="true" data-placement="right" data-original-title="<p align=\'left\' style=\'margin:0\'>' . $input['help'] . '</p>"></i></label>
+				<label class="control-label">' . $input['description'] . ' <i class="icon-question tooltips" data-container="body" data-html="true" data-placement="right" data-original-title="<p align=\'left\' style=\'margin:0\'>' . htmlspecialchars((string)($input['help'] ?? ''), ENT_QUOTES, 'UTF-8') . '</p>"></i></label>
 				<select  name="arguments[' . $input['name'] . ']" id="' . str_replace(":", "_", $input['name']) . '" class="form-control ' . $req . '">';
 	$sel = "";
 	for ($i = 0; $i < count($tool_options['name']); $i++) {
@@ -372,7 +372,7 @@ function InputTool_printSelectMultiple($input)
 	else $default = "";
 	$tool_options = $input['enum_items'];
 	$output = '<div class="form-group">
-				<label class="control-label">' . $input['description'] . ' <i class="icon-question tooltips" data-container="body" data-html="true" data-placement="right" data-original-title="<p align=\'left\' style=\'margin:0\'>' . $input['help'] . '</p>"></i></label>
+				<label class="control-label">' . $input['description'] . ' <i class="icon-question tooltips" data-container="body" data-html="true" data-placement="right" data-original-title="<p align=\'left\' style=\'margin:0\'>' . htmlspecialchars((string)($input['help'] ?? ''), ENT_QUOTES, 'UTF-8') . '</p>"></i></label>
 				<select  name="arguments[' . $input['name'] . '][]" id="' . str_replace(":", "_", $input['name']) . '" class="form-control ' . $req . '" multiple="multiple">';
 	$sel = "";
 	for ($i = 0; $i < count($tool_options['name']); $i++) {
