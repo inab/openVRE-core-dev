@@ -45,8 +45,11 @@ const COPY_FILES = [
   ['bootstrap/dist/js/bootstrap.js', 'bootstrap/js/bootstrap.js'],
   ['bootstrap/dist/js/bootstrap.min.js', 'bootstrap/js/bootstrap.min.js'],
 
-  // jquery
+  // jquery (version pinned by package.json)
   ['jquery/dist/jquery.min.js', 'jquery.min.js'],
+
+  // jquery-migrate (bridge for jQuery 1.x → 3.x; keep loaded for multi-instance tools)
+  ['jquery-migrate/dist/jquery-migrate.min.js', 'jquery-migrate.min.js'],
 
   // jquery-cookiebar
   ['jquery.cookiebar/jquery.cookieBar.min.js', 'jquery-cookiebar/jquery.cookieBar.min.js'],
@@ -66,6 +69,9 @@ const COPY_FILES = [
   ['jquery-validation/dist/additional-methods.min.js', 'jquery-validation/js/additional-methods.min.js'],
   ['jquery-validation/README.md', 'jquery-validation/README.md'],
 
+  // marked (browser build for help markdown preview; version pinned by package.json)
+  ['marked/marked.min.js', 'markdown/marked.min.js'],
+
   // easy-pie-chart (jquery-easypiechart)
   ['easy-pie-chart/dist/jquery.easypiechart.js', 'jquery-easypiechart/jquery.easypiechart.js'],
   ['easy-pie-chart/dist/jquery.easypiechart.min.js', 'jquery-easypiechart/jquery.easypiechart.min.js'],
@@ -84,7 +90,7 @@ const COPY_FILES = [
   ['bootstrap-switch/LICENSE', 'bootstrap-switch/LICENSE'],
   ['bootstrap-switch/README.md', 'bootstrap-switch/README.md'],
 
-  // typeahead.js
+  // typeahead.js + handlebars (browser UMD for custom tool UIs / typeahead templates; version pinned by package.json)
   ['typeahead.js/dist/typeahead.bundle.min.js', 'typeahead/typeahead.bundle.min.js'],
   ['typeahead.js/LICENSE', 'typeahead/LICENSE'],
   ['handlebars/dist/handlebars.min.js', 'typeahead/handlebars.min.js'],
@@ -92,7 +98,7 @@ const COPY_FILES = [
   // bootstrap-fileinput (jasny-bootstrap)
   ['jasny-bootstrap/js/fileinput.js', 'bootstrap-fileinput/bootstrap-fileinput.js'],
 
-  // select2 (js/css dirs via COPY_DIRS)
+  // select2 (js/css dirs via COPY_DIRS; version pinned by package.json)
   ['select2/README.md', 'select2/README.md'],
   ['select2-bootstrap-theme/dist/select2-bootstrap.min.css', 'select2/css/select2-bootstrap.min.css'],
   ['select2-bootstrap-theme/src/select2-bootstrap.scss', 'select2/sass/select2-bootstrap.min.scss'],
@@ -157,8 +163,8 @@ const REMOTE_DOWNLOADS = [
     // LICENSE.md is not copied by the select2 npm package layout used here.
     type: 'cdn',
     name: 'select2-license',
-    version: '4.0.3',
-    base: 'https://raw.githubusercontent.com/select2/select2/4.0.3',
+    version: '4.0.13',
+    base: 'https://raw.githubusercontent.com/select2/select2/4.0.13',
     files: [
       ['LICENSE.md', 'select2/LICENSE.md'],
     ],
@@ -295,17 +301,6 @@ const REMOTE_DOWNLOADS = [
     files: [
       ['css/bootstrap-markdown-editor.css', 'bootstrap-markdown-editor.css'],
       ['js/bootstrap-markdown-editor.js', 'bootstrap-markdown-editor.js'],
-    ],
-  },
-  {
-    // marked@0.3.2 required by markdown editor (newer npm marked is incompatible).
-    type: 'cdn',
-    name: 'marked',
-    version: '0.3.2',
-    base: 'https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.2',
-    dest: 'markdown',
-    files: [
-      ['marked.min.js', 'marked.min.js'],
     ],
   },
   {
@@ -575,7 +570,7 @@ function copyCodemirror() {
     return;
   }
 
-  log.step('Copying codemirror 5.6.0 from npm...');
+  log.step('Copying codemirror 5.65.21 from npm...');
   for (const rel of CODEMIRROR_FILES) {
     const dest = toPlugins('codemirror', rel);
     if (copyFile(path.join(pkgRoot, rel), dest)) {
@@ -610,6 +605,41 @@ function copyPluginOverlays() {
   walkOverlayDir('');
 }
 
+// Bootstrap 3.3.6 aborts when jQuery major is 3+ (`version[0] > 2` / `b[0]>2`).
+// Keep Bootstrap 3 for Metronic; loosen the gate so jQuery 3.7.x can register plugins
+// (tooltip, modal, dropdown). Without this, App.init() fails with tooltip is not a function.
+function patchBootstrapJqueryGate() {
+  const targets = [
+    toPlugins('bootstrap/js/bootstrap.js'),
+    toPlugins('bootstrap/js/bootstrap.min.js'),
+  ];
+  log.step('Patching Bootstrap 3 jQuery version gate for jQuery 3…');
+  for (const file of targets) {
+    if (!fs.existsSync(file)) {
+      log.skip(`missing: ${path.relative(PLUGINS, file)}`);
+      continue;
+    }
+    const src = fs.readFileSync(file, 'utf8');
+    const next = src
+      .replace(/\(version\[0\] > 2\)/g, '(version[0] > 3)')
+      .replace(/b\[0\]>2/g, 'b[0]>3')
+      .replace(
+        /requires jQuery version 1\.9\.1 or higher, but lower than version 3/g,
+        'requires jQuery version 1.9.1 or higher, but lower than version 4'
+      );
+    if (next === src) {
+      if (/version\[0\] > 3/.test(src) || /b\[0\]>3/.test(src)) {
+        log.skip(`${path.basename(file)} already patched for jQuery 3`);
+      } else {
+        log.skip(`${path.basename(file)}: version gate pattern not found`);
+      }
+      continue;
+    }
+    fs.writeFileSync(file, next);
+    log.copied(`${path.relative(PLUGINS, file)} (jquery 3 gate)`);
+  }
+}
+
 function extractZip(zipPath, destDir) {
   ensureDir(destDir);
   execSync(`unzip -q -o ${JSON.stringify(zipPath)} -d ${JSON.stringify(destDir)}`, { stdio: 'pipe' });
@@ -630,7 +660,8 @@ function copyNpmDirs() {
 // --- Pipeline ---
 //
 // Order matters: remote flot min files must exist before buildFlotAllMin().
-// plugin-overlays must stay last so vendored/custom files override npm/CDN copies.
+// plugin-overlays overrides npm/CDN copies; Bootstrap jQuery gate patch runs after
+// so Bootstrap 3 works with jQuery 3.7.x.
 
 const STEPS = [
   { name: 'npm files', run: copyNpmFiles },
@@ -640,6 +671,7 @@ const STEPS = [
   { name: 'flot bundle', run: buildFlotAllMin },
   { name: 'codemirror', run: copyCodemirror },
   { name: 'plugin overlays', run: copyPluginOverlays },
+  { name: 'bootstrap jquery gate', run: patchBootstrapJqueryGate },
 ];
 
 async function copyPlugins() {
