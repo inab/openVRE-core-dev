@@ -11,3 +11,6 @@ path "auth/token/renew-self" {
 path "auth/token/revoke-self" {
   capabilities = ["update"]
 }  
+path "secret/metadata/*" {
+  capabilities = ["read", "list", "delete"]
+}
