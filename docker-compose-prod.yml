@@ -41,13 +41,10 @@ services:
     cap_add:
       - IPC_LOCK
     command: server
-
     networks:
       net_vre:
         ipv4_address: 172.21.0.18
     restart: on-failure:2
-  volumes:
-    bao_data:
 
   postgres:
     container_name: postgres
@@ -196,8 +193,8 @@ volumes:
     name: ${MONGO_VOLUME}
   keycloak_data:
     name: ${KEYCLOAK_DB_VOLUME}
-  vault_data:
-    name: ${VAULT_DATA_VOLUME}
+  vbao_data:
+    name: ${BAO_DATA_VOLUME}
 
 networks:
   net_vre:

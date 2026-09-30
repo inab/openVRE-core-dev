@@ -39,7 +39,7 @@ services:
       - ./openbao/data:/openbao/data
     cap_add:
       - IPC_LOCK
-    entrypoint: ["/bin/sh", "/bao-init.sh"]
+    command: /bin/sh -c "bao server & sleep 30 && /bao-init.sh && wait"
     networks:
       net_vre:
         ipv4_address: 172.21.0.18

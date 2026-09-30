@@ -134,7 +134,6 @@ $logger->debug("Working directory created at: ", ['working_dir' => $jobMeta->wor
 
 $dataLocations = [];
 $doSync = !empty($_REQUEST['sync_files']);
-#$doSync = true;
 $siteList = $_REQUEST['sites']['site_list'] ?? [];
 
 

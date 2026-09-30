@@ -6,7 +6,7 @@ echo "==> Installing dependencies..."
 
 apk add --no-cache jq
 
-export BAO_ADDR="${BAO_ADDR:-http://127.0.0.1:8200}"
+export BAO_ADDR="${BAO_ADDR}"
 
 echo "Waiting for OpenBao at ${BAO_ADDR}..."
 
@@ -21,7 +21,7 @@ bao login "$BAO_DEV_ROOT_TOKEN_ID"
 
 echo "Enabling JWT authentication..."
 
-bao auth enable jwt 2>/dev/null || true
+bao auth enable jwt 2>/dev/null 
 
 echo "Configuring JWT/OIDC..."
 
@@ -53,7 +53,7 @@ bao policy write \
 
 echo "Enabling KV v2..."
 
-bao secrets enable -path=secret kv-v2 2>/dev/null || true
+bao secrets enable -path=secret kv-v2 2>/dev/null
 
 bao write secret/config max_versions=1
 
