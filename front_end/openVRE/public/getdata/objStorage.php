@@ -1,6 +1,22 @@
 <?php
 require __DIR__ . "/../../config/bootstrap.php";
 redirectOutside();
+
+$siteId = $_GET['site'] ?? null;
+
+if (!$siteId) {
+    throw new Exception("No data archive site specified.");
+}
+
+$site = $GLOBALS['sitesCol']->findOne([
+    '_id' => $siteId,
+    'type' => 1
+]);
+
+if (!$site) {
+    throw new Exception("Data archive site not found.");
+}
+
 ?>
 
 <?php require "../htmlib/header.inc.php"; ?>
@@ -28,7 +44,7 @@ redirectOutside();
               <i class="fa fa-circle"></i>
             </li>
             <li>
-              <span>From Example Dataset</span>
+              <span>From <?php echo htmlspecialchars($site['name']); ?></span>
             </li>
           </ul>
         </div>
@@ -36,8 +52,8 @@ redirectOutside();
 
         <!-- BEGIN PAGE TITLE -->
         <h1 class="page-title">
-          From External Object Storage
-          <small>List of data repositories and containers available for exploration and downloading.</small>
+          <?php echo htmlspecialchars($site['name']); ?>
+          <small>List of data available for exploration and downloading.</small>
         </h1>
         <!-- END PAGE TITLE -->
         <!-- END PAGE HEADER -->

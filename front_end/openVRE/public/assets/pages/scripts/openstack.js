@@ -3,7 +3,7 @@ $(document).ready(function () {
 	$("#general").hide();
 	$("#containerDropdown").hide();
 	$("#loading-datatable").hide();
-	var urlJSON = 'applib/objStorage_openstack.php';
+	var urlJSON = 'applib/objStorage.php';
 	var credential_data = '';
 	table = [];
 
@@ -57,7 +57,7 @@ $(document).ready(function () {
 
 
 		function fetchFiles(container) {
-			var urlJSON = 'applib/objStorage_openstack.php';
+			var urlJSON = 'applib/objStorage.php';
 			$.ajax({
 				type: 'POST',
 				url: urlJSON,
@@ -141,7 +141,7 @@ $(document).ready(function () {
 			$('#loading-datatable').show();
 			$.ajax({
 				type: 'POST',
-				url: 'applib/objStorage_openstack.php',
+				url: 'applib/objStorage.php',
 				data: {
 					action: 'downloadFile',
 					fileName: fileName,

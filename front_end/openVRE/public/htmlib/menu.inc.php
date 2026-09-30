@@ -179,6 +179,11 @@ $visualizers = getVisualizers_List();
 sort($visualizers);
 
 $datasets = [];
+if (getenv('INCLUDE_EXTERNAL_DATASETS') === 'true') {
+    $datasets = $GLOBALS['sitesCol']->find(
+        array('type' => 1)
+    )->toArray();
+}
 
 ?>
 
@@ -228,10 +233,28 @@ $datasets = [];
 						</li>
 						<?php if ($datasets): ?>
 							<li class="nav-item <?php if ($currentSubSection == 'rp') { ?>active open<?php } ?>">
-								<a href="javascript:;" class="nav-link nav-toggle ">
+								<a href="javascript:;" class="nav-link nav-toggle">
 									<span class="title">Data Archives</span>
-									<span class="arrow"></span>
+									<span class="arrow <?php if ($currentSubSection == 'rp') { ?>open<?php } ?>"></span>
 								</a>
+								<ul class="sub-menu">
+									<?php foreach ($datasets as $dataset): ?>
+										<li class="nav-item <?php
+											if ($currentSubSubSection == $dataset['_id']) {
+												?>active open<?php
+											}
+										?>">
+											<a
+												href="getdata/objStorage.php?site=<?php echo urlencode($dataset['_id']); ?>"
+												class="nav-link"
+											>
+												<span class="title">
+													<?php echo htmlspecialchars($dataset['name']); ?>
+												</span>
+											</a>
+										</li>
+									<?php endforeach; ?>
+								</ul>
 							</li>
 						<?php endif; ?>
 					</ul>

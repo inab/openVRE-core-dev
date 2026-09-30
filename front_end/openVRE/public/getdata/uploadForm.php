@@ -4,8 +4,6 @@ require_once __DIR__ . "/../../config/bootstrap.php";
 
 redirectOutside();
 $includeEgaFiles = getenv('INCLUDE_EGA_DATASETS') === 'true';
-
-
 ?>
 
 <?php require "../htmlib/header.inc.php"; ?>
@@ -36,6 +34,9 @@ $includeEgaFiles = getenv('INCLUDE_EGA_DATASETS') === 'true';
 						<li>
 							<span>Upload Files</span>
 						</li>
+						<li>
+                            <span>Data Archive</span>
+                        </li>
 					</ul>
 				</div>
 				<!-- END PAGE BAR -->
@@ -94,6 +95,7 @@ $includeEgaFiles = getenv('INCLUDE_EGA_DATASETS') === 'true';
 											<p> Just drag & drop your files over the area below or click it to open your browser ( maximum upload size is <strong><?php echo $GLOBALS['MAXSIZEUPLOAD']; ?>M</strong>) </p>
 											<form action="applib/getData.php" class="dropzone dropzone-file-area" id="my-dropzone" style="/*width: 500px;*/ font-size:24px; font-weight:600; margin: 10px 0;">
 												<input type="hidden" name="baseURL" id="base-url" value="<?php echo $GLOBALS['BASEURL']; ?>" />
+
 												<input type="hidden" name="uploadType" value="file" />
 											</form>
 										</div>
