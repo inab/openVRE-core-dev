@@ -138,7 +138,7 @@ final class AuthBffTest extends TestCase
      * @param array<string, mixed> $session
      * @return array{status: int, contentType: string, body: string}
      */
-    private function invokeAuthBff(AuthBff $authBff, array $server, array $session, string $body = ''): array
+    private function invokeAuthBff(AuthBff $authBff, array $server, array &$session, string $body = ''): array
     {
         return $authBff->handle($server, $session, $body);
     }
