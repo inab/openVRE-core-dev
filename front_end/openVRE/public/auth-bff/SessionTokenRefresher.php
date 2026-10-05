@@ -38,7 +38,12 @@ final class SessionTokenRefresher implements SessionTokenRefresherInterface
         }
 
         $fresh = $this->oidcAccessToken($server);
-        if ($fresh === null || $fresh === $existing) {
+        if ($fresh === null) {
+            return false;
+        }
+
+        $oidcExpires = (int) ($server['OIDC_access_token_expires'] ?? 0);
+        if ($oidcExpires <= time()) {
             return false;
         }
 
