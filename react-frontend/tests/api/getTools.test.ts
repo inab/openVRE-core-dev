@@ -44,4 +44,10 @@ describe('getTools', () => {
 
     await expect(getTools()).rejects.toThrow('Failed to load tools: 502');
   });
+
+  it('throws AuthBffUnauthorizedError on 401', async () => {
+    stubJson({ code: 'UNAUTHORIZED' }, 401);
+
+    await expect(getTools()).rejects.toThrow('AuthBff unauthorized (401)');
+  });
 });

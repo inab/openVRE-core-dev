@@ -177,9 +177,25 @@ cd react-frontend
 npm test
 ```
 
-`getUserFiles` and `getTools` always `fetch` `/auth-bff/files` and `/auth-bff/tools`; tests stub `fetch`. For a local UI demo before the live files API exists, set `REACT_ISLAND_USE_FIXTURES=1` and recreate/restart `front_end` so compose picks up the env. AuthBff serves fixture data from `REACT_ISLAND_FIXTURES_PATH` (default: bind-mounted `src/fixtures/workspaceFixtures.json`). GET `/auth-bff/tools` always uses the `tools` section of that file. Add new cases under `tests/**/*.test.ts`.
+`getUserFiles` and `getTools` always go through `authBffFetch` to `/auth-bff/files` and `/auth-bff/tools`; tests stub `fetch`. For a local UI demo before the live files API exists, set `REACT_ISLAND_USE_FIXTURES=1` and recreate/restart `front_end` so compose picks up the env. AuthBff serves fixture data from `REACT_ISLAND_FIXTURES_PATH` (default: bind-mounted `src/fixtures/workspaceFixtures.json`). GET `/auth-bff/tools` always uses the `tools` section of that file. Add new cases under `tests/**/*.test.ts`.
 
 `npm run check` runs lint, format, TypeScript, and the same tests.
+
+## AuthBff client (`authBffFetch`)
+
+Islands must call `/auth-bff/*` via `src/api/authBffFetch.ts` (not raw `fetch`). It:
+
+- sends the PHP session cookie (`credentials: 'same-origin'`)
+- on **401**, reloads the HTML page once so Apache/OIDC can recover the JWT
+- on a second **401**, throws `AuthBffUnauthorizedError` (React Query must not retry that)
+
+It does **not** write the PHP session from React.
+
+### When AuthBff is removed
+
+`authBffFetch` is AuthBff-specific. When islands talk to `/api/v1` (or another API) directly, remove or rename this helper and its `/auth-bff/*` callers. Keep a single shared fetch wrapper if you still want global 401 handling — point it at the new auth model (e.g. Bearer/OIDC), not at AuthBff.
+
+See [AuthBff just-in-time token refresh](docs/auth-bff-token-refresh.md) for the full token-refresh design.
 
 ## Related documentation
 

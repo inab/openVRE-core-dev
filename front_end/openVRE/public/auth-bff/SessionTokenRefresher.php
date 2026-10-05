@@ -29,7 +29,7 @@ final class SessionTokenRefresher implements SessionTokenRefresherInterface
     {
         $existing = $this->existingTokenFromSession($session);
         if ($existing === null) {
-            return false;
+            return $this->adoptOidcToken($session, $server);
         }
 
         $userToken = $session['userToken'];
@@ -37,17 +37,26 @@ final class SessionTokenRefresher implements SessionTokenRefresherInterface
             return true;
         }
 
+        return $this->adoptOidcToken($session, $server);
+    }
+
+    /**
+     * @param array<string, mixed> $session
+     * @param array<string, mixed> $server
+     */
+    private function adoptOidcToken(array &$session, array $server): bool
+    {
         $fresh = $this->oidcAccessToken($server);
         if ($fresh === null) {
             return false;
         }
 
-        $oidcExpires = (int) ($server['OIDC_access_token_expires'] ?? 0);
+        $oidcExpires = $this->oidcExpiry($server, $fresh);
         if ($oidcExpires <= time()) {
             return false;
         }
 
-        $session['userToken'] = $this->buildAccessToken($fresh, $server);
+        $session['userToken'] = $this->buildAccessToken($fresh, $oidcExpires);
 
         return true;
     }
@@ -82,22 +91,73 @@ final class SessionTokenRefresher implements SessionTokenRefresherInterface
     /**
      * @param array<string, mixed> $server
      */
-    private function buildAccessToken(string $accessToken, array $server): AccessToken
+    private function oidcExpiry(array $server, string $accessToken): int
+    {
+        $fromHeader = (int) ($server['OIDC_access_token_expires'] ?? 0);
+        if ($fromHeader > 0) {
+            return $fromHeader;
+        }
+
+        return $this->jwtExp($accessToken) ?? 0;
+    }
+
+    private function buildAccessToken(string $accessToken, int $expires): AccessToken
     {
         return new AccessToken([
             'access_token' => $accessToken,
-            'expires' => (int) ($server['OIDC_access_token_expires'] ?? 0),
+            'expires' => $expires,
         ]);
     }
 
     private function tokenHasExpired(object $userToken): bool
     {
-        if (!method_exists($userToken, 'getExpires')) {
+        if (method_exists($userToken, 'getExpires')) {
+            $expires = $userToken->getExpires();
+            if ($expires !== null && $expires <= time()) {
+                return true;
+            }
+        }
+
+        if (!method_exists($userToken, 'getToken')) {
             return false;
         }
 
-        $expires = $userToken->getExpires();
+        $token = $userToken->getToken();
+        if (!is_string($token) || $token === '') {
+            return false;
+        }
 
-        return $expires !== null && $expires <= time();
+        $jwtExp = $this->jwtExp($token);
+
+        return $jwtExp !== null && $jwtExp <= time();
+    }
+
+    /**
+     * Best-effort JWT exp claim (unverified) when OIDC expiry headers are missing.
+     */
+    private function jwtExp(string $jwt): ?int
+    {
+        $parts = explode('.', $jwt);
+        if (count($parts) < 2) {
+            return null;
+        }
+
+        $payload = $parts[1];
+        $pad = strlen($payload) % 4;
+        if ($pad > 0) {
+            $payload .= str_repeat('=', 4 - $pad);
+        }
+
+        $json = base64_decode(strtr($payload, '-_', '+/'), true);
+        if ($json === false) {
+            return null;
+        }
+
+        $claims = json_decode($json, true);
+        if (!is_array($claims) || !isset($claims['exp']) || !is_numeric($claims['exp'])) {
+            return null;
+        }
+
+        return (int) $claims['exp'];
     }
 }

@@ -36,8 +36,8 @@ export const WorkspaceFileTable = () => {
     WORKSPACE_ROOT_PAGE_SIZE,
   );
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
-  const toolsQuery = useToolsQuery();
   const filesQuery = useFilesQuery();
+  const toolsQuery = useToolsQuery({ enabled: filesQuery.isSuccess });
   const tools = toolsQuery.data?.tools ?? [];
   const allFiles = filesQuery.data?.files ?? [];
   const selectedTool = useMemo(

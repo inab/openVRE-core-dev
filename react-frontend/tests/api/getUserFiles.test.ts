@@ -234,9 +234,7 @@ describe('getUserFiles (fetch stubs)', () => {
       401,
     );
 
-    await expect(getUserFiles({})).rejects.toThrow(
-      'Failed to load files: 401',
-    );
+    await expect(getUserFiles({})).rejects.toThrow('AuthBff unauthorized (401)');
 
     expect(fetchMock).toHaveBeenCalledOnce();
     const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];

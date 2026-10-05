@@ -1,4 +1,5 @@
 import type { ApiFileItem } from '../types/ApiFileItem';
+import { authBffFetch } from './authBffFetch';
 
 export interface GetUserFilesResponse {
   userId: string;
@@ -64,13 +65,12 @@ export function userFilesUrl(params: GetUserFilesParams = {}): string {
  * Loads the user's files from GET /auth-bff/files.
  *
  * Omit `limit`/`offset` for the full list. Pass either to page on the server.
+ * Auth (401 reload) is handled by {@link authBffFetch}.
  */
 export async function getUserFiles(
   params: GetUserFilesParams = {},
 ): Promise<GetUserFilesResponse> {
-  const response = await fetch(userFilesUrl(params), {
-    credentials: 'same-origin',
-  });
+  const response = await authBffFetch(userFilesUrl(params));
   if (!response.ok) {
     throw new Error(`Failed to load files: ${response.status}`);
   }
