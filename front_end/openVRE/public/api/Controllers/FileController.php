@@ -8,6 +8,7 @@ use OpenApi\Attributes as OA;
 use OpenVREAPI\Services\FileService;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use RuntimeException;
 
 /**
  * Handles all file-related endpoints under /files.
@@ -26,6 +27,10 @@ final class FileController
     private const MAX_LIMIT = 200;
 
     private const MAX_Q_LENGTH = 200;
+
+    public function __construct(private readonly ?FileService $fileService = null)
+    {
+    }
 
     #[OA\Get(
         path: '/files',
@@ -56,12 +61,12 @@ final class FileController
         responses: [
             new OA\Response(
                 response: 200,
-                description: 'List of files and directories belonging to the user. Without `limit`/`offset`, returns the full list sorted by path. With either param, applies skip/limit after sorting by path.',
+                description: 'Files and directories in the caller\'s active project (users.activeProject), excluding the project root folder. Without `limit`/`offset`, returns the full project list sorted by path. With either param, applies skip/limit after sorting by path.',
                 content: new OA\JsonContent(ref: '#/components/schemas/GetUserFilesResponse')
             ),
             new OA\Response(response: 401, description: 'Missing or malformed Authorization header', content: new OA\JsonContent(ref: '#/components/schemas/Error')),
             new OA\Response(response: 403, description: 'Token present but invalid or expired', content: new OA\JsonContent(ref: '#/components/schemas/Error')),
-            new OA\Response(response: 404, description: 'User not found', content: new OA\JsonContent(ref: '#/components/schemas/Error')),
+            new OA\Response(response: 404, description: 'User or active project not found', content: new OA\JsonContent(ref: '#/components/schemas/Error')),
         ]
     )]
     public function list(Request $request, Response $response, array $args): Response
@@ -72,13 +77,20 @@ final class FileController
         $q = $this->searchQuery($queryParams);
 
         try {
-            $fileService = new FileService();
-            $result = $fileService->findPaginatedByUserId(
+            $result = $this->fileService()->findByUserId(
                 $userId,
                 $paging['offset'] ?? null,
                 $paging['limit'] ?? null,
                 $q,
             );
+        } catch (RuntimeException $e) {
+            if ($e->getCode() === 404) {
+                $message = $e->getMessage() !== '' ? $e->getMessage() : 'User not found';
+
+                return $this->jsonError($response, 404, 'NOT_FOUND', $message);
+            }
+
+            return $this->jsonError($response, 500, 'DATABASE_ERROR', 'Failed to fetch files: ' . $e->getMessage());
         } catch (\Throwable $e) {
             return $this->jsonError($response, 500, 'DATABASE_ERROR', 'Failed to fetch files: ' . $e->getMessage());
         }
@@ -288,6 +300,11 @@ final class FileController
         }
 
         return $q;
+    }
+
+    private function fileService(): FileService
+    {
+        return $this->fileService ?? new FileService();
     }
 
     private function notImplemented(Response $response, string $operationId): Response

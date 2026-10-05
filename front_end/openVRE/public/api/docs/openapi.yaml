@@ -39,7 +39,7 @@ paths:
             maxLength: 200
       responses:
         '200':
-          description: 'List of files and directories belonging to the user. Without `limit`/`offset`, returns the full list sorted by path. With either param, applies skip/limit after sorting by path.'
+          description: "Files and directories in the caller's active project (users.activeProject), excluding the project root folder. Without `limit`/`offset`, returns the full project list sorted by path. With either param, applies skip/limit after sorting by path."
           content:
             application/json:
               schema:
@@ -57,7 +57,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
         '404':
-          description: 'User not found'
+          description: 'User or active project not found'
           content:
             application/json:
               schema:
@@ -356,6 +356,19 @@ components:
         path:
           description: "Current path of the file within the user's storage"
           type: string
+        parentId:
+          description: 'Unique identifier of the parent directory'
+          type: string
+        kind:
+          description: 'Tag for a subtype of file/folder'
+          type: string
+          enum:
+            - file
+            - file_unvalidated
+            - folder
+            - folder_empty
+            - folder_uploads
+            - folder_repository
       type: object
     GetUserFilesResponse:
       required:

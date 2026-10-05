@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Test\Api;
 
 use OpenVREAPI\Controllers\FileController;
+use OpenVREAPI\Services\FileService;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -70,47 +71,39 @@ final class FakeFilesCol
     }
 }
 
+final class FakeFilesMetadataCol
+{
+    public function find(array $filter, array $options = []): FakeFilesCursor
+    {
+        return new FakeFilesCursor([]);
+    }
+}
+
 final class FileControllerTest extends TestCase
 {
-    private mixed $previousUsersCol;
+    private const DEFAULT_PROJECTION = [
+        '_id' => 1,
+        'files' => 1,
+        'mtime' => 1,
+        'parentDir' => 1,
+        'path' => 1,
+        'project' => 1,
+        'size' => 1,
+        'type' => 1,
+    ];
 
-    private mixed $previousFilesCol;
+    private const OWNER_ID = 'internal-user';
 
-    private bool $hadUsersCol;
+    private const ACTIVE_PROJECT = '__PROJ1';
 
-    private bool $hadFilesCol;
-
-    protected function setUp(): void
-    {
-        $this->hadUsersCol = array_key_exists('usersCol', $GLOBALS);
-        $this->hadFilesCol = array_key_exists('filesCol', $GLOBALS);
-        $this->previousUsersCol = $GLOBALS['usersCol'] ?? null;
-        $this->previousFilesCol = $GLOBALS['filesCol'] ?? null;
-    }
-
-    protected function tearDown(): void
-    {
-        if ($this->hadUsersCol) {
-            $GLOBALS['usersCol'] = $this->previousUsersCol;
-        } else {
-            unset($GLOBALS['usersCol']);
-        }
-
-        if ($this->hadFilesCol) {
-            $GLOBALS['filesCol'] = $this->previousFilesCol;
-        } else {
-            unset($GLOBALS['filesCol']);
-        }
-    }
+    private const DATA_DIR = 'project-folder-id';
 
     public function testListReturnsNotFoundWhenUserIsMissing(): void
     {
         $usersCol = new FakeUsersCol(null);
         $filesCol = new FakeFilesCol(0, []);
-        $GLOBALS['usersCol'] = $usersCol;
-        $GLOBALS['filesCol'] = $filesCol;
 
-        $response = (new FileController())->list(
+        $response = $this->controller($usersCol, $filesCol)->list(
             $this->request('user@example.com'),
             new Response(),
             [],
@@ -134,10 +127,8 @@ final class FileControllerTest extends TestCase
     {
         $usersCol = new FakeUsersCol([]);
         $filesCol = new FakeFilesCol(0, []);
-        $GLOBALS['usersCol'] = $usersCol;
-        $GLOBALS['filesCol'] = $filesCol;
 
-        $response = (new FileController())->list(
+        $response = $this->controller($usersCol, $filesCol)->list(
             $this->request('user@example.com'),
             new Response(),
             [],
@@ -157,91 +148,107 @@ final class FileControllerTest extends TestCase
         );
     }
 
+    public function testListReturnsNotFoundWhenUserHasNoActiveProject(): void
+    {
+        $usersCol = new FakeUsersCol(['id' => self::OWNER_ID, 'dataDir' => self::DATA_DIR]);
+        $filesCol = new FakeFilesCol(0, []);
+
+        $response = $this->controller($usersCol, $filesCol)->list(
+            $this->request('user@example.com'),
+            new Response(),
+            [],
+        );
+
+        $this->assertSame(404, $response->getStatusCode());
+        $this->assertNull($filesCol->lastCountFilter);
+        $this->assertNull($filesCol->lastFindFilter);
+        $this->assertSame(
+            [
+                'code' => 'NOT_FOUND',
+                'status' => 404,
+                'message' => 'Active project not found',
+            ],
+            $this->json($response),
+        );
+    }
+
     public function testListReturnsFullListWhenPagingParamsAreOmitted(): void
     {
         $page = [
-            ['path' => 'a.txt', 'type' => 'file', 'size' => 12],
-            ['path' => 'b.txt', 'type' => 'file', 'size' => 4],
+            ['_id' => 'f1', 'path' => 'a.txt', 'type' => 'file', 'size' => 12],
+            ['_id' => 'f2', 'path' => 'b.txt', 'type' => 'file', 'size' => 4],
         ];
         $filesCol = new FakeFilesCol(2, $page);
-        $GLOBALS['usersCol'] = new FakeUsersCol(['id' => 'internal-user']);
-        $GLOBALS['filesCol'] = $filesCol;
 
-        $response = (new FileController())->list(
+        $response = $this->controller($this->userCol(), $filesCol)->list(
             $this->request('user@example.com'),
             new Response(),
             [],
         );
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(['owner' => 'internal-user'], $filesCol->lastCountFilter);
-        $this->assertSame(['owner' => 'internal-user'], $filesCol->lastFindFilter);
+        $this->assertSame($this->projectFilter(), $filesCol->lastCountFilter);
+        $this->assertSame($this->projectFilter(), $filesCol->lastFindFilter);
         $this->assertSame(
             [
-                'projection' => ['atime' => 1, 'files' => 1, 'path' => 1, 'size' => 1, 'type' => 1],
+                'projection' => self::DEFAULT_PROJECTION,
                 'sort' => ['path' => 1],
             ],
             $filesCol->lastFindOptions,
         );
         $this->assertArrayNotHasKey('skip', $filesCol->lastFindOptions);
         $this->assertArrayNotHasKey('limit', $filesCol->lastFindOptions);
-        $this->assertSame(
-            [
-                'userId' => 'user@example.com',
-                'offset' => 0,
-                'limit' => 2,
-                'total' => 2,
-                'files' => $page,
-            ],
-            $this->json($response),
-        );
+
+        $body = $this->json($response);
+        $this->assertSame('user@example.com', $body['userId']);
+        $this->assertSame(0, $body['offset']);
+        $this->assertSame(2, $body['limit']);
+        $this->assertSame(2, $body['total']);
+        $this->assertCount(2, $body['files']);
+        $this->assertSame('f1', $body['files'][0]['fileId']);
+        $this->assertSame('a.txt', $body['files'][0]['filename']);
+        $this->assertSame('f2', $body['files'][1]['fileId']);
+        $this->assertSame('b.txt', $body['files'][1]['filename']);
     }
 
     public function testListAppliesPaginationAndReturnsTotal(): void
     {
-        $page = [['path' => 'a.txt', 'type' => 'file', 'size' => 12]];
-        $usersCol = new FakeUsersCol(['id' => 'internal-user']);
+        $page = [['_id' => 'f1', 'path' => 'a.txt', 'type' => 'file', 'size' => 12]];
         $filesCol = new FakeFilesCol(3, $page);
-        $GLOBALS['usersCol'] = $usersCol;
-        $GLOBALS['filesCol'] = $filesCol;
 
-        $response = (new FileController())->list(
+        $response = $this->controller($this->userCol(), $filesCol)->list(
             $this->request('user@example.com', ['offset' => '50', 'limit' => '25']),
             new Response(),
             [],
         );
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(['owner' => 'internal-user'], $filesCol->lastCountFilter);
-        $this->assertSame(['owner' => 'internal-user'], $filesCol->lastFindFilter);
+        $this->assertSame($this->projectFilter(), $filesCol->lastCountFilter);
+        $this->assertSame($this->projectFilter(), $filesCol->lastFindFilter);
         $this->assertSame(
             [
-                'projection' => ['atime' => 1, 'files' => 1, 'path' => 1, 'size' => 1, 'type' => 1],
+                'projection' => self::DEFAULT_PROJECTION,
                 'sort' => ['path' => 1],
                 'skip' => 50,
                 'limit' => 25,
             ],
             $filesCol->lastFindOptions,
         );
-        $this->assertSame(
-            [
-                'userId' => 'user@example.com',
-                'offset' => 50,
-                'limit' => 25,
-                'total' => 3,
-                'files' => $page,
-            ],
-            $this->json($response),
-        );
+
+        $body = $this->json($response);
+        $this->assertSame('user@example.com', $body['userId']);
+        $this->assertSame(50, $body['offset']);
+        $this->assertSame(25, $body['limit']);
+        $this->assertSame(3, $body['total']);
+        $this->assertCount(1, $body['files']);
+        $this->assertSame('f1', $body['files'][0]['fileId']);
     }
 
     public function testListUsesDefaultLimitWhenOnlyOffsetIsProvided(): void
     {
         $filesCol = new FakeFilesCol(0, []);
-        $GLOBALS['usersCol'] = new FakeUsersCol(['id' => 'internal-user']);
-        $GLOBALS['filesCol'] = $filesCol;
 
-        $response = (new FileController())->list(
+        $response = $this->controller($this->userCol(), $filesCol)->list(
             $this->request('user@example.com', ['offset' => '10']),
             new Response(),
             [],
@@ -257,10 +264,8 @@ final class FileControllerTest extends TestCase
     public function testListUsesDefaultOffsetWhenOnlyLimitIsProvided(): void
     {
         $filesCol = new FakeFilesCol(0, []);
-        $GLOBALS['usersCol'] = new FakeUsersCol(['id' => 'internal-user']);
-        $GLOBALS['filesCol'] = $filesCol;
 
-        $response = (new FileController())->list(
+        $response = $this->controller($this->userCol(), $filesCol)->list(
             $this->request('user@example.com', ['limit' => '25']),
             new Response(),
             [],
@@ -276,10 +281,8 @@ final class FileControllerTest extends TestCase
     public function testListCapsLimitAtMaximum(): void
     {
         $filesCol = new FakeFilesCol(0, []);
-        $GLOBALS['usersCol'] = new FakeUsersCol(['id' => 'internal-user']);
-        $GLOBALS['filesCol'] = $filesCol;
 
-        $response = (new FileController())->list(
+        $response = $this->controller($this->userCol(), $filesCol)->list(
             $this->request('user@example.com', ['limit' => '1000000']),
             new Response(),
             [],
@@ -293,12 +296,10 @@ final class FileControllerTest extends TestCase
 
     public function testListAppliesPathSearchBeforePagination(): void
     {
-        $page = [['path' => 'uploads/readme.txt', 'type' => 'file', 'size' => 4]];
+        $page = [['_id' => 'f1', 'path' => 'uploads/readme.txt', 'type' => 'file', 'size' => 4]];
         $filesCol = new FakeFilesCol(1, $page);
-        $GLOBALS['usersCol'] = new FakeUsersCol(['id' => 'internal-user']);
-        $GLOBALS['filesCol'] = $filesCol;
 
-        $response = (new FileController())->list(
+        $response = $this->controller($this->userCol(), $filesCol)->list(
             $this->request('user@example.com', [
                 'offset' => '10',
                 'limit' => '25',
@@ -309,10 +310,15 @@ final class FileControllerTest extends TestCase
         );
 
         $expectedFilter = [
-            'owner' => 'internal-user',
-            'path' => [
-                '$regex' => preg_quote('readme.txt', '/'),
-                '$options' => 'i',
+            'owner' => self::OWNER_ID,
+            'project' => self::ACTIVE_PROJECT,
+            '_id' => ['$ne' => self::DATA_DIR],
+            '$and' => [
+                ['path' => ['$ne' => self::OWNER_ID]],
+                ['path' => [
+                    '$regex' => preg_quote('readme.txt', '/'),
+                    '$options' => 'i',
+                ]],
             ],
         ];
 
@@ -321,33 +327,28 @@ final class FileControllerTest extends TestCase
         $this->assertSame($expectedFilter, $filesCol->lastFindFilter);
         $this->assertSame(10, $filesCol->lastFindOptions['skip']);
         $this->assertSame(25, $filesCol->lastFindOptions['limit']);
-        $this->assertSame(
-            [
-                'userId' => 'user@example.com',
-                'offset' => 10,
-                'limit' => 25,
-                'total' => 1,
-                'files' => $page,
-            ],
-            $this->json($response),
-        );
+
+        $body = $this->json($response);
+        $this->assertSame(10, $body['offset']);
+        $this->assertSame(25, $body['limit']);
+        $this->assertSame(1, $body['total']);
+        $this->assertSame('f1', $body['files'][0]['fileId']);
+        $this->assertSame('readme.txt', $body['files'][0]['filename']);
     }
 
     public function testListIgnoresEmptyOrWhitespaceSearch(): void
     {
         $filesCol = new FakeFilesCol(0, []);
-        $GLOBALS['usersCol'] = new FakeUsersCol(['id' => 'internal-user']);
-        $GLOBALS['filesCol'] = $filesCol;
 
-        $response = (new FileController())->list(
+        $response = $this->controller($this->userCol(), $filesCol)->list(
             $this->request('user@example.com', ['q' => "  \t  "]),
             new Response(),
             [],
         );
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(['owner' => 'internal-user'], $filesCol->lastCountFilter);
-        $this->assertSame(['owner' => 'internal-user'], $filesCol->lastFindFilter);
+        $this->assertSame($this->projectFilter(), $filesCol->lastCountFilter);
+        $this->assertSame($this->projectFilter(), $filesCol->lastFindFilter);
         $this->assertArrayNotHasKey('skip', $filesCol->lastFindOptions);
         $this->assertArrayNotHasKey('limit', $filesCol->lastFindOptions);
     }
@@ -355,46 +356,100 @@ final class FileControllerTest extends TestCase
     public function testListIgnoresNonStringSearch(): void
     {
         $filesCol = new FakeFilesCol(0, []);
-        $GLOBALS['usersCol'] = new FakeUsersCol(['id' => 'internal-user']);
-        $GLOBALS['filesCol'] = $filesCol;
 
-        $response = (new FileController())->list(
+        $response = $this->controller($this->userCol(), $filesCol)->list(
             $this->request('user@example.com', ['q' => ['readme.txt']]),
             new Response(),
             [],
         );
 
         $this->assertSame(200, $response->getStatusCode());
-        $this->assertSame(['owner' => 'internal-user'], $filesCol->lastCountFilter);
-        $this->assertSame(['owner' => 'internal-user'], $filesCol->lastFindFilter);
+        $this->assertSame($this->projectFilter(), $filesCol->lastCountFilter);
+        $this->assertSame($this->projectFilter(), $filesCol->lastFindFilter);
     }
 
     public function testListTruncatesLongSearch(): void
     {
         $filesCol = new FakeFilesCol(0, []);
-        $GLOBALS['usersCol'] = new FakeUsersCol(['id' => 'internal-user']);
-        $GLOBALS['filesCol'] = $filesCol;
 
         $q = str_repeat('a', 250);
         $truncated = str_repeat('a', 200);
 
-        $response = (new FileController())->list(
+        $response = $this->controller($this->userCol(), $filesCol)->list(
             $this->request('user@example.com', ['q' => $q]),
             new Response(),
             [],
         );
 
         $expectedFilter = [
-            'owner' => 'internal-user',
-            'path' => [
-                '$regex' => preg_quote($truncated, '/'),
-                '$options' => 'i',
+            'owner' => self::OWNER_ID,
+            'project' => self::ACTIVE_PROJECT,
+            '_id' => ['$ne' => self::DATA_DIR],
+            '$and' => [
+                ['path' => ['$ne' => self::OWNER_ID]],
+                ['path' => [
+                    '$regex' => preg_quote($truncated, '/'),
+                    '$options' => 'i',
+                ]],
             ],
         ];
 
         $this->assertSame(200, $response->getStatusCode());
         $this->assertSame($expectedFilter, $filesCol->lastCountFilter);
         $this->assertSame($expectedFilter, $filesCol->lastFindFilter);
+    }
+
+    public function testListScopesToActiveProjectWithoutExcludingRootWhenDataDirMissing(): void
+    {
+        $filesCol = new FakeFilesCol(0, []);
+        $usersCol = new FakeUsersCol([
+            'id' => self::OWNER_ID,
+            'activeProject' => self::ACTIVE_PROJECT,
+        ]);
+
+        $response = $this->controller($usersCol, $filesCol)->list(
+            $this->request('user@example.com'),
+            new Response(),
+            [],
+        );
+
+        $expectedFilter = [
+            'owner' => self::OWNER_ID,
+            'project' => self::ACTIVE_PROJECT,
+            'path' => ['$ne' => self::OWNER_ID],
+        ];
+
+        $this->assertSame(200, $response->getStatusCode());
+        $this->assertSame($expectedFilter, $filesCol->lastCountFilter);
+        $this->assertSame($expectedFilter, $filesCol->lastFindFilter);
+    }
+
+    private function controller(FakeUsersCol $usersCol, FakeFilesCol $filesCol): FileController
+    {
+        return new FileController(new FileService($filesCol, new FakeFilesMetadataCol(), $usersCol));
+    }
+
+    private function userCol(): FakeUsersCol
+    {
+        return new FakeUsersCol([
+            'id' => self::OWNER_ID,
+            'activeProject' => self::ACTIVE_PROJECT,
+            'dataDir' => self::DATA_DIR,
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $extra
+     * @return array<string, mixed>
+     */
+    private function projectFilter(array $extra = []): array
+    {
+        return array_merge([
+            'owner' => self::OWNER_ID,
+            'project' => self::ACTIVE_PROJECT,
+            'path' => ['$ne' => self::OWNER_ID],
+            '_id' => ['$ne' => self::DATA_DIR],
+        ], $extra);
     }
 
     /**

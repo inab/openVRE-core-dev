@@ -5,55 +5,107 @@ declare(strict_types=1);
 namespace OpenVREAPI\Services;
 
 use MongoDB\Client as MongoClient;
-use MongoDB\Collection;
 use OpenVREAPI\Mappers\FileMapper;
 use OpenVREAPI\OpenApi\Schemas\FileDto;
+use RuntimeException;
 
 final class FileService
 {
-    private ?MongoClient $mongoClient = null;
-    private Collection $filesCollection;
-    private Collection $filesMetadataCollection;
-    private Collection $usersCollection;
+    private object $filesCollection;
+    private object $filesMetadataCollection;
+    private object $usersCollection;
 
+    public function __construct(
+        ?object $filesCollection = null,
+        ?object $filesMetadataCollection = null,
+        ?object $usersCollection = null,
+    ) {
+        if ($filesCollection !== null && $filesMetadataCollection !== null && $usersCollection !== null) {
+            $this->filesCollection = $filesCollection;
+            $this->filesMetadataCollection = $filesMetadataCollection;
+            $this->usersCollection = $usersCollection;
 
-    public function __construct()
-    {
-        $connectionUri = "mongodb://" . getenv('MONGO_CREDENTIALS') . "@" . getenv('MONGO_SERVER') . "/?authSource=" . getenv('MONGO_MAIN_DB');
+            return;
+        }
 
-        $this->mongoClient = new MongoClient($connectionUri, array(
-            'readConcernLevel' => 'local'
-        ), array(
-            'typeMap' => array(
-                'root'     => 'array',
+        $connectionUri = 'mongodb://' . getenv('MONGO_CREDENTIALS') . '@' . getenv('MONGO_SERVER') . '/?authSource=' . getenv('MONGO_MAIN_DB');
+
+        $mongoClient = new MongoClient($connectionUri, [
+            'readConcernLevel' => 'local',
+        ], [
+            'typeMap' => [
+                'root' => 'array',
                 'document' => 'array',
-                'array'    => 'array'
-            )
-        ));
+                'array' => 'array',
+            ],
+        ]);
 
-        $this->filesCollection = $this->mongoClient->selectDatabase(getenv('MONGO_MAIN_DB'))->selectCollection('files');
-        $this->filesMetadataCollection = $this->mongoClient->selectDatabase(getenv('MONGO_MAIN_DB'))->selectCollection('filesMetadata');
-        $this->usersCollection = $this->mongoClient->selectDatabase(getenv('MONGO_MAIN_DB'))->selectCollection('users');
+        $database = $mongoClient->selectDatabase(getenv('MONGO_MAIN_DB'));
+        $this->filesCollection = $filesCollection ?? $database->selectCollection('files');
+        $this->filesMetadataCollection = $filesMetadataCollection ?? $database->selectCollection('filesMetadata');
+        $this->usersCollection = $usersCollection ?? $database->selectCollection('users');
     }
 
-
     /**
-     * @return array{files: FileDto[], total: int}
+     * Lists files for the caller's active project
+     *
+     * @return array{files: list<FileDto>, total: int}
+     * @throws RuntimeException when the user document is missing, has no owner id, or has no active project
      */
-    public function findPaginatedByUserId(string $userId, ?int $offset = null, ?int $limit = null, string $q = ''): array
+    public function findByUserId(string $userId, ?int $offset = null, ?int $limit = null, string $q = ''): array
     {
-        $userDoc = $this->usersCollection->findOne(['_id' => $userId], ['projection' => ['id' => 1]]);
-        $filter = ['owner' => $userDoc['id']];
+        $userDoc = $this->usersCollection->findOne(
+            ['_id' => $userId],
+            ['projection' => ['id' => 1, 'activeProject' => 1, 'dataDir' => 1]],
+        );
+        if ($userDoc === null) {
+            throw new RuntimeException('User not found', 404);
+        }
+
+        $ownerId = $userDoc['id'] ?? null;
+        if ($ownerId === null || $ownerId === '') {
+            throw new RuntimeException('User not found', 404);
+        }
+
+        $activeProject = $userDoc['activeProject'] ?? null;
+        if (!is_string($activeProject) || $activeProject === '') {
+            throw new RuntimeException('Active project not found', 404);
+        }
+
+        $filter = [
+            'owner' => $ownerId,
+            'project' => $activeProject,
+            'path' => ['$ne' => $ownerId],
+        ];
+
+        $dataDir = $userDoc['dataDir'] ?? null;
+        if (is_string($dataDir) && $dataDir !== '') {
+            $filter['_id'] = ['$ne' => $dataDir];
+        }
+
         if ($q !== '') {
-            $filter['path'] = [
-                '$regex' => preg_quote($q, '/'),
-                '$options' => 'i',
+            unset($filter['path']);
+            $filter['$and'] = [
+                ['path' => ['$ne' => $ownerId]],
+                ['path' => [
+                    '$regex' => preg_quote($q, '/'),
+                    '$options' => 'i',
+                ]],
             ];
         }
 
         $total = $this->filesCollection->countDocuments($filter);
         $findOptions = [
-            'projection' => ['_id' => 1, 'files' => 1, 'mtime' => 1, 'parentDir' => 1, 'path' => 1, 'project' => 1, 'size' => 1, 'type' => 1],
+            'projection' => [
+                '_id' => 1,
+                'files' => 1,
+                'mtime' => 1,
+                'parentDir' => 1,
+                'path' => 1,
+                'project' => 1,
+                'size' => 1,
+                'type' => 1,
+            ],
             'sort' => ['path' => 1],
         ];
         if ($offset !== null) {
@@ -66,13 +118,16 @@ final class FileService
         $fileDocs = $this->filesCollection->find($filter, $findOptions)->toArray();
 
         $fileIds = array_column($fileDocs, '_id');
-        $filesMetadataDocs = $this->filesMetadataCollection->find(['_id' => ['$in' => $fileIds]], [
-            'projection' => ['data_type' => 1, 'description' => 1, 'format' => 1, 'validated' => 1]
-        ])->toArray();
+        $filesMetadataDocs = $fileIds === []
+            ? []
+            : $this->filesMetadataCollection->find(['_id' => ['$in' => $fileIds]], [
+                'projection' => ['data_type' => 1, 'description' => 1, 'format' => 1, 'validated' => 1],
+            ])->toArray();
         $metadataById = array_column($filesMetadataDocs, null, '_id');
 
         $files = array_map(function ($doc) use ($metadataById) {
             $merged = array_merge($doc, $metadataById[$doc['_id']] ?? []);
+
             return FileMapper::toFileItem($merged);
         }, $fileDocs);
 
@@ -80,5 +135,14 @@ final class FileService
             'files' => $files,
             'total' => $total,
         ];
+    }
+
+    /**
+     * @return list<FileDto>
+     * @deprecated Prefer findByUserId() which returns total and supports optional paging/q
+     */
+    public function findPaginatedByUserId(string $userId, int $offset, int $limit): array
+    {
+        return $this->findByUserId($userId, $offset, $limit)['files'];
     }
 }
