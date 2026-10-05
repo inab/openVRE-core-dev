@@ -51,7 +51,7 @@ describe('adaptFilesPage', () => {
     );
   });
 
-  it('puts uploads first among roots, then sorts the rest by name', () => {
+  it('puts uploads then repository before other roots sorted by name', () => {
     const files = [
       api({
         fileId: 'repo',
@@ -89,16 +89,17 @@ describe('adaptFilesPage', () => {
 
     expect(
       adaptFilesPage(orderWorkspaceFiles(files)).map((r) => r.filename),
-    ).toEqual(['uploads', 'alpha', 'repository', 'zebra']);
+    ).toEqual(['uploads', 'repository', 'alpha', 'zebra']);
   });
 
-  it('keeps uploads first on the workspace fixture roots', () => {
+  it('keeps uploads then repository first on the workspace fixture roots', () => {
     const rootNames = adaptFilesPage(
       orderWorkspaceFiles(workspaceFilesFixture.files),
     ).map((r) => r.filename);
     expect(rootNames[0]).toBe('uploads');
-    expect(rootNames.slice(1)).toEqual(
-      [...rootNames.slice(1)].sort((a, b) =>
+    expect(rootNames[1]).toBe('repository');
+    expect(rootNames.slice(2)).toEqual(
+      [...rootNames.slice(2)].sort((a, b) =>
         a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }),
       ),
     );
