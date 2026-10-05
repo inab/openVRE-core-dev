@@ -28,7 +28,7 @@ function api(
 }
 
 describe('orderWorkspaceFiles', () => {
-  it('puts uploads and its children before other roots, then sorts by name', () => {
+  it('puts uploads then repository before other roots; files by date asc', () => {
     const files = [
       api({
         fileId: 'zebra',
@@ -48,6 +48,14 @@ describe('orderWorkspaceFiles', () => {
         status: 'ready',
       }),
       api({
+        fileId: 'repository',
+        parentId: null,
+        filename: 'repository',
+        path: 'p/repository',
+        type: FILE_TYPES.dir,
+        kind: FILE_ITEM_KINDS.folder_repository,
+      }),
+      api({
         fileId: 'alpha',
         parentId: null,
         filename: 'alpha',
@@ -64,29 +72,32 @@ describe('orderWorkspaceFiles', () => {
         kind: FILE_ITEM_KINDS.folder_uploads,
       }),
       api({
-        fileId: 'up-b',
-        parentId: 'uploads',
-        filename: 'b.csv',
-        path: 'p/uploads/b.csv',
-        type: FILE_TYPES.file,
-        kind: FILE_ITEM_KINDS.file_unvalidated,
-        status: 'unvalidated',
-      }),
-      api({
-        fileId: 'up-a',
+        fileId: 'up-old',
         parentId: 'uploads',
         filename: 'a.csv',
         path: 'p/uploads/a.csv',
         type: FILE_TYPES.file,
         kind: FILE_ITEM_KINDS.file_unvalidated,
         status: 'unvalidated',
+        date: '2026-01-01T00:00:00.000+00:00',
+      }),
+      api({
+        fileId: 'up-new',
+        parentId: 'uploads',
+        filename: 'z.csv',
+        path: 'p/uploads/z.csv',
+        type: FILE_TYPES.file,
+        kind: FILE_ITEM_KINDS.file_unvalidated,
+        status: 'unvalidated',
+        date: '2026-09-01T00:00:00.000+00:00',
       }),
     ];
 
     expect(orderWorkspaceFiles(files).map((f) => f.fileId)).toEqual([
       'uploads',
-      'up-a',
-      'up-b',
+      'up-old',
+      'up-new',
+      'repository',
       'alpha',
       'zebra',
       'child-z',
