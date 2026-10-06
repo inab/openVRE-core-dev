@@ -122,7 +122,7 @@ export const WorkspaceRowName = ({
         {item.filename}
       </span>
       {showUnavailable ? <UnavailableIndicator /> : null}
-      {showUnvalidated && !showUnavailable ? <UnvalidatedIndicator /> : null}
+      {showUnvalidated ? <UnvalidatedIndicator /> : null}
     </div>
   );
 };
