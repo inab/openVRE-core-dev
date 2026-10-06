@@ -9,8 +9,8 @@ import type {
  * Flat list item from GET /files (no children on the wire).
  *
  * OpenAPI FileDto: identity + path + type + kind + parentId.
- * `status` / `actions` are optional — omit them and the UI shows neither a
- * status badge nor an actions menu.
+ * UI derives indicators and default actions from `kind`.
+ * Optional `actions` overrides the defaults; optional `status` is legacy/fixture-only.
  */
 export interface ApiFileItem {
   fileId: string;
