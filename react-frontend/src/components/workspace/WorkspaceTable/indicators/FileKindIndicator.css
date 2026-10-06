@@ -1,0 +1,8 @@
+.fileKindIndicator {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.fileKindIndicatorIcon {
+  color: var(--color-surface);
+}

@@ -132,6 +132,7 @@
 
 .workspaceTableRow[data-kind='folder'],
 .workspaceTableRow[data-kind='folder_empty'],
+.workspaceTableRow[data-kind='folder_unavailable'],
 .workspaceTableRow[data-kind='folder_uploads'],
 .workspaceTableRow[data-kind='folder_repository'] {
   color: var(--color-secondary);

@@ -6,8 +6,15 @@ import {
   FolderOpen,
 } from 'lucide-react';
 
-import { FILE_ITEM_KINDS } from '../../../../types/fileItemConstants';
+import {
+  FILE_ITEM_KINDS,
+  isUnavailableKind,
+  isUnvalidatedKind,
+} from '../../../../types/fileItemConstants';
 import type { FileItem } from '../../../../lib/workspace/FileItem';
+
+import { UnavailableIndicator } from '../indicators/UnavailableIndicator';
+import { UnvalidatedIndicator } from '../indicators/UnvalidatedIndicator';
 
 import './WorkspaceRow.css';
 
@@ -23,6 +30,7 @@ function isFolderKind(kind: FileItem['kind']): boolean {
   return (
     kind === FILE_ITEM_KINDS.folder ||
     kind === FILE_ITEM_KINDS.folder_empty ||
+    kind === FILE_ITEM_KINDS.folder_unavailable ||
     kind === FILE_ITEM_KINDS.folder_uploads ||
     kind === FILE_ITEM_KINDS.folder_repository
   );
@@ -74,6 +82,8 @@ export const WorkspaceRowName = ({
   const nameClass = isFolder
     ? 'workspaceRowName workspaceRowNameFolder'
     : 'workspaceRowName';
+  const showUnvalidated = isUnvalidatedKind(item.kind);
+  const showUnavailable = isUnavailableKind(item.kind);
 
   return (
     <div
@@ -121,9 +131,8 @@ export const WorkspaceRowName = ({
       >
         {item.filename}
       </span>
-      {item.status === 'unvalidated' ? (
-        <span className="workspaceRowBadge">Unvalidated</span>
-      ) : null}
+      {showUnavailable ? <UnavailableIndicator /> : null}
+      {showUnvalidated && !showUnavailable ? <UnvalidatedIndicator /> : null}
     </div>
   );
 };
