@@ -26,8 +26,17 @@ export const UNAVAILABLE_KINDS = [
   FILE_ITEM_KINDS.folder_unavailable,
 ] as const satisfies readonly FileItemKind[];
 
+export const FOLDER_KINDS = [
+  FILE_ITEM_KINDS.folder,
+  FILE_ITEM_KINDS.folder_empty,
+  FILE_ITEM_KINDS.folder_unavailable,
+  FILE_ITEM_KINDS.folder_uploads,
+  FILE_ITEM_KINDS.folder_repository,
+] as const satisfies readonly FileItemKind[];
+
 export type UnvalidatedKind = (typeof UNVALIDATED_KINDS)[number];
 export type UnavailableKind = (typeof UNAVAILABLE_KINDS)[number];
+export type FolderKind = (typeof FOLDER_KINDS)[number];
 
 export function isUnvalidatedKind(kind: FileItemKind): kind is UnvalidatedKind {
   return (UNVALIDATED_KINDS as readonly FileItemKind[]).includes(kind);
