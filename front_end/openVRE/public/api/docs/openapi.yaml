@@ -365,8 +365,10 @@ components:
           enum:
             - file
             - file_unvalidated
+            - file_unavailable
             - folder
             - folder_empty
+            - folder_unavailable
             - folder_uploads
             - folder_repository
       type: object

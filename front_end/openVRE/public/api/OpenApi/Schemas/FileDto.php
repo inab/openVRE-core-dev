@@ -46,7 +46,11 @@ final readonly class FileDto implements JsonSerializable
     #[OA\Property(description: 'Unique identifier of the parent directory', type: 'string')]
     public ?string $parentId;
 
-    #[OA\Property(description: 'Tag for a subtype of file/folder', type: 'string', enum: ['file', 'file_unvalidated', 'folder', 'folder_empty', 'folder_uploads', 'folder_repository'])]
+    #[OA\Property(
+        description: 'Tag for a subtype of file/folder',
+        type: 'string',
+        enum: ['file', 'file_unvalidated', 'file_unavailable', 'folder', 'folder_empty', 'folder_unavailable', 'folder_uploads', 'folder_repository']
+    )]
     public string $kind;
 
 
