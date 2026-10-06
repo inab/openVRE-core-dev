@@ -24,7 +24,8 @@ services:
   bao-server:
     container_name: bao-server
     hostname: bao-server
-    image: openbao/openbao:2.4.0
+    build:
+      context: ./openbao/
     environment:
       VAULT_ADDR: ${BAO_ADDR}
       BAO_DEV_ROOT_TOKEN_ID: ${BAO_DEV_ROOT_TOKEN_ID}
@@ -37,9 +38,10 @@ services:
       - ./openbao/bao-init.sh:/bao-init.sh
       - ./openbao/bao-config.sh:/bao-config.sh
       - ./openbao/data:/openbao/data
+      - ./openbao/bootstrap:/openbao/bootstrap
     cap_add:
       - IPC_LOCK
-    command: /bin/sh -c "bao server & sleep 30 && /bao-init.sh && wait"
+    command: /bin/sh -c "/bao-init.sh"
     networks:
       net_vre:
         ipv4_address: 172.21.0.18

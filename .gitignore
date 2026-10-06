@@ -6,8 +6,9 @@ shared_data
 tools/*
 !tools/mock_tool
 openbao/config/public-key.pem
-openbao/data/*
 openbao/config/jwt-user-policies.hcl
+openbao/data/*
+openbao/bootstrap/*
 vendor/
 guacamole/
 
