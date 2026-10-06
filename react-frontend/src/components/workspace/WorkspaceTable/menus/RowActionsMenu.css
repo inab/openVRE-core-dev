@@ -6,10 +6,10 @@
   color: var(--color-white);
   cursor: pointer;
   display: inline-flex;
-  gap: var(--space-xs);
-  height: var(--size-control-height);
+  gap: 2px;
+  height: var(--size-icon-sm);
   justify-content: center;
-  padding: 0 var(--space-sm);
+  padding: 0 var(--space-xs);
 }
 
 .rowActionsMenuTrigger:hover,

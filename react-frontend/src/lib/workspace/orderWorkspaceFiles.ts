@@ -27,11 +27,19 @@ function isDirectory(item: Pick<ApiFileItem, 'type'>): boolean {
   return item.type === FILE_TYPES.dir;
 }
 
-function topLevelRootRank(kind: ApiFileItem['kind']): number {
-  if (kind === FILE_ITEM_KINDS.folder_uploads) {
+function topLevelRootRank(
+  item: Pick<ApiFileItem, 'filename' | 'kind'>,
+): number {
+  if (
+    item.kind === FILE_ITEM_KINDS.folder_uploads ||
+    item.filename === 'uploads'
+  ) {
     return 0;
   }
-  if (kind === FILE_ITEM_KINDS.folder_repository) {
+  if (
+    item.kind === FILE_ITEM_KINDS.folder_repository ||
+    item.filename === 'repository'
+  ) {
     return 1;
   }
   return 2;
@@ -41,7 +49,7 @@ function compareTopLevelRoots(
   a: Pick<ApiFileItem, 'filename' | 'kind'>,
   b: Pick<ApiFileItem, 'filename' | 'kind'>,
 ): number {
-  const rankDiff = topLevelRootRank(a.kind) - topLevelRootRank(b.kind);
+  const rankDiff = topLevelRootRank(a) - topLevelRootRank(b);
   if (rankDiff !== 0) {
     return rankDiff;
   }
