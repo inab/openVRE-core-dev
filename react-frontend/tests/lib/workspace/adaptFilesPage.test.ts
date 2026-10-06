@@ -99,7 +99,7 @@ describe('adaptFilesPage', () => {
     expect(rootNames[0]).toBe('uploads');
     expect(rootNames[1]).toBe('repository');
     expect(rootNames.slice(2)).toEqual(
-      [...rootNames.slice(2)].sort((a, b) =>
+      rootNames.slice(2).toSorted((a, b) =>
         a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }),
       ),
     );

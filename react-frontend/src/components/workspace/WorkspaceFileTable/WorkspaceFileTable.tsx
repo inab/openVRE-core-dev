@@ -20,11 +20,16 @@ import {
   WORKSPACE_ROOT_PAGE_SIZE,
   type WorkspacePageSize,
 } from '../../../lib/workspace/pagination';
+import type { ApiFileItem } from '../../../types/ApiFileItem';
+import type { Tool } from '../../../types/Tool';
 import { WorkspaceTable } from '../WorkspaceTable/WorkspaceTable';
 import { FilterByTool } from './FilterByTool/FilterByTool';
 import { getToolParam, setToolParam } from './toolUrlParam';
 
 import './WorkspaceFileTable.css';
+
+const EMPTY_TOOLS: Tool[] = [];
+const EMPTY_FILES: ApiFileItem[] = [];
 
 export const WorkspaceFileTable = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,8 +43,8 @@ export const WorkspaceFileTable = () => {
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({});
   const filesQuery = useFilesQuery();
   const toolsQuery = useToolsQuery({ enabled: filesQuery.isSuccess });
-  const tools = toolsQuery.data?.tools ?? [];
-  const allFiles = filesQuery.data?.files ?? [];
+  const tools = toolsQuery.data?.tools ?? EMPTY_TOOLS;
+  const allFiles = filesQuery.data?.files ?? EMPTY_FILES;
   const selectedTool = useMemo(
     () => tools.find((tool) => tool.id === selectedToolId) ?? null,
     [tools, selectedToolId],
