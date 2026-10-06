@@ -8,7 +8,7 @@ import {
 } from 'react-aria-components';
 
 import type { FileItem } from '../../../../lib/workspace/FileItem';
-import { ACTIONS_BY_KIND } from '../../../../types/fileItemConstants';
+import { resolveFileItemActions } from '../../../../lib/workspace/fileItemKind';
 import { FILE_ITEM_ACTION_ICONS } from './fileActionIcons';
 import { FILE_ITEM_ACTION_LABELS, stubFileAction } from './fileActionLabels';
 
@@ -19,7 +19,7 @@ export interface RowActionsMenuProps {
 }
 
 export const RowActionsMenu = ({ item }: RowActionsMenuProps) => {
-  const actions = item.actions ?? ACTIONS_BY_KIND[item.kind];
+  const actions = resolveFileItemActions(item);
   if (actions.length === 0) {
     return null;
   }
