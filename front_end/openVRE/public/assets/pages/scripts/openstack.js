@@ -12,11 +12,18 @@ $(document).ready(function () {
 		const $btn = $(this);
 		$btn.prop("disabled", true);
 		$("#loading-datatable").show();
+		const payload = {
+			site: objectStorageSite,
+			action: 'getOpenstackUser'
+		};
+
+		console.log('Sending payload:', payload);
+		
 		$.ajax({
 			async: false,
 			type: 'GET',
 			url: urlJSON,
-			data: { 'action': 'getOpenstackUser' }
+			data: payload
 		}).done(function (data) {
 			$('#loading-datatable').hide();
 			if (data.error) {

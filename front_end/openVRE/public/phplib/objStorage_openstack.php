@@ -6,7 +6,7 @@ use OpenVRE\SwiftClient;
 use OpenVRE\VaultClientFactory;
 
 
-function getObjectStorageLogger()
+function getObjectStorageOpenstackLogger()
 {
 	static $logger = null;
 
@@ -52,9 +52,9 @@ function getContainers($swiftClient)
 function getContainerFiles($container, $swiftClient)
 {
 	if ($container !== null && $swiftClient !== null) {
-		getObjectStorageLogger()->debug("getContainerFiles - container: $container");
+		getObjectStorageOpenstackLogger()->debug("getContainerFiles - container: $container");
 		$containerList = $swiftClient->runListContainer($container);
-		getObjectStorageLogger()->debug("getContainerFiles - containerList: " . print_r($containerList, true));
+		getObjectStorageOpenstackLogger()->debug("getContainerFiles - containerList: " . print_r($containerList, true));
 		$containerList = json_encode($containerList);
 		if (json_last_error() !== JSON_ERROR_NONE) {
 			$error_message = json_last_error_msg();
@@ -75,14 +75,14 @@ function initiateFileDownload($swiftClient, $fileUrl, $container)
 	$wd = $dataDirPath . "/uploads";
 	$wdP = $GLOBALS['dataDir'] . "/" . $wd;
 	// Log paths for debugging
-	getObjectStorageLogger()->debug("Data directory path: $dataDirPath");
-	getObjectStorageLogger()->debug("Working directory (wd): $wd");
-	getObjectStorageLogger()->debug("Working directory path (wdP): $wdP");
-	getObjectStorageLogger()->debug("File URL: $fileUrl");
+	getObjectStorageOpenstackLogger()->debug("Data directory path: $dataDirPath");
+	getObjectStorageOpenstackLogger()->debug("Working directory (wd): $wd");
+	getObjectStorageOpenstackLogger()->debug("Working directory path (wdP): $wdP");
+	getObjectStorageOpenstackLogger()->debug("File URL: $fileUrl");
 
 	// Ensure the output directory exists
 	if (!is_dir($wdP) && !mkdir($wdP, 0775, true)) {
-		getObjectStorageLogger()->error("Failed to create working directory: $wdP.");
+		getObjectStorageOpenstackLogger()->error("Failed to create working directory: $wdP.");
 		throw new UnexpectedValueException("Failed to create working directory: $wdP");
 	}
 
@@ -95,13 +95,13 @@ function initiateFileDownload($swiftClient, $fileUrl, $container)
 	// Adjust fileUrl to remove any leading slashes if necessary
 	$fileUrl = ltrim($fileUrl, '/');
 	$downloadSuccess = $swiftClient->runDownloadFile($wdP . '/', $container, $fileUrl);
-	getObjectStorageLogger()->debug("Command output: $downloadSuccess");
+	getObjectStorageOpenstackLogger()->debug("Command output: $downloadSuccess");
 
-	getObjectStorageLogger()->debug("basename: $fileName");
-	getObjectStorageLogger()->debug("Full path: $fullPath");
+	getObjectStorageOpenstackLogger()->debug("basename: $fileName");
+	getObjectStorageOpenstackLogger()->debug("Full path: $fullPath");
 	if ($downloadSuccess) {
 		// Handle successful download
-		getObjectStorageLogger()->debug("File downloaded successfully to $fullPath");
+		getObjectStorageOpenstackLogger()->debug("File downloaded successfully to $fullPath");
 
 		chmod($fullPath, 0666);
 		$insertData = array(
@@ -118,15 +118,15 @@ function initiateFileDownload($swiftClient, $fileUrl, $container)
 
 		if ($fnId == "0") {
 			$errorMsg = "Error occurred while registering the downloaded file";
-			getObjectStorageLogger()->error($errorMsg);
+			getObjectStorageOpenstackLogger()->error($errorMsg);
 			return array('status' => 'error', 'message' => $errorMsg);
 		} else {
-			getObjectStorageLogger()->info("File registered successfully with ID: $fnId");
+			getObjectStorageOpenstackLogger()->info("File registered successfully with ID: $fnId");
 			return json_encode(array('status' => 'success', 'fileId' => $fnId));
 		}
 	} else {
 		$errorMsg = "Failed to download file: $fileName";
-		getObjectStorageLogger()->error($errorMsg);
+		getObjectStorageOpenstackLogger()->error($errorMsg);
 		return array('status' => 'error', 'message' => $errorMsg);
 	}
 }

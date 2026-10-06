@@ -94,7 +94,6 @@ if (!$site) {
                 <a id="getCredentialsButton" class="btn green" >Get Credentials</a>
                 <a id="workflowsReload" class="btn grey" disabled>Reload</a>
         </div>
-
         <div id="loading-datatable" class="loadingForm" style="display:none;">
           <div id="loading-spinner">LOADING</div>
           <!-- <div id="loading-text">It could take a few minutes</div> -->
@@ -190,6 +189,12 @@ if (!$site) {
   window.currentUserId = "<?php echo $_SESSION['User']['id']; ?>";
 </script>
 <script src="/assets/pages/scripts/openstack.js"></script>
+<script>
+window.objStorageConfig = {
+    site: <?php echo json_encode((string)$siteId); ?>,
+    url: '<?php echo $GLOBALS['BASEURL']; ?>applib/objStorage.php'
+};
+</script>
 
   <?php
   require "../htmlib/footer.inc.php";
