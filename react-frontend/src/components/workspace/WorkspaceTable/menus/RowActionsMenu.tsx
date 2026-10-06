@@ -8,6 +8,7 @@ import {
 } from 'react-aria-components';
 
 import type { FileItem } from '../../../../lib/workspace/FileItem';
+import { ACTIONS_BY_KIND } from '../../../../types/fileItemConstants';
 import { FILE_ITEM_ACTION_ICONS } from './fileActionIcons';
 import { FILE_ITEM_ACTION_LABELS, stubFileAction } from './fileActionLabels';
 
@@ -18,11 +19,10 @@ export interface RowActionsMenuProps {
 }
 
 export const RowActionsMenu = ({ item }: RowActionsMenuProps) => {
-  if (item.actions == null || item.actions.length === 0) {
+  const actions = item.actions ?? ACTIONS_BY_KIND[item.kind];
+  if (actions.length === 0) {
     return null;
   }
-
-  const actions = item.actions;
 
   return (
     <MenuTrigger>
@@ -33,12 +33,12 @@ export const RowActionsMenu = ({ item }: RowActionsMenuProps) => {
         <Cog
           aria-hidden
           className="rowActionsMenuIcon"
-          size={14}
+          size={12}
         />
         <ChevronDown
           aria-hidden
           className="rowActionsMenuChevron"
-          size={12}
+          size={10}
         />
       </Button>
       <Popover
