@@ -38,14 +38,6 @@ export type UnvalidatedKind = (typeof UNVALIDATED_KINDS)[number];
 export type UnavailableKind = (typeof UNAVAILABLE_KINDS)[number];
 export type FolderKind = (typeof FOLDER_KINDS)[number];
 
-export function isUnvalidatedKind(kind: FileItemKind): kind is UnvalidatedKind {
-  return (UNVALIDATED_KINDS as readonly FileItemKind[]).includes(kind);
-}
-
-export function isUnavailableKind(kind: FileItemKind): kind is UnavailableKind {
-  return (UNAVAILABLE_KINDS as readonly FileItemKind[]).includes(kind);
-}
-
 export const FILE_ITEM_STATUSES = {
   ready: 'ready',
   unvalidated: 'unvalidated',

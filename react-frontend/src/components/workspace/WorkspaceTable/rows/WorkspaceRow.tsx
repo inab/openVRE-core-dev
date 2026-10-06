@@ -6,12 +6,12 @@ import {
   FolderOpen,
 } from 'lucide-react';
 
+import type { FileItem } from '../../../../lib/workspace/FileItem';
 import {
-  FILE_ITEM_KINDS,
+  isFolderKind,
   isUnavailableKind,
   isUnvalidatedKind,
-} from '../../../../types/fileItemConstants';
-import type { FileItem } from '../../../../lib/workspace/FileItem';
+} from '../../../../lib/workspace/fileItemKind';
 
 import { UnavailableIndicator } from '../indicators/UnavailableIndicator';
 import { UnvalidatedIndicator } from '../indicators/UnvalidatedIndicator';
@@ -24,16 +24,6 @@ export interface WorkspaceRowNameProps {
   canExpand: boolean;
   isExpanded: boolean;
   onToggleExpand: () => void;
-}
-
-function isFolderKind(kind: FileItem['kind']): boolean {
-  return (
-    kind === FILE_ITEM_KINDS.folder ||
-    kind === FILE_ITEM_KINDS.folder_empty ||
-    kind === FILE_ITEM_KINDS.folder_unavailable ||
-    kind === FILE_ITEM_KINDS.folder_uploads ||
-    kind === FILE_ITEM_KINDS.folder_repository
-  );
 }
 
 interface KindIconProps {
@@ -82,8 +72,8 @@ export const WorkspaceRowName = ({
   const nameClass = isFolder
     ? 'workspaceRowName workspaceRowNameFolder'
     : 'workspaceRowName';
-  const showUnvalidated = isUnvalidatedKind(item.kind);
   const showUnavailable = isUnavailableKind(item.kind);
+  const showUnvalidated = isUnvalidatedKind(item.kind);
 
   return (
     <div
