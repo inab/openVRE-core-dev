@@ -1,12 +1,29 @@
 #!/bin/sh
 
-set -e
+set -eu
 
-echo "Fixing OpenBao data permissions..."
+echo "======================================"
+echo "OpenBao production initialization"
+echo "======================================"
 
-chown -R openbao:openbao /openbao/data
+echo "Checking OpenBao status..."
 
-echo "Starting OpenBao..."
+if bao operator init -status >/dev/null 2>&1; then
+    echo "OpenBao is already initialized."
+    exit 0
+fi
 
-exec su-exec openbao bao server \
-    -config=/openbao/config/openbao.hcl
+echo "OpenBao is not initialized."
+echo ""
+echo "Initializing with Shamir secret sharing."
+echo ""
+echo "IMPORTANT:"
+echo "  - The generated unseal keys must be stored securely."
+echo "  - The root token must be stored securely."
+echo "  - Do NOT commit them to Git."
+echo "  - Do NOT store them in docker-compose.yml."
+echo ""
+
+bao operator init \
+    -key-shares=5 \
+    -key-threshold=3
