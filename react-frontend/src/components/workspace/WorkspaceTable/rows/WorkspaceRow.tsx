@@ -6,6 +6,10 @@ import {
   FolderOpen,
 } from 'lucide-react';
 
+import {
+  isRecentFileDate,
+  RECENT_FILE_LABEL,
+} from '../../../../lib/format/isRecentFileDate';
 import type { FileItem } from '../../../../lib/workspace/FileItem';
 import {
   isFolderKind,
@@ -13,6 +17,7 @@ import {
   isUnvalidatedKind,
 } from '../../../../lib/workspace/fileItemKind';
 
+import { RecentIndicator } from '../indicators/RecentIndicator';
 import { UnavailableIndicator } from '../indicators/UnavailableIndicator';
 import { UnvalidatedIndicator } from '../indicators/UnvalidatedIndicator';
 
@@ -74,6 +79,7 @@ export const WorkspaceRowName = ({
     : 'workspaceRowName';
   const showUnavailable = isUnavailableKind(item.kind);
   const showUnvalidated = isUnvalidatedKind(item.kind);
+  const showRecent = isRecentFileDate(item.date);
 
   return (
     <div
@@ -115,6 +121,7 @@ export const WorkspaceRowName = ({
         kind={item.kind}
         isExpanded={canExpand && isExpanded}
       />
+      {showRecent ? <RecentIndicator label={RECENT_FILE_LABEL} /> : null}
       <span
         className="workspaceRowFilename"
         title={item.path}

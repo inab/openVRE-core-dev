@@ -1,0 +1,11 @@
+.recentFileIndicator {
+  background: var(--color-secondary);
+  color: var(--color-white);
+  flex-shrink: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  padding: 1px 5px;
+  text-transform: lowercase;
+  white-space: nowrap;
+}
