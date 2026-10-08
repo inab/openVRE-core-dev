@@ -9,8 +9,10 @@ redirectOutside();
 
 // Keep PHP session JWT in sync with the OIDC proxy token (refreshed on this
 // HTML request). AuthBff/React need a live Bearer token; legacy PHP does not.
-require_once __DIR__ . '/../auth-bff/SessionTokenRefresher.php';
-(new SessionTokenRefresher())->ensureFreshToken($_SESSION, $_SERVER);
+if (react_island_enabled()) {
+	require_once __DIR__ . '/../auth-bff/SessionTokenRefresher.php';
+	(new SessionTokenRefresher())->ensureFreshToken($_SESSION, $_SERVER);
+}
 
 // Print header
 
