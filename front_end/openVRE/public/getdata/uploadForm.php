@@ -3,7 +3,7 @@
 require_once __DIR__ . "/../../config/bootstrap.php";
 
 redirectOutside();
-$includeEgaFiles = false;
+$includeEgaFiles = getenv('INCLUDE_EGA_DATASETS') === 'true';
 
 ?>
 
@@ -26,7 +26,7 @@ $includeEgaFiles = false;
 					<ul class="page-breadcrumb">
 						<li>
 							<a href="/home/">Home</a>
-							<i class="fa fa-circle"></i>
+							<i class="fa fa-circle"ne removed vs dev (logic already matches). H></i>
 						</li>
 						<li>
 							<span>Get Data</span>
