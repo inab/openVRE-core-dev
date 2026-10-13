@@ -2,6 +2,7 @@
   "require": {
     "ext-openssl": "*",
     "auth0/auth0-php": "^8.0",
+    "aws/aws-sdk-php": "^3.399",
     "chadicus/slim-oauth2": "^3.1",
     "erusev/parsedown": "^1.7",
     "firebase/php-jwt": "^7.0",

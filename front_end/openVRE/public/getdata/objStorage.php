@@ -91,8 +91,10 @@ if (!$site) {
         <h4>Granted Access to:</h4>
 
         <div class="actions">
-                <a id="getCredentialsButton" class="btn green" >Get Credentials</a>
+                <a id="getCredentialsButton" class="btn grey" disabled>Get Credentials</a>
+                <a id="getTestButton" class="btn green" >Get Test</a>
                 <a id="workflowsReload" class="btn grey" disabled>Reload</a>
+
         </div>
         <div id="loading-datatable" class="loadingForm" style="display:none;">
           <div id="loading-spinner">LOADING</div>
@@ -194,6 +196,7 @@ window.objStorageConfig = {
     site: <?php echo json_encode((string)$siteId); ?>,
     url: '<?php echo $GLOBALS['BASEURL']; ?>applib/objStorage.php'
 };
+window.objectStorageSite = window.objStorageConfig.site;
 </script>
 
   <?php

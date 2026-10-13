@@ -33,7 +33,11 @@ $projects = getProjects_byOwner();
 syncProjectFiles($projects);
 
 //update files workspace content (job and files)
-$allFiles = getFilesToDisplay(array('_id' => $_SESSION['User']['dataDir']));
+if (isset($_REQUEST['workspace']) && !empty($_REQUEST['workspace'])) {
+    $allFiles = getFilesToDisplay(array('_id' => $_REQUEST['workspace']));
+} else {
+    $allFiles = getFilesToDisplay(array('_id' => $_SESSION['User']['dataDir']));
+}
 
 $files = (isset($dtlist['list']) ? filterFiles_by_dataType($allFiles, $dtlist["list"]) : $allFiles);
 $files = sortFilesForTable(addTreeTableNodesToFiles($files));
@@ -63,13 +67,13 @@ $files = sortFilesForTable(addTreeTableNodesToFiles($files));
 							<i class="fa fa-circle"></i>
 						</li>
 						<li>
-							<span><?php echo getProject($_SESSION['User']['dataDir'])["name"]; ?> Workspace</span>
+							<span><?php echo getProject($workspaceId)["name"]; ?> Workspace</span>
 						</li>
 					</ul>
 				</div>
 				<!-- END PAGE BAR -->
 				<!-- BEGIN PAGE TITLE-->
-				<h1 class="page-title"> <?php echo getProject($_SESSION['User']['dataDir'])["name"]; ?> Workspace
+				<h1 class="page-title"> <?php echo getProject($workspaceId)["name"]; ?> Workspace
 
 					<div class="btn-group" style="float:right;">
 						<a class="btn green" href="javascript:;" data-toggle="dropdown">

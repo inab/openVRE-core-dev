@@ -123,4 +123,4 @@ if ($_REQUEST['pr_id']) {
     }
 }
 
-redirect($GLOBALS['BASEURL'] . "workspace/");
+redirect($GLOBALS['BASEURL'] . "workspace/?workspace=" . urlencode($_SESSION['User']['dataDir']));

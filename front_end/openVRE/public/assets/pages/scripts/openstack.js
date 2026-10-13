@@ -7,6 +7,68 @@ $(document).ready(function () {
 	var credential_data = '';
 	table = [];
 
+	$("#getTestButton").on("click", function () {
+
+	const $btn = $(this);
+
+	$btn.prop("disabled", true);
+	$("#loading-datatable").show();
+
+	const payload = {
+		site: objectStorageSite,
+		action: "getS3User"
+	};
+
+	console.log("Sending S3 request:", payload);
+
+	$.ajax({
+		async: false,
+		type: "GET",
+		url: urlJSON,
+		data: payload,
+		dataType: "json"
+
+	}).done(function (data) {
+
+		console.log("S3 response:", data);
+
+		if (data.error) {
+			console.error("Backend error:", data.message);
+			showError(data.message);
+			return;
+		}
+
+		showSuccess("S3 client obtained successfully.");
+
+	}).fail(function (jqXHR, textStatus, errorThrown) {
+
+		console.error(
+			"AJAX request failed:",
+			textStatus,
+			errorThrown
+		);
+
+		let message = "AJAX request failed.";
+
+		try {
+			const res = JSON.parse(jqXHR.responseText);
+			message = res.message || res.error || message;
+		} catch (e) {
+			console.error(
+				"Invalid JSON response:",
+				jqXHR.responseText
+			);
+		}
+
+		showError(message);
+
+	}).always(function () {
+
+		$("#loading-datatable").hide();
+		$btn.prop("disabled", false);
+
+	});
+	});
 	// Handle "Get Credentials" button click
 	$("#getCredentialsButton").on("click", function () {
 		const $btn = $(this);

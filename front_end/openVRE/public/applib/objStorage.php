@@ -11,18 +11,13 @@ $action = $_REQUEST['action'] ?? null;
 error_log('objStorage DEBUG _REQUEST: ' . json_encode($_REQUEST));
 getObjectStorageLogger()->debug('objStorage _REQUEST: ' . print_r($_REQUEST, true));
 
-if ($action === 'debugRequest') {
-    echo json_encode([
-        'ok' => true,
-        'action' => $action,
-        'site' => $siteId,
-        'request' => $_REQUEST,
-        'message' => 'debugRequest reached the general objStorage endpoint.'
-    ]);
-    exit;
-    }
+$site = getObjectStorageSite($siteId);
 
-
+handleObjectStorageRequest(
+    $site,
+    $action,
+    $_REQUEST
+);
 
 function getObjectStorageLogger()
 {
@@ -88,136 +83,277 @@ function getObjectStorageSite($siteId)
 }
 
 
-$site = getObjectStorageSite($siteId);
-$storageType = $site['storage']['type'] ?? null;
+function handleObjectStorageRequest($site, $action, $params = [])
+{
+    $siteConfig = $site['storage'] ?? null;
 
-switch ($storageType) {
-    case 's3':
-        require_once __DIR__ . '/../phplib/objStorage_s3.inc.php';
-        if ($action === 'listObjects') {
-            $objects = listS3Objects($site);
+    if (!$siteConfig) {
+        return [
+            'error' => true,
+            'message' => 'Site not found: ' . $site
+        ];
+    }
 
-            echo json_encode([
-                'status' => 'success',
-                'objects' => $objects
-            ]);
-            exit;
-        }
-        break;
+    $storageType = strtolower(
+        $siteConfig['type'] ?? ''
+    );
 
-    case 'openstack':
-        require_once __DIR__ . '/../phplib/objStorage_openstack.php';
+    switch ($storageType) {
+
+        case 's3':
+            require_once __DIR__ . '/../phplib/objStorage_s3.php';
+            $message = "Storage site found: $storageType. Handling action: $action";
+            getObjectStorageLogger()->debug($message);
+            return handleS3StorageRequest(
+                $siteConfig,
+                $action,
+                $params
+            );
+
+        case 'swift':
+        case 'openstack':
+            require_once '/../phplib/objStorage_openstack.php';
+
+            return handleOpenstackStorageRequest(
+                $siteConfig,
+                $action,
+                $params
+            );
+
+        default:
+            return [
+                'error' => true,
+                'message' => 'Unsupported storage type: ' . $storageType
+            ];
+    }
+}
+
+function handleOpenstackStorageRequest($storageConfig, $action, $params = [])
+{
+    require_once __DIR__ . '/../phplib/objStorage_openstack.php';
+
+    switch ($action) {
+
         // Get OpenStack containers
-            switch ($action) {
+        case 'getOpenstackUser':
 
-            // Get OpenStack containers
-            case 'getOpenstackUser':
+            $swiftClient = getSwiftClient();
 
-                $swiftClient = getSwiftClient();
+            if (!$swiftClient) {
+                logError('Failed to obtain Swift client.');
+            }
 
-                if (!$swiftClient) {
-                    logError('Failed to obtain Swift client.');
-                }
+            $_SESSION['swiftClient'] = $swiftClient;
 
-                $_SESSION['swiftClient'] = $swiftClient;
+            $containers = getContainers($swiftClient);
 
-                $containers = getContainers($swiftClient);
-
-                echo json_encode($containers);
-                exit;
+            echo json_encode($containers);
+            exit;
 
 
-            // Get files inside an OpenStack container
-            case 'getContainerFiles':
+        // Get files inside an OpenStack container
+        case 'getContainerFiles':
 
-                if (!isset($_POST['container'])) {
-                    logError('No container specified.');
-                }
+            if (!isset($params['container'])) {
+                logError('No container specified.');
+            }
 
-                $container = $_POST['container'];
+            $container = $params['container'];
+
+            getObjectStorageLogger()->info(
+                "Main script - received container: $container"
+            );
+
+            $swiftClient = getSwiftClient();
+
+            if (!$swiftClient) {
+                logError('Failed to obtain Swift client.');
+            }
+
+            $files = getContainerFiles(
+                $container,
+                $swiftClient
+            );
+
+            getObjectStorageLogger()->info(
+                "Main script - files: " . print_r($files, true)
+            );
+
+            echo json_encode($files);
+            exit;
+
+
+        // Download OpenStack file
+        case 'downloadFile':
+
+            if (!isset($params['fileName'])) {
+                logError('No file specified for download.');
+            }
+
+            if (!isset($params['container'])) {
+                logError('No container specified for download.');
+            }
+
+            $fileName = $params['fileName'];
+            $container = $params['container'];
+
+            $swiftClient = getSwiftClient();
+
+            if (!$swiftClient) {
+                logError('Failed to obtain Swift client.');
+            }
+
+            try {
+
+                $fileId = initiateFileDownload(
+                    $swiftClient,
+                    $fileName,
+                    $container
+                );
 
                 getObjectStorageLogger()->info(
-                    "Main script - received container: $container"
+                    "File downloaded successfully. File ID: $fileId is present in the workspace."
                 );
 
-                $swiftClient = getSwiftClient();
+                echo json_encode([
+                    'status' => 'success',
+                    'fileId' => $fileId
+                ]);
 
-                if (!$swiftClient) {
-                    logError('Failed to obtain Swift client.');
-                }
+            } catch (Exception $e) {
 
-                $files = getContainerFiles($container, $swiftClient);
-
-                getObjectStorageLogger()->info(
-                    "Main script - files: " . print_r($files, true)
+                getObjectStorageLogger()->error(
+                    "File download failed: " . $e->getMessage()
                 );
 
-                echo json_encode($files);
-                exit;
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => $e->getMessage()
+                ]);
+            }
+
+            exit;
 
 
-            // Download OpenStack file
-            case 'downloadFile':
+        default:
 
-                if (!isset($_POST['fileName'])) {
-                    logError('No file specified for download.');
-                }
-
-                if (!isset($_POST['container'])) {
-                    logError('No container specified for download.');
-                }
-
-                $fileName = $_POST['fileName'];
-                $container = $_POST['container'];
-
-                $swiftClient = getSwiftClient();
-
-                if (!$swiftClient) {
-                    logError('Failed to obtain Swift client.');
-                }
-
-                try {
-
-                    $fileId = initiateFileDownload(
-                        $swiftClient,
-                        $fileName,
-                        $container
-                    );
-
-                    getObjectStorageLogger()->info(
-                        "File downloaded successfully. File ID: $fileId is present in the workspace."
-                    );
-
-                    echo json_encode([
-                        'status' => 'success',
-                        'fileId' => $fileId
-                    ]);
-
-                } catch (Exception $e) {
-
-                    getObjectStorageLogger()->error(
-                        "File download failed: " . $e->getMessage()
-                    );
-
-                    echo json_encode([
-                        'status' => 'error',
-                        'message' => $e->getMessage()
-                    ]);
-                }
-
-                exit;
-
-
-            default:
-
-                logError(
-                    'Unsupported OpenStack object storage action: ' . $action
-                );
-        }
+            logError(
+                'Unsupported OpenStack object storage action: ' . $action
+            );
+    }
 }
 
 
+function handleS3StorageRequest($storageConfig, $action, $params = [])
+{
+    switch ($action) {
 
+        // Get S3 containers/buckets
+        case 'getS3User':
+            try {
+                $s3Client = getS3Client($storageConfig);
+
+                if (!$s3Client) {
+                    logError('Failed to obtain S3 client.');
+                }
+
+                $containers = getS3Containers($s3Client);
+                echo json_encode($containers);
+                exit;
+            } catch (Exception $e) {
+                $message = 'Failed to connect to S3: ' . $e->getMessage();
+                getObjectStorageLogger()->error($message);
+                echo json_encode([
+                    'error' => true,
+                    'message' => $message
+                ]);
+                exit;
+            }
+
+        // Get files inside an S3 container/bucket
+        case 'getContainerFiles':
+
+            if (!isset($params['container'])) {
+                logError('No container specified.');
+            }
+            $container = $params['container'];
+            getObjectStorageLogger()->info(
+                "Main script - received S3 container: $container"
+            );
+
+            try {
+                $s3Client = getS3Client($storageConfig);
+                if (!$s3Client) {
+                    logError('Failed to obtain S3 client.');
+                }
+                $files = getS3ContainerFiles(
+                    $container,
+                    $s3Client
+                );
+
+                getObjectStorageLogger()->info(
+                    "Main script - S3 files: " . print_r($files, true)
+                );
+                echo json_encode($files);
+                exit;
+            } catch (Exception $e) {
+                $message = 'Failed to access S3 container: ' . $e->getMessage();
+                getObjectStorageLogger()->error($message);
+                echo json_encode([
+                    'error' => true,
+                    'message' => $message
+                ]);
+                exit;
+            }
+
+        // Download S3 file
+        case 'downloadFile':
+            if (!isset($params['fileName'])) {
+                logError('No file specified for download.');
+            }
+            if (!isset($params['container'])) {
+                logError('No container specified for download.');
+            }
+            $fileName = $params['fileName'];
+            $container = $params['container'];
+
+            try {
+                $s3Client = getS3Client($storageConfig);
+
+                if (!$s3Client) {
+                    logError('Failed to obtain S3 client.');
+                }
+
+                $fileId = initiateS3FileDownload(
+                    $s3Client,
+                    $fileName,
+                    $container
+                );
+                getObjectStorageLogger()->info(
+                    "S3 file downloaded successfully. File ID: $fileId is present in the workspace."
+                );
+                echo json_encode([
+                    'status' => 'success',
+                    'fileId' => $fileId
+                ]);
+
+            } catch (Exception $e) {
+                $message = 'S3 file download failed: ' . $e->getMessage();
+                getObjectStorageLogger()->error($message);
+                echo json_encode([
+                    'status' => 'error',
+                    'message' => $message
+                ]);
+            }
+            exit;
+        default:
+            logError(
+                'Unsupported S3 object storage action: ' . $action
+            );
+    }
+}
+
+/*
 // Get user openstack credentials.
 if ($_REQUEST['action'] == "getOpenstackUser") {
     $swiftClient = getSwiftClient();
@@ -271,3 +407,4 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'downloadFile' && isse
         echo json_encode(array('status' => 'error', 'message' => $e->getMessage()));
     }
 }
+*/
