@@ -1,15 +1,13 @@
-
 ui = true
 
 cluster_name = "openvre-openbao"
 
-# Public/client address of this OpenBao node.
-# This hostname MUST match the certificate SAN.
+# Client/API address.
+# The hostname must match the certificate SAN.
 api_addr = "https://openbao.example.com:8200"
 
-# Internal Raft cluster address.
+# Internal cluster communication address.
 cluster_addr = "https://172.21.0.18:8201"
-
 
 listener "tcp" {
   address         = "0.0.0.0:8200"
@@ -20,7 +18,6 @@ listener "tcp" {
 
   tls_min_version = "tls13"
 }
-
 
 storage "raft" {
   path    = "/openbao/data"

@@ -2,53 +2,67 @@
 
 set -eu
 
+CONFIG_DIR="/openbao/config"
+POLICY_TEMPLATE="$CONFIG_DIR/jwt-user-policies-template.hcl"
+GENERATED_POLICY="/tmp/jwt-user-policies.hcl"
+
+: "${BAO_ADDR:?Set BAO_ADDR to your OpenBao API address}"
+: "${KEYCLOAK_SERVER:?Set KEYCLOAK_SERVER}"
+: "${KEYCLOAK_REALM:?Set KEYCLOAK_REALM}"
+
+KEYCLOAK_ISSUER="${KEYCLOAK_SERVER%/}/realms/${KEYCLOAK_REALM}"
+
 echo "======================================"
-echo "Configuring OpenBao"
+echo "OpenBao production configuration"
 echo "======================================"
-
-export BAO_ADDR
-
-echo "OpenBao address:"
-echo "  ${BAO_ADDR}"
+echo "OpenBao: $BAO_ADDR"
+echo "Keycloak issuer: $KEYCLOAK_ISSUER"
 echo
 
-echo "Keycloak:"
-echo "  ${KEYCLOAK_SERVER}/realms/${KEYCLOAK_REALM}"
-echo
+if [ ! -r "$POLICY_TEMPLATE" ]; then
+    echo "ERROR: Policy template not found: $POLICY_TEMPLATE" >&2
+    exit 1
+fi
 
-echo "Enter an OpenBao administrator token."
-echo "The token will NOT be stored in the environment."
-echo
-
-printf "OpenBao token: "
+printf "OpenBao administrator token: "
 stty -echo
-read BAO_TOKEN
+if ! IFS= read -r BAO_TOKEN; then
+    stty echo
+    printf "\n"
+    echo "ERROR: Could not read token." >&2
+    exit 1
+fi
 stty echo
-printf "\n\n"
+printf "\n"
 
 export BAO_TOKEN
+trap 'unset BAO_TOKEN; rm -f "$GENERATED_POLICY"; stty echo 2>/dev/null || true' EXIT HUP INT TERM
 
-echo "Authenticating with OpenBao..."
+echo "Checking OpenBao connectivity..."
 
-bao login "$BAO_TOKEN" >/dev/null
+if ! bao status >/dev/null; then
+    echo "ERROR: OpenBao is unavailable or status check failed." >&2
+    exit 1
+fi
 
-unset BAO_TOKEN
+echo "Checking administrator permissions..."
 
-echo "Authentication successful."
-echo
+if ! bao token capabilities sys/auth | grep -qE '(^|[[:space:]])(root|sudo|create|update)([[:space:]]|$)'; then
+    echo "WARNING: Could not confirm auth-management capabilities."
+    echo "The following configuration commands may fail."
+fi
 
+echo "Enabling JWT authentication if needed..."
 
-echo "Enabling JWT authentication..."
-
-if ! bao auth list -format=json | jq -e '."jwt/"' >/dev/null 2>&1; then
+if ! bao auth list -format=json | jq -e 'has("jwt/")' >/dev/null; then
     bao auth enable jwt
 fi
 
-echo "Configuring JWT/OIDC..."
+echo "Configuring Keycloak JWT/OIDC..."
 
 bao write auth/jwt/config \
-    oidc_discovery_url="${KEYCLOAK_SERVER}/realms/${KEYCLOAK_REALM}" \
-    bound_issuer="${KEYCLOAK_SERVER}/realms/${KEYCLOAK_REALM}"
+    oidc_discovery_url="$KEYCLOAK_ISSUER" \
+    bound_issuer="$KEYCLOAK_ISSUER"
 
 echo "Configuring JWT role..."
 
@@ -59,30 +73,27 @@ bao write auth/jwt/role/user-role \
     policies="user-policy" \
     ttl="1h"
 
-JWT_ACCESSOR=$(bao auth list -format=json \
-    | jq -r '."jwt/".accessor')
+echo "Resolving JWT auth accessor..."
 
-echo "Generating JWT policy..."
+JWT_ACCESSOR=$(bao auth list -format=json |
+    jq -er '."jwt/".accessor')
 
-sed "s/JWT_ACCESSOR/${JWT_ACCESSOR}/g" \
-    /openbao/config/jwt-user-policies-template.hcl \
-    > /tmp/jwt-user-policies.hcl
+echo "Generating policy..."
+
+sed "s/JWT_ACCESSOR/$JWT_ACCESSOR/g" \
+    "$POLICY_TEMPLATE" > "$GENERATED_POLICY"
 
 echo "Installing user policy..."
 
-bao policy write \
-    user-policy \
-    /tmp/jwt-user-policies.hcl
+bao policy write user-policy "$GENERATED_POLICY"
 
-rm -f /tmp/jwt-user-policies.hcl
+rm -f "$GENERATED_POLICY"
 
-echo "Enabling KV v2..."
+echo "Enabling KV v2 if needed..."
 
-if ! bao secrets list -format=json | jq -e '."secret/"' >/dev/null 2>&1; then
+if ! bao secrets list -format=json | jq -e 'has("secret/")' >/dev/null; then
     bao secrets enable -path=secret kv-v2
 fi
 
-bao write secret/config max_versions=1
-
-echo ""
-echo "OpenBao configuration completed."
+echo "Configuration completed."
+echo "Review KV retention settings separately if required."

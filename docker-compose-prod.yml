@@ -29,6 +29,7 @@ services:
     container_name: bao-server
     hostname: bao-server
     image: openbao/openbao:2.4.0
+    restart: unless-stopped
     environment:
       BAO_ADDR: ${BAO_ADDR}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
@@ -36,31 +37,19 @@ services:
     volumes:
       - bao_data:/openbao/data
       - ./openbao/config:/openbao/config:ro
+      - ./openbao/bao-config-prod.sh:/usr/local/bin/bao-config-prod.sh:ro
       - "${BAO_SSL_PEM}:${BAO_CERT_PEM}:ro"
       - "${BAO_SSL_KEY}:${BAO_CERT_KEY}:ro"
       - "${BAO_SSL_CAFILE}:${BAO_CERT_CAFILE}:ro"
-
     cap_add:
       - IPC_LOCK
-    command: 
-    - server
-    - -config=/openbao/config/openbao-prod.hcl
+    command:
+      - server
+      - -config=/openbao/config/openbao-prod.hcl
+
     networks:
       net_vre:
         ipv4_address: 172.21.0.18
-    healthcheck:
-      test:
-        [
-          "CMD",
-          "bao",
-          "status",
-          "-format=json"
-        ]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 15s
-    restart: on-failure:2
 
   postgres:
     container_name: postgres
