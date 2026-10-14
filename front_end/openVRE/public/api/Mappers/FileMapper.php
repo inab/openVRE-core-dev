@@ -6,6 +6,8 @@ namespace OpenVREAPI\Mappers;
 
 use MongoDB\BSON\UTCDateTime;
 use OpenVREAPI\OpenApi\Schemas\FileDto;
+use OpenVREAPI\Enums\FileAction;
+use OpenVREAPI\Enums\FileKind;
 
 
 final class FileMapper
@@ -26,7 +28,9 @@ final class FileMapper
             size: (int) ($doc['size'] ?? 0),
             path: $doc['path'] ?? '',
             parentId: $doc['parentDir'] ?? null,
-            kind: $kind ?? ''
+            kind: $kind,
+            status: self::getFileStatus($doc),
+            actions: $kind ? self::getFileActions($kind) : []
         );
     }
 
@@ -41,25 +45,37 @@ final class FileMapper
         return $date !== null ? $date->toDateTime()->format('Y-m-d\TH:i:s.v') . '+00:00' : '';
     }
 
-    private static function getFileKind(array $doc): string
+    private static function getFileKind(array $doc): FileKind
     {
-        return $doc['validated'] === true ? 'file' : 'file_unvalidated';
+        return $doc['validated'] === true ? FileKind::File : FileKind::FileUnvalidated;
     }
 
-    private static function getDirectoryKind(array $doc): string
+    private static function getDirectoryKind(array $doc): FileKind
     {
-        if (basename($doc['path']) === 'uploads' && $doc['project'] === basename(dirname($doc['path']))) {
-            return 'folder_uploads';
+        $uploadsFolder = 'uploads';
+        $repositoryFolder = 'repository';
+        if (basename($doc['path']) === $uploadsFolder && $doc['project'] === basename(dirname($doc['path']))) {
+            return FileKind::FolderUploads;
         }
 
-        if (basename($doc['path']) === 'repository' && $doc['project'] === basename(dirname($doc['path']))) {
-            return 'folder_repository';
+        if (basename($doc['path']) === $repositoryFolder && $doc['project'] === basename(dirname($doc['path']))) {
+            return FileKind::FolderRepository;
         }
 
         if ($doc['files'] === []) {
-            return 'folder_empty';
+            return FileKind::FolderEmpty;
         }
 
-        return 'folder';
+        return FileKind::Folder;
+    }
+
+    private static function getFileStatus(array $doc): string
+    {
+        return $doc['validated'] || is_null($doc['validated']) ? 'ready' : 'unvalidated';
+    }
+
+    private static function getFileActions(FileKind $kind): array
+    {
+        return array_map(fn(FileAction $a) => $a->value, $kind->actions());
     }
 }

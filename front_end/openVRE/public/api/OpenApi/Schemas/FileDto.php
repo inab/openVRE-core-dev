@@ -6,6 +6,8 @@ namespace OpenVREAPI\OpenApi\Schemas;
 
 use JsonSerializable;
 use OpenApi\Attributes as OA;
+use OpenVREAPI\Enums\FileAction;
+use OpenVREAPI\Enums\FileKind;
 
 #[OA\Schema(
     schema: 'FileItem',
@@ -47,8 +49,15 @@ final readonly class FileDto implements JsonSerializable
     public ?string $parentId;
 
     #[OA\Property(description: 'Tag for a subtype of file/folder', type: 'string', enum: ['file', 'file_unvalidated', 'folder', 'folder_empty', 'folder_uploads', 'folder_repository'])]
-    public string $kind;
+    public ?FileKind $kind;
 
+    #[OA\Property(description: 'File metadata status', type: 'string', enum: ['ready', 'unvalidated'])]
+    public string $status;
+
+    #[OA\Property(description: 'Actions available for the file', type: 'string', enum: ['compress', 'delete', 'delete_folder', 'download', 'download_folder', 'edit_metadata', 'move', 'rename', 'validate_metadata',
+    ])]
+    /** @var FileAction[] */
+    public array $actions;
 
     public function __construct(
         string $fileId,
@@ -60,7 +69,9 @@ final readonly class FileDto implements JsonSerializable
         int $size,
         string $path,
         ?string $parentId,
-        string $kind
+        ?FileKind $kind,
+        string $status,
+        array $actions
     ) {
         $this->fileId = $fileId;
         $this->filename = $filename;
@@ -72,6 +83,8 @@ final readonly class FileDto implements JsonSerializable
         $this->path = $path;
         $this->parentId = $parentId;
         $this->kind = $kind;
+        $this->status = $status;
+        $this->actions = $actions;
     }
 
     public function jsonSerialize(): array
