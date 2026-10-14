@@ -25,8 +25,9 @@ services:
   bao-server:
     build:
       context: ./openbao/
-      dockerfile: Dockerfile
     container_name: bao-server
+    image: bao-server
+    hostname: bao-server
     ports:
       - "8200:8200"
     environment:
