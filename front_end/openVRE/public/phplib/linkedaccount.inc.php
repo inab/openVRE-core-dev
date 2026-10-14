@@ -138,32 +138,33 @@ function handleSSHAccount($action, $userId, $site_id, $postData)
 			redirect($_SERVER['HTTP_REFERER']);
 		}
 	} elseif ($action === "delete") {
-		// Reset data for "delete" action
-		$data = [];
-		if (isset($postData['private_key'])) {
-			$postData['private_key'] = null;
-			$postData['username'] = null;
-		}
-		$postData['timestamp'] = null;
-		$userId = null;
-
-		$_SESSION['errorData']['Info'][] = "Credentials for user erased, please provide new ones.";
-
 		if (isset($site_id)) {
+			try {
+				$vaultClient = VaultClientFactory::create();
+				$vaultClient->deleteDataFromVault(Site::SSH);
+			} catch (\Throwable $e) {
+				$_SESSION['errorData']['Error'][] = "Failed to remove credentials from Vault: " . $e->getMessage();
+			}
+
 			$updateResult = $GLOBALS['sitesCol']->updateOne(
-				['_id' => $site_id],  // Match document by siteId    
-				['$set' => [  // Use the $unset operator to remove fields
-					'launcher.access_credentials.username' => null
-				]]
+				['_id' => $site_id],
+				[
+					'$unset' => [
+						'launcher.access_credentials.username' => '',
+						'launcher.access_credentials.private_key' => '',
+						'launcher.access_credentials.public_key' => '',
+						'launcher.access_credentials.server' => '',
+					]      
+				]
 			);
 
-			// Check if the update was successful
-			if ($updateResult->getModifiedCount() > 0) {
+			if ($updateResult->getMatchedCount() > 0) {
 				$_SESSION['errorData']['Info'][] = "Credentials removed from the database.";
 			} else {
 				$_SESSION['errorData']['Error'][] = "Failed to remove credentials from the database.";
 			}
 		}
+
 		redirect($_SERVER['HTTP_REFERER']);
 	} else {
 		handleInvalidAction();
@@ -181,16 +182,42 @@ function handleSSHAccount($action, $userId, $site_id, $postData)
 		getLinkedAccountLogger()->error("Invalid SSH private key format.");
 		throw new UnexpectedValueException("Invalid SSH private key format.");
 	}
+	try {
+		$vaultClient = VaultClientFactory::create();
+		$vaultClient->uploadFileToVault(Site::SSH, $data);
+		// Update user data with vault key
+		updateUser($_SESSION['User']);
 
-	$vaultClient = VaultClientFactory::create();
-	$vaultClient->uploadFileToVault(Site::SSH, $data);
-	// Update user data with vault key
-	updateUser($_SESSION['User']);
+		$_SESSION['errorData']['Info'][] = "SSH account successfully linked.";
 
-	$_SESSION['errorData']['Info'][] = "SSH account successfully linked.";
-	redirect($_SERVER['HTTP_REFERER']);
+	} catch (\Throwable $e) {
+		getLinkedAccountLogger()->error(
+			"Failed to save SSH account: " . $e->getMessage(),
+			[
+				'exception' => get_class($e),
+				'file' => $e->getFile(),
+				'line' => $e->getLine()
+			]
+		);
+
+		$_SESSION['errorData']['Error'][] =
+			"Failed to save SSH account: " . $e->getMessage();
+	}
+	redirectToLinkedAccount($action, $site_id);
+
 }
 
+function redirectToLinkedAccount($action, $site_id): void
+{
+    $url = '/user/linkedAccount.php?' . http_build_query([
+        'account' => 'SSH',
+        'action' => $action,
+        'site_id' => $site_id,
+    ]);
+
+    header('Location: ' . $url);
+    exit;
+}
 
 function handleObjectStorageAccount($action, $userId, $site_id, $postData)
 {
@@ -282,15 +309,29 @@ function handleObjectStorageAccount($action, $userId, $site_id, $postData)
 		throw new UnexpectedValueException("Username is required.");
 	}
 
-	$postData['user_key'] = $postData['user_key'] . '_' . $site_id;
-	$vaultClient = VaultClientFactory::create();
+	try {
+		$postData['user_key'] = $postData['user_key'] . '_' . $site_id;
+		$vaultClient = VaultClientFactory::create();
 
-	$vaultClient->uploadFileToVault(Site::Swift, $data);
+		$vaultClient->uploadFileToVault(Site::Swift, $data);
 
-	updateUser($_SESSION['User']);
-	$_SESSION['errorData']['Info'][] = "Swift account successfully linked.";
-	getLinkedAccountLogger()->info("Swift account successfully linked.");
-	redirect($_SERVER['HTTP_REFERER']);
+		updateUser($_SESSION['User']);
+		$_SESSION['errorData']['Info'][] = "Swift account successfully linked.";
+		getLinkedAccountLogger()->info("Swift account successfully linked.");
+	} catch (\Throwable $e) {
+		getLinkedAccountLogger()->error(
+			"Failed to save SSH account: " . $e->getMessage(),
+			[
+				'exception' => get_class($e),
+				'file' => $e->getFile(),
+				'line' => $e->getLine()
+			]
+		);
+
+		$_SESSION['errorData']['Error'][] =
+			"Failed to save SSH account: " . $e->getMessage();
+	}
+	redirectToLinkedAccount($action, $site_id);
 }
 
 
@@ -325,12 +366,26 @@ function handleEgaAccount($action, $userId, $postData)
 		handleInvalidAction();
 	}
 
-	$vaultClient = VaultClientFactory::create();
-	$vaultClient->uploadFileToVault(Site::EGA, $data);
+	try {
+		$vaultClient = VaultClientFactory::create();
+		$vaultClient->uploadFileToVault(Site::EGA, $data);
 
-	$_SESSION['errorData']['Info'][] = "EGA account successfully linked.";
-	getLinkedAccountLogger()->info("EGA account successfully linked.");
-	redirect($_SERVER['HTTP_REFERER']);
+		$_SESSION['errorData']['Info'][] = "EGA account successfully linked.";
+		getLinkedAccountLogger()->info("EGA account successfully linked.");
+	} catch (\Throwable $e) {
+		getLinkedAccountLogger()->error(
+			"Failed to save SSH account: " . $e->getMessage(),
+			[
+				'exception' => get_class($e),
+				'file' => $e->getFile(),
+				'line' => $e->getLine()
+			]
+		);
+
+		$_SESSION['errorData']['Error'][] =
+			"Failed to save SSH account: " . $e->getMessage();
+	}
+	redirectToLinkedAccount($action, $site_id);
 }
 
 

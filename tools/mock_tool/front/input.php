@@ -96,6 +96,7 @@ $sites = getSites_Info($toolId);
  		<form action="#" class="horizontal-form" id="tool-input-form">
 		    <input type="hidden" name="tool" value="<?php echo $toolId;?>" />
 		    <input type="hidden" id="base-url"     value="<?php echo $GLOBALS['BASEURL']; ?>"/>
+		    <input type="hidden" name="sync_files" id="sync_files" value="false"/>
 			
 		<!-- BEGIN PORTLET 1: PROJECT -->
 		 <div class="portlet box blue-oleo">
@@ -150,6 +151,9 @@ $sites = getSites_Info($toolId);
 									<select id="siteDropdown" name="sites[site_list][]" class="form-control">
 										<?php echo InputTool_generateLocationOptions($sites); ?>
 									</select>
+									<p id="syncFilesNotice" class="help-block text-info" style="display:none;margin-top:8px;">
+								Files will be transferred to the HPC facility.
+							</p>
 								</div>
 							</div>
 							<div class="col-md-6">
@@ -224,77 +228,100 @@ $sites = getSites_Info($toolId);
     
 <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 <script>
-    // Get the sites data from PHP and convert it to a JavaScript object
     var sitesData = <?php echo json_encode($sites); ?>;
-    // Function to generate launcher options based on the selected site and job manager
+
     function updateLauncherOptions(selectedSiteId, selectedJobManager) {
-	    console.log('Current sitesData:', sitesData); 
-	    var launcherOptions = '';
-	    var selectedSite = sitesData.find(site => site.site_id === selectedSiteId);
-	    console.log('Received selectedSiteId:', selectedSiteId);
-	    console.log('Received selectedJobManager:', selectedJobManager);
+        var launcherOptions = '';
+        var selectedSite = sitesData.find(site => String(site.site_id) === String(selectedSiteId) || String(site.name) === String(selectedSiteId));
 
         if (selectedSite && selectedSite.launcher) {
-            console.log('Selected Site Data:', selectedSite);
-
-            // Check if launcher is an object or an array
-            if (typeof selectedSite.launcher === 'object') {
-                // Handle case where launcher is an object
-                var launcher = selectedSite.launcher;
-                if (launcher && launcher.job_manager) {
-                    var op = (launcher.job_manager === selectedJobManager) ? 'selected' : '';
-                    launcherOptions += '<option ' + op + ' value="' + selectedSiteId + '_' + launcher.job_manager + '">' + launcher.job_manager + '</option>';
-                } else {
-                    console.log('Invalid launcher data:', launcher);
-                }
-            } else if (Array.isArray(selectedSite.launcher)) {
-                // Handle case where launcher is an array
-                $.each(selectedSite.launcher, function (index, launcher) {
+            if (Array.isArray(selectedSite.launcher)) {
+                selectedSite.launcher.forEach(function(launcher){
                     if (launcher && launcher.job_manager) {
                         var op = (launcher.job_manager === selectedJobManager) ? 'selected' : '';
                         launcherOptions += '<option ' + op + ' value="' + selectedSiteId + '_' + launcher.job_manager + '">' + launcher.job_manager + '</option>';
-                    } else {
-                        console.log('Invalid launcher data:', launcher);
                     }
                 });
-            } else {
-                console.log('Invalid launcher data. Expected an array or an object:', selectedSite.launcher);
+            } else if (typeof selectedSite.launcher === 'object') {
+                var l = selectedSite.launcher;
+                if (l.job_manager) {
+                    var op = (l.job_manager === selectedJobManager) ? 'selected' : '';
+                    launcherOptions += '<option ' + op + ' value="' + selectedSiteId + '_' + l.job_manager + '">' + l.job_manager + '</option>';
+                }
             }
-        } else {
-            console.log('Invalid selected site data:', selectedSite);
         }
-
-        // Update the options of the launcher dropdown
         $('#launcherDropdown').html(launcherOptions);
-        console.log('Launcher options updated.');
     }
 
-    // Initial update based on the default selected site (if any)
-
-    // Event handler for the site dropdown change
+    // unified handler: update launcher options and sync_files + notice
     $('#siteDropdown').on('change', function () {
-        var selectedSiteId = $(this).val();
-        console.log('Site dropdown changed. Selected Site:', selectedSiteId);
+        var val = $(this).val();
+        var selectedVals = Array.isArray(val) ? val.filter(Boolean) : (val ? [val] : []);
 
-        // Retrieve the selected job manager based on the selected site
+        // determine if any selected value corresponds to MareNostrum
+        var isMare = selectedVals.some(function(v){
+            var s = sitesData.find(function(site){
+                return String(site.site_id) === String(v) || String(site.name) === String(v);
+            });
+            return (s && s.name === 'MareNostrum') || String(v) === 'MareNostrum';
+        });
+
+        if (isMare) {
+            $('#sync_files').val('true');
+            $('#syncFilesNotice').show();
+        } else {
+            $('#sync_files').val('false');
+            $('#syncFilesNotice').hide();
+        }
+
+        // update launcher options using the first selected value (if any)
         var selectedJobManager = $('#hiddenJobManager').val();
-        console.log('Retrieved selected job manager:', selectedJobManager);
+        updateLauncherOptions(selectedVals[0] || '', selectedJobManager);
+    });
 
-        // Update launcher options with the selected site and job manager
-        updateLauncherOptions(selectedSiteId, selectedJobManager);
+    // initial trigger to set correct state on load
+    function initSiteDropdownState(){
+        $('#siteDropdown').trigger('change');
+    }
+
+    // evaluate current selection (covers default value / plugins that init later)
+    function evaluateCurrentSite() {
+        var val = $('#siteDropdown').val();
+        var selectedVals = Array.isArray(val) ? val.filter(Boolean) : (val ? [val] : []);
+
+        var isMare = selectedVals.some(function(v){
+            var s = sitesData.find(function(site){
+                return String(site.site_id) === String(v) || String(site.name) === String(v);
+            });
+            return (s && s.name === 'MareNostrum') || String(v) === 'MareNostrum';
+        });
+
+        if (isMare) {
+            $('#sync_files').val('true');
+            $('#syncFilesNotice').show();
+        } else {
+            $('#sync_files').val('false');
+            $('#syncFilesNotice').hide();
+        }
+
+        var selectedJobManager = $('#hiddenJobManager').val();
+        updateLauncherOptions(selectedVals[0] || '', selectedJobManager);
+    }
+
+    // call evaluation on ready and after short delays to cover plugin init timing
+    $(function(){ 
+        initSiteDropdownState();
+        evaluateCurrentSite();
+        setTimeout(evaluateCurrentSite, 150);
+        setTimeout(evaluateCurrentSite, 400);
+    });
+    $(window).on('load', function(){ 
+        setTimeout(initSiteDropdownState, 50); 
+        setTimeout(evaluateCurrentSite, 100);
     });
 </script>
 
 
-
-<script>
-    $('#siteDropdown').on('change', function () {
-        // Your existing logic to determine selectedSiteId
-
-	    // Set the selected job manager based on your logic
-        $('#hiddenJobManager').val('SelectedJobManagerValue');
-    });
-</script>
 
 <?php 
 

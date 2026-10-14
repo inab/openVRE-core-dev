@@ -112,4 +112,63 @@ class VaultClient
 
 		return $response['data']['data'][$site->value];
 	}
+
+    public function deleteDataFromVault(Site $site)
+    {
+        $this->logger->info("Deleting $site->value data from Vault");
+        $url = $this->url . "/" . $this->secretPath . $this->secretId . "/" . $site->value;
+        $headers = [
+            'X-Vault-Token: ' . $this->token,
+        ];
+
+        $this->logger->debug("Vault delete request", [
+            'method' => 'DELETE',
+            'url' => $url,
+            'secretId' => $this->secretId,
+            'secretPath' => $this->secretPath,
+            'token_prefix' => substr($this->token, 0, 8),
+        ]);
+
+        $ch = curl_init($url);
+        curl_setopt($ch, CURLOPT_CUSTOMREQUEST, 'DELETE');
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+
+        if (getenv('VAULT_CERT_CAFILE') !== false) {
+            curl_setopt($ch, CURLOPT_CAINFO, getenv('VAULT_CERT_CAFILE'));
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+            curl_setopt($ch, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);
+        }
+
+        $response = curl_exec($ch);
+
+        $curlErr = curl_error($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+
+        $this->logger->debug("Vault delete response", [
+            'httpCode' => $httpCode,
+            'curlError' => $curlErr,
+            'responseBody' => $response,
+        ]);
+
+        if (curl_errno($ch)) {
+            $this->logger->error('Failed to delete data from Vault: ' . $curlErr);
+            throw new UnexpectedValueException('Failed to delete credentials from Vault.');
+        }
+
+        $response = json_decode($response, true);
+
+        if ($httpCode >= 400) {
+            $this->logger->error("Failed to delete data from Vault: HTTP $httpCode");
+            if (is_array($response) && isset($response["errors"])) {
+                foreach ($response["errors"] as $error) {
+                    $this->logger->error($error);
+                }
+            }
+            throw new UnexpectedValueException("Failed to delete credentials from Vault.");
+        }
+
+        $this->logger->info("Vault credentials deleted successfully.");
+    }
 }
