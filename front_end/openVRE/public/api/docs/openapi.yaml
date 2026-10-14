@@ -338,6 +338,12 @@ components:
           description: 'Size of the file in bytes'
           type: integer
           minimum: 0
+        status:
+          description: 'File metadata status'
+          type: string
+          enum:
+            - ready
+            - unvalidated
         path:
           description: "Current path of the file within the user's storage"
           type: string
