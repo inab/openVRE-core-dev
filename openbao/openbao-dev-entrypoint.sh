@@ -1,6 +1,8 @@
 #!/bin/sh
 set -eu
 
+sleep 30 # wait for keycloak
+
 : "${KEYCLOAK_SERVER:?KEYCLOAK_SERVER must be set}"
 : "${KEYCLOAK_REALM:?KEYCLOAK_REALM must be set}"
 
