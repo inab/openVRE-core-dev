@@ -326,12 +326,6 @@ components:
         format:
           description: "File format/extension (e.g. 'pdf', 'jpg')"
           type: string
-        type:
-          description: 'Whether the item is a file or a directory'
-          type: string
-          enum:
-            - file
-            - dir
         dataType:
           description: 'Content/data type of the file (e.g. MIME type or category)'
           type: string
@@ -347,6 +341,34 @@ components:
         path:
           description: "Current path of the file within the user's storage"
           type: string
+        parentId:
+          description: 'Unique identifier of the parent directory'
+          type: string
+        kind:
+          description: 'Tag for a subtype of file/folder'
+          type: string
+          enum:
+            - file
+            - file_unvalidated
+            - folder
+            - folder_uploads
+            - folder_repository
+            - folder_empty
+        actions:
+          description: 'Actions available for the file'
+          type: array
+          items:
+            type: string
+            enum:
+              - compress
+              - delete
+              - delete_folder
+              - download
+              - download_folder
+              - edit_metadata
+              - move
+              - rename
+              - validate_metadata
       type: object
     GetUserFilesResponse:
       required:
