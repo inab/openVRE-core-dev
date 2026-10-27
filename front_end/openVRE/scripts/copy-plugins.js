@@ -66,6 +66,9 @@ const COPY_FILES = [
   ['jquery-validation/dist/additional-methods.min.js', 'jquery-validation/js/additional-methods.min.js'],
   ['jquery-validation/README.md', 'jquery-validation/README.md'],
 
+  // marked (browser build for help markdown preview; version pinned by package.json)
+  ['marked/marked.min.js', 'markdown/marked.min.js'],
+
   // easy-pie-chart (jquery-easypiechart)
   ['easy-pie-chart/dist/jquery.easypiechart.js', 'jquery-easypiechart/jquery.easypiechart.js'],
   ['easy-pie-chart/dist/jquery.easypiechart.min.js', 'jquery-easypiechart/jquery.easypiechart.min.js'],
@@ -84,7 +87,7 @@ const COPY_FILES = [
   ['bootstrap-switch/LICENSE', 'bootstrap-switch/LICENSE'],
   ['bootstrap-switch/README.md', 'bootstrap-switch/README.md'],
 
-  // typeahead.js
+  // typeahead.js + handlebars (browser UMD for custom tool UIs / typeahead templates; version pinned by package.json)
   ['typeahead.js/dist/typeahead.bundle.min.js', 'typeahead/typeahead.bundle.min.js'],
   ['typeahead.js/LICENSE', 'typeahead/LICENSE'],
   ['handlebars/dist/handlebars.min.js', 'typeahead/handlebars.min.js'],
@@ -92,7 +95,7 @@ const COPY_FILES = [
   // bootstrap-fileinput (jasny-bootstrap)
   ['jasny-bootstrap/js/fileinput.js', 'bootstrap-fileinput/bootstrap-fileinput.js'],
 
-  // select2 (js/css dirs via COPY_DIRS)
+  // select2 (js/css dirs via COPY_DIRS; version pinned by package.json)
   ['select2/README.md', 'select2/README.md'],
   ['select2-bootstrap-theme/dist/select2-bootstrap.min.css', 'select2/css/select2-bootstrap.min.css'],
   ['select2-bootstrap-theme/src/select2-bootstrap.scss', 'select2/sass/select2-bootstrap.min.scss'],
@@ -157,8 +160,8 @@ const REMOTE_DOWNLOADS = [
     // LICENSE.md is not copied by the select2 npm package layout used here.
     type: 'cdn',
     name: 'select2-license',
-    version: '4.0.3',
-    base: 'https://raw.githubusercontent.com/select2/select2/4.0.3',
+    version: '4.0.13',
+    base: 'https://raw.githubusercontent.com/select2/select2/4.0.13',
     files: [
       ['LICENSE.md', 'select2/LICENSE.md'],
     ],
@@ -295,17 +298,6 @@ const REMOTE_DOWNLOADS = [
     files: [
       ['css/bootstrap-markdown-editor.css', 'bootstrap-markdown-editor.css'],
       ['js/bootstrap-markdown-editor.js', 'bootstrap-markdown-editor.js'],
-    ],
-  },
-  {
-    // marked@0.3.2 required by markdown editor (newer npm marked is incompatible).
-    type: 'cdn',
-    name: 'marked',
-    version: '0.3.2',
-    base: 'https://cdnjs.cloudflare.com/ajax/libs/marked/0.3.2',
-    dest: 'markdown',
-    files: [
-      ['marked.min.js', 'marked.min.js'],
     ],
   },
   {
@@ -575,7 +567,7 @@ function copyCodemirror() {
     return;
   }
 
-  log.step('Copying codemirror 5.6.0 from npm...');
+  log.step('Copying codemirror 5.65.21 from npm...');
   for (const rel of CODEMIRROR_FILES) {
     const dest = toPlugins('codemirror', rel);
     if (copyFile(path.join(pkgRoot, rel), dest)) {
