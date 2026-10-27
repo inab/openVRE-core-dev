@@ -5,14 +5,16 @@ declare(strict_types=1);
 namespace OpenVREAPI\Mappers;
 
 use MongoDB\BSON\UTCDateTime;
+use OpenVREAPI\Enums\FileAction;
+use OpenVREAPI\Enums\FileKind;
 use OpenVREAPI\OpenApi\Schemas\FileDto;
-
 
 final class FileMapper
 {
     public static function toFileItem(array $doc): FileDto
     {
         $type = self::resolveType($doc);
+        $kind = $type === 'file' ? self::getFileKind($doc) : self::getDirectoryKind($doc);
 
         return new FileDto(
             fileId: (string) ($doc['_id'] ?? ''),
@@ -24,7 +26,9 @@ final class FileMapper
             size: (int) ($doc['size'] ?? 0),
             path: $doc['path'] ?? '',
             parentId: $doc['parentDir'] ?? null,
-            kind: $type === 'file' ? self::getFileKind($doc) : self::getDirectoryKind($doc),
+            kind: $kind,
+            status: self::getFileStatus($doc),
+            actions: self::getFileActions($kind),
         );
     }
 
@@ -48,13 +52,13 @@ final class FileMapper
         return array_key_exists('files', $doc) ? 'dir' : 'file';
     }
 
-    private static function getFileKind(array $doc): string
+    private static function getFileKind(array $doc): FileKind
     {
         if (!self::existsOnDisk($doc['path'] ?? '')) {
-            return 'file_unavailable';
+            return FileKind::FileUnavailable;
         }
 
-        return !empty($doc['validated']) ? 'file' : 'file_unvalidated';
+        return !empty($doc['validated']) ? FileKind::File : FileKind::FileUnvalidated;
     }
 
     private static function existsOnDisk(string $path): bool
@@ -73,12 +77,12 @@ final class FileMapper
         return file_exists($absolutePath);
     }
 
-    private static function getDirectoryKind(array $doc): string
+    private static function getDirectoryKind(array $doc): FileKind
     {
         $path = $doc['path'] ?? '';
 
         if (!self::existsOnDisk($path)) {
-            return 'folder_unavailable';
+            return FileKind::FolderUnavailable;
         }
 
         $basename = basename($path);
@@ -86,17 +90,30 @@ final class FileMapper
         $parentName = basename(dirname($path));
 
         if ($basename === 'uploads' && $project === $parentName) {
-            return 'folder_uploads';
+            return FileKind::FolderUploads;
         }
 
         if ($basename === 'repository' && $project === $parentName) {
-            return 'folder_repository';
+            return FileKind::FolderRepository;
         }
 
         if (($doc['files'] ?? null) === []) {
-            return 'folder_empty';
+            return FileKind::FolderEmpty;
         }
 
-        return 'folder';
+        return FileKind::Folder;
+    }
+
+    private static function getFileStatus(array $doc): string
+    {
+        $validated = $doc['validated'] ?? null;
+
+        return $validated || $validated === null ? 'ready' : 'unvalidated';
+    }
+
+    /** @return list<string> */
+    private static function getFileActions(FileKind $kind): array
+    {
+        return array_map(static fn (FileAction $action) => $action->value, $kind->actions());
     }
 }

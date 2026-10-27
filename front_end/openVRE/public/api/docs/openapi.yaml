@@ -353,6 +353,12 @@ components:
           description: 'Size of the file in bytes'
           type: integer
           minimum: 0
+        status:
+          description: 'File metadata status'
+          type: string
+          enum:
+            - ready
+            - unvalidated
         path:
           description: "Current path of the file within the user's storage"
           type: string
@@ -371,6 +377,21 @@ components:
             - folder_unavailable
             - folder_uploads
             - folder_repository
+        actions:
+          description: 'Actions available for the file'
+          type: array
+          items:
+            type: string
+            enum:
+              - compress
+              - delete
+              - delete_folder
+              - download
+              - download_folder
+              - edit_metadata
+              - move
+              - rename
+              - validate_metadata
       type: object
     GetUserFilesResponse:
       required:
