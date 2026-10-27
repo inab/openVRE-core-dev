@@ -372,6 +372,9 @@ $(document).ready(function() {
   //pagingType: "full_numbers",
 	pageLength: 20,
 	lengthMenu: [[20,50,-1],[20,50,"All"]],
+	// Table starts as display:none; jQuery 3 in Firefox returns undefined
+	// widths, which DataTables 1.10.8 then .match()es. Skip that path.
+	autoWidth: false,
 	orderCellsTop: true,
 	// Tree table: column sort reorders siblings in the DOM only (see applyTreeSiblingSort)
 	ordering: false,
