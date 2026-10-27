@@ -372,6 +372,9 @@ $(document).ready(function() {
   //pagingType: "full_numbers",
 	pageLength: 20,
 	lengthMenu: [[20,50,-1],[20,50,"All"]],
+	// Table starts as display:none; jQuery 3 in Firefox returns undefined
+	// widths, which DataTables 1.10.8 then .match()es. Skip that path.
+	autoWidth: false,
 	orderCellsTop: true,
 	// Tree table: column sort reorders siblings in the DOM only (see applyTreeSiblingSort)
 	ordering: false,
@@ -409,10 +412,10 @@ $(document).ready(function() {
 				ensureFolderRowPresentation($row);
 
 		 }else {
-		
-			 	if(!($(row).children('td').context.innerHTML.indexOf('mt-checkbox') != -1)) {
-			 		$(row).css('color', '#87a2b9'); 
-					$(row).addClass('row-disabled'); 
+			 	// jQuery 3 removed .context; check for mt-checkbox via DOM query instead.
+			 	if ($row.find('.mt-checkbox').length === 0) {
+			 		$row.css('color', '#87a2b9');
+					$row.addClass('row-disabled');
 				}
 
 		 }
