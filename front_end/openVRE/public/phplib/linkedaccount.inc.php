@@ -203,20 +203,25 @@ function handleSSHAccount($action, $userId, $site_id, $postData)
 		$_SESSION['errorData']['Error'][] =
 			"Failed to save SSH account: " . $e->getMessage();
 	}
-	redirectToLinkedAccount($action, $site_id);
+	redirectToLinkedAccount('SSH', $action, $site_id);
 
 }
 
-function redirectToLinkedAccount($action, $site_id): void
+function redirectToLinkedAccount($account, $action, $site_id = null): void
 {
-    $url = '/user/linkedAccount.php?' . http_build_query([
-        'account' => 'SSH',
-        'action' => $action,
-        'site_id' => $site_id,
-    ]);
+	$params = [
+		'account' => $account,
+		'action' => $action,
+	];
 
-    header('Location: ' . $url);
-    exit;
+	if ($site_id !== null && $site_id !== '') {
+		$params['site_id'] = $site_id;
+	}
+
+	$url = '/user/linkedAccount.php?' . http_build_query($params);
+
+	header('Location: ' . $url);
+	exit;
 }
 
 function handleObjectStorageAccount($action, $userId, $site_id, $postData)
@@ -331,7 +336,7 @@ function handleObjectStorageAccount($action, $userId, $site_id, $postData)
 		$_SESSION['errorData']['Error'][] =
 			"Failed to save SSH account: " . $e->getMessage();
 	}
-	redirectToLinkedAccount($action, $site_id);
+	redirectToLinkedAccount('objectstorage', $action, $site_id);
 }
 
 
@@ -385,7 +390,7 @@ function handleEgaAccount($action, $userId, $postData)
 		$_SESSION['errorData']['Error'][] =
 			"Failed to save SSH account: " . $e->getMessage();
 	}
-	redirectToLinkedAccount($action, $site_id);
+	redirectToLinkedAccount('EGA', $action);
 }
 
 
