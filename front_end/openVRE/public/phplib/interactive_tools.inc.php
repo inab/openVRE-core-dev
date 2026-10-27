@@ -19,204 +19,152 @@ function getInteractiveLogger()
 
 function createGuacamoleConnectionForJob($toolId, $username, $containerName, $port)
 {
-    $logger = getInteractiveLogger();
 
+    $logger = getInteractiveLogger();
+    $db = $GLOBALS['guacamoleConn'];
     $logger->info("=== GUACAMOLE CONNECTION START ===");
     $logger->info("Tool ID: " . $toolId);
     $logger->info("OpenVRE username: " . $username);
     $logger->info("Container name: " . $containerName);
     $logger->info("VNC port: " . $port);
-
-    $db = $GLOBALS['guacamoleConn'];
-
-    $logger->info("Guacamole DB connection available.");
-
-    /*
-     * Find the Guacamole entity corresponding to the OpenVRE user.
-     */
-    $stmt = $db->prepare("
-        SELECT
-            e.entity_id,
-            e.name,
-            e.type
-        FROM guacamole_entity e
-        WHERE e.name = ?
-          AND e.type = 'USER'
-    ");
-
-    $stmt->execute([$username]);
-
-    $user = $stmt->fetch();
-
-    if (!$user) {
-
-        $logger->error(
-            "Guacamole user NOT FOUND: " . $username
-        );
-
-        throw new RuntimeException(
-            "Guacamole user not found: " . $username
-        );
+    if ($username === '' || $containerName === '' || $port < 1 || $port > 65535) {
+        throw new InvalidArgumentException("Invalid Guacamole user or connection parameters.");
     }
-
-    $entityId = (int) $user['entity_id'];
-
-    $logger->info(
-        "Guacamole user found: " .
-        "entity_id=" . $entityId .
-        ", name=" . $user['name']
-    );
-
-    /*
-     * Check whether this container already has a Guacamole connection.
-     */
-    $stmt = $db->prepare("
-        SELECT
-            c.connection_id,
-            c.connection_name
-        FROM guacamole_connection c
-        INNER JOIN guacamole_connection_parameter p
-            ON p.connection_id = c.connection_id
-        WHERE p.parameter_name = 'hostname'
-          AND p.parameter_value = ?
-    ");
-
-    $stmt->execute([$containerName]);
-
-    $existing = $stmt->fetch();
-
-    if ($existing) {
-
-        $logger->info(
-            "Existing Guacamole connection found: " .
-            "connection_id=" . $existing['connection_id'] .
-            ", name=" . $existing['connection_name']
-        );
-
-        $logger->info("=== GUACAMOLE CONNECTION END (EXISTING) ===");
-
-        return (int) $existing['connection_id'];
-    }
-
-    $logger->info(
-        "No existing Guacamole connection found for container."
-    );
-
-    /*
-     * Create connection + parameters + permission atomically.
-     */
-    $db->beginTransaction();
 
     try {
-
-        $connectionName =
-            $toolId . " - " . $username . " - " . $containerName;
-
-        $logger->info(
-            "Creating Guacamole connection: " . $connectionName
-        );
+        $db->beginTransaction();
 
         $stmt = $db->prepare("
-            INSERT INTO guacamole_connection
-                (connection_name, protocol)
-            VALUES
-                (?, 'vnc')
+            SELECT e.entity_id, e.name, e.type, u.user_id
+            FROM guacamole_entity e
+            LEFT JOIN guacamole_user u ON u.entity_id = e.entity_id
+            WHERE e.name = ?
+              AND e.type = 'USER'
+            FOR UPDATE
         ");
+        $stmt->execute([$username]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+      
+        if (!$user) {
+            $logger->info("Provisioning missing Guacamole user: " . $username);
 
-        $stmt->execute([$connectionName]);
+            $stmt = $db->prepare("
+                INSERT INTO guacamole_entity (name, type)
+                VALUES (?, 'USER')
+            ");
+            $stmt->execute([$username]);
 
-        $connectionId = (int) $db->lastInsertId();
+            $entityId = (int) $db->lastInsertId();
+            $userId = null;
+        } else {
+            $entityId = (int) $user['entity_id'];
+            $userId = $user['user_id'] !== null
+                ? (int) $user['user_id']
+                : null;
 
-        $logger->info(
-            "Created guacamole_connection: connection_id=" .
-            $connectionId
-        );
+            $logger->info("Guacamole entity found: entity_id=" . $entityId);
+        }
+        if ($userId === null) {
+            $randomPassword = bin2hex(random_bytes(32));
+            $salt = random_bytes(32);
 
-        /*
-         * Hostname
-         */
+            // Guacamole JDBC: SHA-256(password + HEX(salt)).
+            // MySQL HEX() uses uppercase hexadecimal characters.
+            $passwordHash = hash(
+                'sha256',
+                $randomPassword . strtoupper(bin2hex($salt)),
+                true
+            );
+
+            $stmt = $db->prepare("
+                INSERT INTO guacamole_user
+                    (entity_id, password_hash, password_salt, password_date)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+            ");
+            $stmt->execute([$entityId, $passwordHash, $salt]);
+
+            $logger->info("Guacamole JDBC user record provisioned: entity_id=" . $entityId);
+
+            unset($randomPassword, $salt, $passwordHash);
+        }
         $stmt = $db->prepare("
-            INSERT INTO guacamole_connection_parameter
-                (connection_id, parameter_name, parameter_value)
-            VALUES
-                (?, 'hostname', ?)
+            SELECT c.connection_id, c.connection_name
+            FROM guacamole_connection c
+            INNER JOIN guacamole_connection_parameter p
+                ON p.connection_id = c.connection_id
+            WHERE p.parameter_name = 'hostname'
+              AND p.parameter_value = ?
+            LIMIT 1
         ");
+        $stmt->execute([$containerName]);
+        $existing = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        $stmt->execute([
-            $connectionId,
-            $containerName
-        ]);
+        if ($existing) {
+            $connectionId = (int) $existing['connection_id'];
 
-        $logger->info(
-            "Added hostname parameter: " . $containerName
-        );
+            $logger->info(
+                "Existing connection found: connection_id=" . $connectionId
+            );
+        } else {
+            /*
+             * Create the connection and its parameters.
+             */
+            $connectionName = $toolId . " - " . $username . " - " . $containerName;
 
-        /*
-         * Port
-         */
-        $stmt = $db->prepare("
-            INSERT INTO guacamole_connection_parameter
-                (connection_id, parameter_name, parameter_value)
-            VALUES
-                (?, 'port', ?)
-        ");
+            $stmt = $db->prepare("
+                INSERT INTO guacamole_connection (connection_name, protocol)
+                VALUES (?, 'vnc')
+            ");
+            $stmt->execute([$connectionName]);
 
-        $stmt->execute([
-            $connectionId,
-            (string) $port
-        ]);
+            $connectionId = (int) $db->lastInsertId();
 
-        $logger->info(
-            "Added port parameter: " . $port
-        );
+            $stmt = $db->prepare("
+                INSERT INTO guacamole_connection_parameter
+                    (connection_id, parameter_name, parameter_value)
+                VALUES (?, 'hostname', ?), (?, 'port', ?)
+            ");
+            $stmt->execute([
+                $connectionId, $containerName,
+                $connectionId, (string) $port
+            ]);
 
-        /*
-         * User READ permission
-         */
+            $logger->info(
+                "Created connection: connection_id=" . $connectionId
+            );
+        }
         $stmt = $db->prepare("
             INSERT INTO guacamole_connection_permission
                 (entity_id, connection_id, permission)
-            VALUES
-                (?, ?, 'READ')
+            SELECT ?, ?, 'READ'
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM guacamole_connection_permission
+                WHERE entity_id = ?
+                  AND connection_id = ?
+                  AND permission = 'READ'
+            )
         ");
-
         $stmt->execute([
-            $entityId,
-            $connectionId
+            $entityId, $connectionId,
+            $entityId, $connectionId
         ]);
-
-        $logger->info(
-            "Added READ permission: " .
-            "entity_id=" . $entityId .
-            ", connection_id=" . $connectionId
-        );
 
         $db->commit();
 
         $logger->info(
-            "Guacamole connection committed successfully: " .
-            "connection_id=" . $connectionId
+            "=== GUACAMOLE CONNECTION END === connection_id=" . $connectionId
         );
-
-        $logger->info("=== GUACAMOLE CONNECTION END (CREATED) ===");
-
         return $connectionId;
-
     } catch (Throwable $e) {
-
         if ($db->inTransaction()) {
             $db->rollBack();
         }
 
         $logger->error(
-            "Guacamole connection creation FAILED: " .
-            $e->getMessage()
+            "Guacamole provisioning failed: " .
+            get_class($e) . ": " . $e->getMessage()
         );
-
-        $logger->error(
-            "Exception class: " . get_class($e)
-        );
-
         throw $e;
     }
 }
@@ -239,7 +187,6 @@ function checkStatus($pid)
             "message" => "The requested interactive session could not be found."
         ];
     }
-
     $job = $jobs[$pid];
 
     /*----------------------------------------------------
@@ -334,6 +281,36 @@ function checkStatus($pid)
 
         } catch (Throwable $e) {
 
+             error_log(
+                '[Guacamole connection creation failed] ' .
+                'toolId=' . $toolId .
+                ', username=' . $username .
+                ', container=' . $containerName .
+                ', port=' . $port .
+                ', exception=' . get_class($e) .
+                ', message=' . $e->getMessage() .
+                ', file=' . $e->getFile() .
+                ':' . $e->getLine() .
+                "\n" . $e->getTraceAsString()
+            );
+
+            // not another polling attempt.
+            if (
+                $e instanceof RuntimeException &&
+                $e->getMessage() === 'GUACAMOLE_USER_NOT_PROVISIONED'
+            ) {
+                return [
+                        "ready"   => false,
+                        "reload"  => false,
+                        "login_required" => true,
+                        "title"   => "Guacamole login required",
+                        "message" => "Please sign in to Guacamole, then return here to retry your session.",
+                        "auth_url" => $GLOBALS['SERVER']
+                            . $interactiveToolprefix
+                            . "guacamole/"
+                    ];
+            }
+
             return [
                 "ready"   => false,
                 "reload"  => true,
@@ -343,24 +320,27 @@ function checkStatus($pid)
         }
     }
 
-    /*----------------------------------------------------
-     * Mark service ready
-     *---------------------------------------------------*/
-
     if (($job['interactive_backend'] ?? '') === 'guacamole') {
 
         $url = $GLOBALS['SERVER']
             . $interactiveToolprefix
             . "guacamole/";
-
     } else {
+        $identifier = rtrim(
+            strtr(
+                base64_encode(
+                    $guacamoleConnectionId . "\0c\0mysql"
+                ),
+                '+/',
+                '-_'    
+            ),
+            '='
+        );
 
         $url = $GLOBALS['SERVER']
-            . $interactiveToolprefix
-            . $job['containerName']
-            . "/";
+        . '/interactive-tool/guacamole/#/client/'
+        . $identifier;
     }
-
     return [
         "ready"   => true,
         "reload"  => false,

@@ -9,6 +9,7 @@ vault/file/*
 vault/config/jwt-user-policies.hcl
 vendor/
 guacamole/configuration/extensions
+openbao/
 
 #Volumes environment
 volumes/

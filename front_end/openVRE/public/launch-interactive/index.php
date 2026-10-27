@@ -73,7 +73,6 @@ $status = checkStatus($_GET['pid']);
 
                                             </a>
 
-
                                         <?php } else { ?>
 
                                             <br>
