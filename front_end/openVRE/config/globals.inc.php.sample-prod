@@ -68,10 +68,9 @@ $GLOBALS['adminToken']             = $GLOBALS['authServer']."/realms/master/prot
 $GLOBALS['adminRealm']             = $GLOBALS['authServer']."/admin/realms/".$GLOBALS['authRealm']; // admin keycloak users
 
 // Vault integration and roles
-$GLOBALS['vaultUrl'] = getenv('VAULT_ADDR') . "/" . getenv('VAULT_API_VERSION');
-$GLOBALS['vaultRolename'] = getenv('VAULT_ROLENAME');
-$GLOBALS['secretPath'] = getenv('VAULT_SECRET_PATH');
-
+$GLOBALS['baoUrl'] = getenv('BAO_ADDR') . "/" . getenv('BAO_API_VERSION');
+$GLOBALS['baoRolename'] = getenv('BAO_ROLENAME');
+$GLOBALS['secretPath'] = getenv('BAO_SECRET_PATH');
 // EGA
 $GLOBALS['EGA_METADATA_TOKEN_ENDPOINT'] = 'https://idp.ega-archive.org/realms/EGA/protocol/openid-connect/token';
 $GLOBALS['EGA_METADATA_API'] = 'https://metadata.ega-archive.org';
