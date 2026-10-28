@@ -14,7 +14,7 @@ const base = {
   dataType: '',
   date: '2026-07-17T11:41:19.000+00:00',
   size: 0,
-  status: 'idle' as const,
+  status: 'ready' as const,
   actions: [] as ApiFileItem['actions'],
 };
 
@@ -154,7 +154,7 @@ describe('adaptFilesPage', () => {
     expect(roots[0]?.children).toEqual([]);
   });
 
-  it('preserves kind and actions from the payload', () => {
+  it('preserves kind, status, and actions from the payload', () => {
     const customActions: ApiFileItem['actions'] = ['download'];
     const files = [
       api({
@@ -164,48 +164,27 @@ describe('adaptFilesPage', () => {
         path: 'p/uploads',
         type: FILE_TYPES.dir,
         kind: FILE_ITEM_KINDS.folder_uploads,
+        status: 'ready',
         actions: customActions,
+      }),
+      api({
+        fileId: 'child',
+        parentId: 'uploads',
+        filename: 'sample.fastq',
+        path: 'p/uploads/sample.fastq',
+        type: FILE_TYPES.file,
+        kind: FILE_ITEM_KINDS.file_unvalidated,
+        status: 'unvalidated',
+        actions: ['validate_metadata'],
       }),
     ];
 
     const [root] = adaptFilesPage(files);
     expect(root?.kind).toBe(FILE_ITEM_KINDS.folder_uploads);
+    expect(root?.status).toBe('ready');
     expect(root?.actions).toEqual(customActions);
-  });
-
-  it('does not invent status or actions for live FileDto rows', () => {
-    const files: ApiFileItem[] = [
-      {
-        fileId: 'repo',
-        parentId: null,
-        filename: 'repository',
-        path: 'p/repository',
-        type: FILE_TYPES.dir,
-        format: '',
-        dataType: '',
-        date: '2026-07-17T11:41:19.000+00:00',
-        size: 0,
-        kind: FILE_ITEM_KINDS.folder_repository,
-      },
-      {
-        fileId: 'f1',
-        parentId: 'repo',
-        filename: 'sample.fastq',
-        path: 'p/repository/sample.fastq',
-        type: FILE_TYPES.file,
-        format: 'fastq',
-        dataType: 'seq',
-        date: '2026-07-17T11:41:19.000+00:00',
-        size: 10,
-        kind: FILE_ITEM_KINDS.file,
-      },
-    ];
-
-    const [root] = adaptFilesPage(files);
-    expect(root?.status).toBeUndefined();
-    expect(root?.actions).toBeUndefined();
-    expect(root?.children[0]?.status).toBeUndefined();
-    expect(root?.children[0]?.actions).toBeUndefined();
+    expect(root?.children[0]?.status).toBe('unvalidated');
+    expect(root?.children[0]?.actions).toEqual(['validate_metadata']);
   });
 
   it('preserves input order when not pre-sorted', () => {

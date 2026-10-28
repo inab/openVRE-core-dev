@@ -13,7 +13,7 @@ const base = {
   dataType: '',
   date: '2026-07-17T11:41:19.000+00:00',
   size: 0,
-  status: 'idle' as const,
+  status: 'ready' as const,
   actions: [] as ApiFileItem['actions'],
 };
 

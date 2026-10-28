@@ -11,13 +11,8 @@
       "date": "2026-06-23T08:40:51.000+00:00",
       "size": 0,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_69af60540d15b1.32185487",
@@ -30,10 +25,8 @@
       "date": "2026-03-10T00:05:40.000+00:00",
       "size": 15453668,
       "kind": "folder_repository",
-      "status": "idle",
-      "actions": [
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_69eb1f2a81e8f6.47018432",
@@ -109,13 +102,8 @@
       "date": "2026-03-10T00:05:40.000+00:00",
       "size": 234102,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a468ab50300c7.49384197",
@@ -233,13 +221,8 @@
       "date": "2026-04-24T08:46:05.000+00:00",
       "size": 847931,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_69eb2dddda2f91.80880152",
@@ -273,13 +256,8 @@
       "date": "2026-06-23T09:28:44.000+00:00",
       "size": 17689,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a3a522fca8ce8.10608934",
@@ -313,13 +291,8 @@
       "date": "2026-06-23T09:30:46.000+00:00",
       "size": 19096,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a3a52be86f473.84748576",
@@ -353,13 +326,8 @@
       "date": "2026-06-23T09:33:39.000+00:00",
       "size": 20023,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a3a53a7629de5.05912260",
@@ -393,13 +361,8 @@
       "date": "2026-06-23T09:44:16.000+00:00",
       "size": 212,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a3d045a76ef09.36005814",
@@ -433,11 +396,8 @@
       "date": "2026-06-25T10:56:34.000+00:00",
       "size": 0,
       "kind": "folder_empty",
-      "status": "idle",
-      "actions": [
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a3d0a350d4890.43643425",
@@ -450,13 +410,8 @@
       "date": "2026-06-25T11:00:05.000+00:00",
       "size": 19160,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a3e8c1a1613e8.65998958",
@@ -490,13 +445,8 @@
       "date": "2026-07-01T10:05:31.000+00:00",
       "size": 1147,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a44e89b5c0093.66677502",
@@ -530,13 +480,8 @@
       "date": "2026-07-01T10:39:29.000+00:00",
       "size": 1147,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a44effa68db24.86158976",
@@ -570,13 +515,8 @@
       "date": "2026-07-01T10:41:22.000+00:00",
       "size": 170,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a44effa7aac55.55668038",
@@ -610,13 +550,8 @@
       "date": "2026-07-06T15:50:04.000+00:00",
       "size": 1187,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4bd3204a03f1.71049064",
@@ -650,13 +585,8 @@
       "date": "2026-07-06T16:08:28.000+00:00",
       "size": 130,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4bd3205c73d2.27154824",
@@ -690,13 +620,8 @@
       "date": "2026-07-06T16:13:54.000+00:00",
       "size": 1159,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4cbc729699e1.42428860",
@@ -730,13 +655,8 @@
       "date": "2026-07-06T16:20:27.000+00:00",
       "size": 130,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4cbc72ad2514.00208242",
@@ -770,11 +690,8 @@
       "date": "2026-07-06T16:24:26.000+00:00",
       "size": 0,
       "kind": "folder_empty",
-      "status": "idle",
-      "actions": [
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4cbd185ca775.65377134",
@@ -787,13 +704,8 @@
       "date": "2026-07-07T08:47:20.000+00:00",
       "size": 1147,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4cbfb842a2a5.90004007",
@@ -827,11 +739,8 @@
       "date": "2026-07-07T08:47:48.000+00:00",
       "size": 0,
       "kind": "folder_empty",
-      "status": "idle",
-      "actions": [
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4cbd4e016d89.56672921",
@@ -844,11 +753,8 @@
       "date": "2026-07-07T08:48:14.000+00:00",
       "size": 0,
       "kind": "folder_empty",
-      "status": "idle",
-      "actions": [
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4cbd662b7ee2.60087600",
@@ -861,11 +767,8 @@
       "date": "2026-07-07T08:48:38.000+00:00",
       "size": 0,
       "kind": "folder_empty",
-      "status": "idle",
-      "actions": [
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4cbdef3dda07.07364727",
@@ -878,11 +781,8 @@
       "date": "2026-07-07T08:50:55.000+00:00",
       "size": 0,
       "kind": "folder_empty",
-      "status": "idle",
-      "actions": [
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4cbe271ebc19.39833769",
@@ -895,11 +795,8 @@
       "date": "2026-07-07T08:51:51.000+00:00",
       "size": 0,
       "kind": "folder_empty",
-      "status": "idle",
-      "actions": [
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4cbe919c1485.47021280",
@@ -912,11 +809,8 @@
       "date": "2026-07-07T08:53:37.000+00:00",
       "size": 0,
       "kind": "folder_empty",
-      "status": "idle",
-      "actions": [
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4cbeac02dbb2.62442783",
@@ -929,11 +823,8 @@
       "date": "2026-07-07T08:54:04.000+00:00",
       "size": 0,
       "kind": "folder_empty",
-      "status": "idle",
-      "actions": [
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4cbed060be75.71615042",
@@ -946,11 +837,8 @@
       "date": "2026-07-07T08:54:40.000+00:00",
       "size": 0,
       "kind": "folder_empty",
-      "status": "idle",
-      "actions": [
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4cfc83de2134.44572677",
@@ -963,13 +851,8 @@
       "date": "2026-07-07T13:17:55.000+00:00",
       "size": 104476,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4d0206b7a912.54842528",
@@ -1003,13 +886,8 @@
       "date": "2026-07-07T13:18:19.000+00:00",
       "size": 152,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4cfcceaf75d8.68382200",
@@ -1043,13 +921,8 @@
       "date": "2026-07-07T13:18:29.000+00:00",
       "size": 18853,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4d14eece9ad6.88556114",
@@ -1083,13 +956,8 @@
       "date": "2026-07-07T13:21:03.000+00:00",
       "size": 895,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4d14ef0a9b53.45548876",
@@ -1123,13 +991,8 @@
       "date": "2026-07-08T08:34:23.000+00:00",
       "size": 1147,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4e0bc1b25b75.33846716",
@@ -1163,13 +1026,8 @@
       "date": "2026-07-08T08:36:17.000+00:00",
       "size": 98990,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4e138f168911.46432555",
@@ -1203,13 +1061,8 @@
       "date": "2026-06-23T08:51:47.000+00:00",
       "size": 662,
       "kind": "folder",
-      "status": "idle",
-      "actions": [
-        "rename",
-        "move",
-        "delete_folder",
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["rename", "move", "delete_folder", "download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a4e06b37659c3.50369227",
@@ -1264,10 +1117,8 @@
       "date": "2026-03-10T00:05:40.000+00:00",
       "size": 172,
       "kind": "folder_uploads",
-      "status": "idle",
-      "actions": [
-        "download_folder"
-      ]
+      "status": "ready",
+      "actions": ["download_folder"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a3a4e7f03ffd5.49521339",
@@ -1281,12 +1132,7 @@
       "size": 164,
       "kind": "file_unvalidated",
       "status": "unvalidated",
-      "actions": [
-        "validate_metadata",
-        "rename",
-        "move",
-        "delete"
-      ]
+      "actions": ["validate_metadata", "rename", "move", "delete"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_6a3a4d3c62c4d3.36416511",
@@ -1300,12 +1146,7 @@
       "size": 8,
       "kind": "file_unvalidated",
       "status": "unvalidated",
-      "actions": [
-        "validate_metadata",
-        "rename",
-        "move",
-        "delete"
-      ]
+      "actions": ["validate_metadata", "rename", "move", "delete"]
     },
     {
       "fileId": "PROJECTUSER69af605409c89_69e5e9587041c2.16431958",
@@ -1417,44 +1258,32 @@
     {
       "id": "cohort_dataset",
       "name": "Cohort dataset",
-      "dataTypes": [
-        "cohort_dataset"
-      ]
+      "dataTypes": ["cohort_dataset"]
     },
     {
       "id": "data_log",
       "name": "Data log",
-      "dataTypes": [
-        "data_log"
-      ]
+      "dataTypes": ["data_log"]
     },
     {
       "id": "report",
       "name": "Report",
-      "dataTypes": [
-        "report"
-      ]
+      "dataTypes": ["report"]
     },
     {
       "id": "Rstudio_data",
       "name": "Rstudio data",
-      "dataTypes": [
-        "Rstudio_data"
-      ]
+      "dataTypes": ["Rstudio_data"]
     },
     {
       "id": "sequence_data",
       "name": "Sequence data",
-      "dataTypes": [
-        "sequence_data"
-      ]
+      "dataTypes": ["sequence_data"]
     },
     {
       "id": "stata_data",
       "name": "Stata data",
-      "dataTypes": [
-        "stata_data"
-      ]
+      "dataTypes": ["stata_data"]
     }
   ]
 }

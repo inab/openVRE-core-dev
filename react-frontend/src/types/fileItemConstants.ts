@@ -41,7 +41,6 @@ export type FolderKind = (typeof FOLDER_KINDS)[number];
 export const FILE_ITEM_STATUSES = {
   ready: 'ready',
   unvalidated: 'unvalidated',
-  idle: 'idle',
 } as const;
 export type FileItemStatus =
   (typeof FILE_ITEM_STATUSES)[keyof typeof FILE_ITEM_STATUSES];
@@ -59,38 +58,3 @@ export const FILE_ITEM_ACTIONS = {
 } as const;
 export type FileItemAction =
   (typeof FILE_ITEM_ACTIONS)[keyof typeof FILE_ITEM_ACTIONS];
-
-/** Default row actions derived from `kind` when the API omits `actions`. */
-export const ACTIONS_BY_KIND: Record<FileItemKind, readonly FileItemAction[]> =
-  {
-    [FILE_ITEM_KINDS.file]: [
-      FILE_ITEM_ACTIONS.edit_metadata,
-      FILE_ITEM_ACTIONS.rename,
-      FILE_ITEM_ACTIONS.move,
-      FILE_ITEM_ACTIONS.download,
-      FILE_ITEM_ACTIONS.delete,
-      FILE_ITEM_ACTIONS.compress,
-    ],
-    [FILE_ITEM_KINDS.file_unvalidated]: [
-      FILE_ITEM_ACTIONS.validate_metadata,
-      FILE_ITEM_ACTIONS.rename,
-      FILE_ITEM_ACTIONS.move,
-      FILE_ITEM_ACTIONS.delete,
-    ],
-    [FILE_ITEM_KINDS.file_unavailable]: [
-      FILE_ITEM_ACTIONS.delete,
-    ],
-    [FILE_ITEM_KINDS.folder]: [
-      FILE_ITEM_ACTIONS.rename,
-      FILE_ITEM_ACTIONS.move,
-      FILE_ITEM_ACTIONS.delete_folder,
-      FILE_ITEM_ACTIONS.download_folder,
-    ],
-    [FILE_ITEM_KINDS.folder_empty]: [
-      FILE_ITEM_ACTIONS.delete_folder,
-      FILE_ITEM_ACTIONS.download_folder,
-    ],
-    [FILE_ITEM_KINDS.folder_unavailable]: [FILE_ITEM_ACTIONS.delete_folder],
-    [FILE_ITEM_KINDS.folder_uploads]: [FILE_ITEM_ACTIONS.download_folder],
-    [FILE_ITEM_KINDS.folder_repository]: [FILE_ITEM_ACTIONS.download_folder],
-  };

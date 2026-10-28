@@ -8,9 +8,9 @@ import type {
 /**
  * Flat list item from GET /files (no children on the wire).
  *
- * OpenAPI FileDto: identity + path + type + kind + parentId.
- * UI derives indicators and default actions from `kind`.
- * Optional `actions` overrides the defaults; optional `status` is legacy/fixture-only.
+ * OpenAPI FileDto: identity + path + type + kind + status + actions + parentId.
+ * Disk/remote warning comes from `kind`; metadata warning from `status`.
+ * Cog menu items come from `actions` (unknown strings are skipped).
  */
 export interface ApiFileItem {
   fileId: string;
@@ -23,6 +23,6 @@ export interface ApiFileItem {
   date: string;
   size: number;
   kind: FileItemKind;
-  status?: FileItemStatus;
-  actions?: FileItemAction[];
+  status: FileItemStatus;
+  actions: FileItemAction[];
 }

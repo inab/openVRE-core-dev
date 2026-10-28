@@ -1,15 +1,17 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  isFileItemAction,
   isFolderKind,
   isUnavailableKind,
   isUnvalidatedKind,
+  isUnvalidatedStatus,
   resolveFileItemActions,
 } from '../../../src/lib/workspace/fileItemKind';
 import {
-  ACTIONS_BY_KIND,
   FILE_ITEM_ACTIONS,
   FILE_ITEM_KINDS,
+  FILE_ITEM_STATUSES,
   UNAVAILABLE_KINDS,
   UNVALIDATED_KINDS,
   type FileItemKind,
@@ -51,6 +53,13 @@ describe('isFolderKind', () => {
   });
 });
 
+describe('isUnvalidatedStatus', () => {
+  it('is true only for unvalidated metadata status', () => {
+    expect(isUnvalidatedStatus(FILE_ITEM_STATUSES.unvalidated)).toBe(true);
+    expect(isUnvalidatedStatus(FILE_ITEM_STATUSES.ready)).toBe(false);
+  });
+});
+
 describe('kind indicators (disjoint)', () => {
   it('never marks the same kind as both unvalidated and unavailable', () => {
     for (const kind of ALL_KINDS) {
@@ -76,25 +85,28 @@ describe('kind indicators (disjoint)', () => {
 });
 
 describe('resolveFileItemActions', () => {
-  it('uses ACTIONS_BY_KIND when actions are omitted', () => {
-    expect(
-      resolveFileItemActions({ kind: FILE_ITEM_KINDS.file_unvalidated }),
-    ).toEqual(ACTIONS_BY_KIND[FILE_ITEM_KINDS.file_unvalidated]);
-  });
-
-  it('uses provided actions when present, including empty', () => {
+  it('keeps known actions in order, including an empty list', () => {
     expect(
       resolveFileItemActions({
-        kind: FILE_ITEM_KINDS.file,
         actions: [FILE_ITEM_ACTIONS.download],
       }),
     ).toEqual([FILE_ITEM_ACTIONS.download]);
 
+    expect(resolveFileItemActions({ actions: [] })).toEqual([]);
+  });
+
+  it('skips unknown action strings', () => {
     expect(
       resolveFileItemActions({
-        kind: FILE_ITEM_KINDS.file,
-        actions: [],
+        actions: ['download', 'not_a_real_action', 'delete'],
       }),
-    ).toEqual([]);
+    ).toEqual([FILE_ITEM_ACTIONS.download, FILE_ITEM_ACTIONS.delete]);
+  });
+});
+
+describe('isFileItemAction', () => {
+  it('accepts FileAction enum values only', () => {
+    expect(isFileItemAction('download')).toBe(true);
+    expect(isFileItemAction('not_a_real_action')).toBe(false);
   });
 });
