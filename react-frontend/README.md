@@ -22,10 +22,10 @@ Set in `.env` (see `.env.sample` / `.env.sample-prod`).
 
 Controls how the `react-frontend` Docker service runs.
 
-| Value | Default in | `react-frontend` container | PHP (`front_end`) |
-|---|---|---|---|
-| `dev` | `.env.sample` | Vite dev server on port 5173 (hot reload) | Loads islands from the dev server |
-| `prod` | `.env.sample-prod` | One-shot `npm run build`, then exits | Serves static files from `assets/react/` |
+| Value  | Default in         | `react-frontend` container                | PHP (`front_end`)                        |
+| ------ | ------------------ | ----------------------------------------- | ---------------------------------------- |
+| `dev`  | `.env.sample`      | Vite dev server on port 5173 (hot reload) | Loads islands from the dev server        |
+| `prod` | `.env.sample-prod` | One-shot `npm run build`, then exits      | Serves static files from `assets/react/` |
 
 ### `REACT_VITE_DEV_SERVER` (dev only)
 
@@ -127,10 +127,10 @@ front_end/openVRE/public/
 2. **Entry** — create `src/entries/my-component.tsx`:
 
    ```tsx
-   import { MyComponent } from '../components/MyComponent'
-   import { mountIsland } from '../lib/mount-island'
+   import { MyComponent } from '../components/MyComponent';
+   import { mountIsland } from '../lib/mount-island';
 
-   mountIsland('react-component-root', () => <MyComponent />)
+   mountIsland('react-component-root', () => <MyComponent />);
    ```
 
 3. **PHP page** — mount point and scripts:
@@ -196,6 +196,16 @@ It does **not** write the PHP session from React.
 `authBffFetch` is AuthBff-specific. When islands talk to `/api/v1` (or another API) directly, remove or rename this helper and its `/auth-bff/*` callers. Keep a single shared fetch wrapper if you still want global 401 handling — point it at the new auth model (e.g. Bearer/OIDC), not at AuthBff.
 
 See [AuthBff just-in-time token refresh](docs/auth-bff-token-refresh.md) for the full token-refresh design.
+
+## Legacy jQuery bridges
+
+Islands mount on PHP pages that still expose classic `window` globals and Bootstrap modals. Wrap each call in `src/lib/legacy/` and no-op when the global is missing.
+
+### Active bridges
+
+| Helper                        | Global                | Used by                                                                     |
+| ----------------------------- | --------------------- | --------------------------------------------------------------------------- |
+| `openLegacyFileMetadataModal` | `window.viewFileMeta` | Workspace warning triangle — opens the legacy metadata modal (`#modalMeta`) |
 
 ## Related documentation
 

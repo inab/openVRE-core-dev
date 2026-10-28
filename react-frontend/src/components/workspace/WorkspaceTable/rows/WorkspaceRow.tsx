@@ -11,15 +11,10 @@ import {
   RECENT_FILE_LABEL,
 } from '../../../../lib/format/isRecentFileDate';
 import type { FileItem } from '../../../../lib/workspace/FileItem';
-import {
-  isFolderKind,
-  isUnavailableKind,
-  isUnvalidatedKind,
-} from '../../../../lib/workspace/fileItemKind';
+import { isFolderKind } from '../../../../lib/workspace/fileItemKind';
 
+import { FileProblemIndicator } from '../indicators/FileProblemIndicator';
 import { RecentIndicator } from '../indicators/RecentIndicator';
-import { UnavailableIndicator } from '../indicators/UnavailableIndicator';
-import { UnvalidatedIndicator } from '../indicators/UnvalidatedIndicator';
 
 import './WorkspaceRow.css';
 
@@ -77,8 +72,6 @@ export const WorkspaceRowName = ({
   const nameClass = isFolder
     ? 'workspaceRowName workspaceRowNameFolder'
     : 'workspaceRowName';
-  const showUnavailable = isUnavailableKind(item.kind);
-  const showUnvalidated = isUnvalidatedKind(item.kind);
   const showRecent = isRecentFileDate(item.date);
 
   return (
@@ -128,8 +121,7 @@ export const WorkspaceRowName = ({
       >
         {item.filename}
       </span>
-      {showUnavailable ? <UnavailableIndicator /> : null}
-      {showUnvalidated ? <UnvalidatedIndicator /> : null}
+      <FileProblemIndicator item={item} />
     </div>
   );
 };
