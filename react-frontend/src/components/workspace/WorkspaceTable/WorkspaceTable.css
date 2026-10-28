@@ -143,6 +143,15 @@
   background: color-mix(in srgb, var(--color-secondary) 8%, transparent);
 }
 
+.workspaceTableRowUnvalidated {
+  color: var(--color-text-disabled);
+}
+
+.workspaceTableRowUnvalidated .workspaceRowFilename,
+.workspaceTableRowUnvalidated .workspaceRowIconFile {
+  color: var(--color-text-disabled);
+}
+
 .workspaceTableFooter {
   align-items: center;
   display: flex;

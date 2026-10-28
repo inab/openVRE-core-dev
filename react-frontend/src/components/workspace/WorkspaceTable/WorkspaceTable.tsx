@@ -16,6 +16,7 @@ import {
   workspaceTableColumns,
   workspaceTableFeatures,
 } from './workspaceTableColumns';
+import { getWorkspaceTableRowClassName } from './workspaceTableRowClassName';
 import { WorkspaceTablePagination } from './WorkspaceTablePagination';
 
 import './WorkspaceTable.css';
@@ -141,12 +142,12 @@ export const WorkspaceTable = ({
             {rows.map((row) => (
               <tr
                 key={row.id}
-                className={
-                  row.getIsSelected()
-                    ? 'workspaceTableRow workspaceTableRowSelected'
-                    : 'workspaceTableRow'
-                }
+                className={getWorkspaceTableRowClassName(
+                  row.original,
+                  row.getIsSelected(),
+                )}
                 data-kind={row.original.kind}
+                data-status={row.original.status}
               >
                 {row.getAllCells().map((cell) => (
                   <td
