@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Test\Api;
 
 use OpenVREAPI\Controllers\FileController;
+use OpenVREAPI\Enums\FileAction;
+use OpenVREAPI\Enums\FileKind;
 use OpenVREAPI\Services\FileService;
 use PHPUnit\Framework\TestCase;
 use Psr\Http\Message\ResponseInterface;
@@ -73,9 +75,24 @@ final class FakeFilesCol
 
 final class FakeFilesMetadataCol
 {
+    /** @param list<array<string, mixed>> $documents */
+    public function __construct(private array $documents = [])
+    {
+    }
+
     public function find(array $filter, array $options = []): FakeFilesCursor
     {
-        return new FakeFilesCursor([]);
+        $ids = $filter['_id']['$in'] ?? [];
+        if (!is_array($ids) || $ids === []) {
+            return new FakeFilesCursor([]);
+        }
+
+        $page = array_values(array_filter(
+            $this->documents,
+            static fn (array $doc): bool => in_array($doc['_id'] ?? null, $ids, true),
+        ));
+
+        return new FakeFilesCursor($page);
     }
 }
 
@@ -209,6 +226,35 @@ final class FileControllerTest extends TestCase
         $this->assertSame('a.txt', $body['files'][0]['filename']);
         $this->assertSame('f2', $body['files'][1]['fileId']);
         $this->assertSame('b.txt', $body['files'][1]['filename']);
+        $this->assertFileContract($body['files'][0]);
+        $this->assertFileContract($body['files'][1]);
+    }
+
+    public function testListMapsMetadataValidatedToStatus(): void
+    {
+        $page = [
+            ['_id' => 'ready-file', 'path' => 'ready.txt', 'type' => 'file', 'size' => 1],
+            ['_id' => 'unvalidated-file', 'path' => 'raw.txt', 'type' => 'file', 'size' => 2],
+        ];
+        $filesCol = new FakeFilesCol(2, $page);
+        $metadataCol = new FakeFilesMetadataCol([
+            ['_id' => 'ready-file', 'validated' => true],
+            ['_id' => 'unvalidated-file', 'validated' => false],
+        ]);
+
+        $response = $this->controller($this->userCol(), $filesCol, $metadataCol)->list(
+            $this->request('user@example.com'),
+            new Response(),
+            [],
+        );
+
+        $this->assertSame(200, $response->getStatusCode());
+        $body = $this->json($response);
+        $this->assertCount(2, $body['files']);
+        $this->assertFileContract($body['files'][0]);
+        $this->assertFileContract($body['files'][1]);
+        $this->assertSame('ready', $body['files'][0]['status']);
+        $this->assertSame('unvalidated', $body['files'][1]['status']);
     }
 
     public function testListAppliesPaginationAndReturnsTotal(): void
@@ -424,9 +470,32 @@ final class FileControllerTest extends TestCase
         $this->assertSame($expectedFilter, $filesCol->lastFindFilter);
     }
 
-    private function controller(FakeUsersCol $usersCol, FakeFilesCol $filesCol): FileController
+    private function controller(
+        FakeUsersCol $usersCol,
+        FakeFilesCol $filesCol,
+        ?FakeFilesMetadataCol $metadataCol = null,
+    ): FileController {
+        return new FileController(new FileService(
+            $filesCol,
+            $metadataCol ?? new FakeFilesMetadataCol(),
+            $usersCol,
+        ));
+    }
+
+    /**
+     * @param array<string, mixed> $file
+     */
+    private function assertFileContract(array $file): void
     {
-        return new FileController(new FileService($filesCol, new FakeFilesMetadataCol(), $usersCol));
+        $kinds = array_map(static fn (FileKind $kind): string => $kind->value, FileKind::cases());
+        $actions = array_map(static fn (FileAction $action): string => $action->value, FileAction::cases());
+
+        $this->assertContains($file['kind'], $kinds);
+        $this->assertContains($file['status'], ['ready', 'unvalidated']);
+        $this->assertIsArray($file['actions']);
+        foreach ($file['actions'] as $action) {
+            $this->assertContains($action, $actions);
+        }
     }
 
     private function userCol(): FakeUsersCol
