@@ -151,14 +151,8 @@ $GLOBALS['placeholder_textarea'] = "Click right button to select file(s)"; // te
 $GLOBALS['cloud']              = "my_on_premises_cloud"; // VRE central cloud. Options are any of $GLOBALS['clouds']
 $GLOBALS['clouds'] = Array(
                 'local' => array(
-                        "http_host"         => "www.mydomain.com",           // used in getCurrentCloud
-                        "dataDir_fs"        => "/NFS/export/path/userdata/", // export path for NFS server
-                        "pubDir_fs"         => "/NFS/export/path/public/",   // export path for NFS server
-                        "dataDir_virtual"   => $GLOBALS['dataDir'],
-                        "pubDir_virtual"    => $GLOBALS['pubDir'],
                         "dataDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['dataDir'],
                         "pubDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['pubDir'],
-                        "imageTypes"        => array(),                      // list of cloud OCCI templates indexed by RAM (GB)
                         "auth"              => array("required" => False)
                 )
 );

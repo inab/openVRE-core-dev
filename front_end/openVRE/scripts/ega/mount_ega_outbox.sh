@@ -1,7 +1,7 @@
 #!/bin/bash
 
 EGA_ENCRYPTED_FILES_MOUNTINGPOINT="/encrypted_files"
-EGA_USERNAME=$(curl --header "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDRESS" -s | jq -r '.data.data.EGA.username')
+EGA_USERNAME=$(curl --header "X-Vault-Token: $BAO_TOKEN" "$BAO_ADDR" -s | jq -r '.data.data.EGA.username')
 
 echo $EGA_USERNAME
 
@@ -12,7 +12,7 @@ echo $USER_ID
 echo $GROUP_ID
 
 user_private_key_file="/tmp/ega_secret_key"
-USER_PRIVATE_KEY=$(curl --header "X-Vault-Token: $VAULT_TOKEN" "$VAULT_ADDRESS" -s | jq -r '.data.data.EGA.privateKey')
+USER_PRIVATE_KEY=$(curl --header "X-Vault-Token: $BAO_TOKEN" "$BAO_ADDR" -s | jq -r '.data.data.EGA.privateKey')
 
 echo "$USER_PRIVATE_KEY" | base64 --decode > $user_private_key_file
 chmod 600  $user_private_key_file

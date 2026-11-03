@@ -33,8 +33,7 @@ services:
     environment:
       KEYCLOAK_SERVER: ${KEYCLOAK_SERVER}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
-      VAULT_ADDR: ${BAO_ADDR}
-      BAO_DEV_ROOT_TOKEN_ID: ${BAO_DEV_ROOT_TOKEN_ID}
+      BAO_ADDR: ${BAO_ADDR}
     volumes:
       - ./openbao/config:/openbao/config:ro
     networks:

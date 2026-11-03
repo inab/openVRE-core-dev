@@ -1034,13 +1034,13 @@ class Tooljob
             $customToolParameters = $this->buildEnvParams($tool['infrastructure']['container_env'], ['$this->containerName' => $this->containerName]);
         }
 
-        $tokenProvider = new VaultTokenProvider($_SESSION['userToken']->getToken(), $GLOBALS['vaultRolename'], $GLOBALS['vaultUrl']);
+        $tokenProvider = new VaultTokenProvider($_SESSION['userToken']->getToken(), $GLOBALS['baoRolename'], $GLOBALS['baoUrl']);
         $vaultKey = $tokenProvider->getToken();
         $user = getUserById($_SESSION['userId']);
         $vaultAddress = $GLOBALS['baoUrl'] . "/" . $GLOBALS['secretPath'] . $user->getSecretsId() . '/EGA';
         $userFolder = "/shared_data/userdata/" . $_SESSION['internalUserId'];
         $configFilePath = $userFolder . '/env.yml';
-        $configContent = "VAULT_TOKEN={$vaultKey}\nVAULT_ADDRESS={$vaultAddress}\n";
+        $configContent = "BAO_TOKEN={$vaultKey}\nBAO_ADDR={$vaultAddress}\n";
 
         if (file_put_contents($configFilePath, $configContent) === false) {
             $this->logger->error("Failed to write configuration file: $configFilePath");
