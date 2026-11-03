@@ -35,6 +35,22 @@ function removeAccount(LinkedAccount $linkedAccount)
 	redirect($_SERVER['HTTP_REFERER']);
 }
 
+function redirectToLinkedAccount($account, $action, $site_id = null): void
+{
+	$params = [
+		'account' => $account,
+		'action' => $action,
+	];
+
+	if ($site_id !== null && $site_id !== '') {
+		$params['site_id'] = $site_id;
+	}
+
+	$url = '/user/linkedAccount.php?' . http_build_query($params);
+
+	header('Location: ' . $url);
+	exit;
+}
 
 function generateSSHButtons()
 {

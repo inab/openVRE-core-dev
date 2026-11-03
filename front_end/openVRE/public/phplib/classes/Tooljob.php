@@ -1037,7 +1037,7 @@ class Tooljob
         $tokenProvider = new VaultTokenProvider($_SESSION['userToken']->getToken(), $GLOBALS['vaultRolename'], $GLOBALS['vaultUrl']);
         $vaultKey = $tokenProvider->getToken();
         $user = getUserById($_SESSION['userId']);
-        $vaultAddress = $GLOBALS['vaultUrl'] . "/" . $GLOBALS['secretPath'] . $user->getSecretsId() . '/EGA';
+        $vaultAddress = $GLOBALS['baoUrl'] . "/" . $GLOBALS['secretPath'] . $user->getSecretsId() . '/EGA';
         $userFolder = "/shared_data/userdata/" . $_SESSION['internalUserId'];
         $configFilePath = $userFolder . '/env.yml';
         $configContent = "VAULT_TOKEN={$vaultKey}\nVAULT_ADDRESS={$vaultAddress}\n";
