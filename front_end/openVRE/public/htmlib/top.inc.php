@@ -1,8 +1,9 @@
 <?php
 
-$user = getUserById($_SESSION['userId']);
-$firstLetterName =  substr($user->getName(), 0, 1);
-$firstLetterSurname =  substr($user->getSurname(), 0, 1);
+// User may be missing (e.g. session ended or user not stored), render the bar anyway
+$user = isset($_SESSION['userId']) ? getUserById($_SESSION['userId']) : null;
+$firstLetterName =  substr($user?->getName() ?? '', 0, 1);
+$firstLetterSurname =  substr($user?->getSurname() ?? '', 0, 1);
 
 $avatarColors = array('#0f7e8c', '#a3d86d', '#9113ff', '#edc642', '#2ac5a3', '#ffb858', '#955216');
 $bgColorAvatar = array_rand($avatarColors, 1);
@@ -53,7 +54,7 @@ if (file_exists($avatarImg)) {
                         <a href="javascript:;" class="dropdown-toggle" data-toggle="dropdown" data-hover="dropdown" data-close-others="true">
                             <img alt="" class="img-circle<?php echo $dispClassAv1; ?>" id="avatar-with-picture" src="<?php echo $avatarImg; ?>" />
                             <div class="img-circle<?php echo $dispClassAv2; ?>" id="avatar-no-picture" style="background-color:<?php echo $avatarColors[$bgColorAvatar]; ?>"><?php echo $firstLetterName . $firstLetterSurname; ?></div>
-                            <span class="username username-hide-on-mobile"><?php $user->getName() ?></span>
+                            <span class="username username-hide-on-mobile"><?php echo htmlspecialchars($user?->getName() ?? ''); ?></span>
                             <i class="fa fa-angle-down"></i>
                         </a>
                         <ul class="dropdown-menu dropdown-menu-default">
