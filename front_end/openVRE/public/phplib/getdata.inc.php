@@ -597,6 +597,7 @@ function getData_fromEGA(User $user, $datasetIds, $fileIds, $filenames, $fileSiz
     $fileSizesArray = explode(',', $fileSizes);
     $dataDirPath = getAttr_fromGSFileId($user->getDataDir(), "path");
     $localWorkingDir = $dataDirPath . "/uploads";
+    $uploadedFileIds = [];
     for ($i = 0; $i < count($fileIdsArray); $i++) {
         $filePath = "{$datasetIdsArray[$i]}/{$filenamesArray[$i]}";
 
@@ -606,17 +607,18 @@ function getData_fromEGA(User $user, $datasetIds, $fileIds, $filenames, $fileSiz
             'mtime' => new MongoDB\BSON\UTCDateTime(strtotime("now") * 1000)
         ];
 
+        // format and data_type are set by the user in the metadata form (uploadForm2)
         $metaData = [
-            'data_type' => "variants",
             'data_source' => Site::EGA->value,
             'ega_path' => $filePath,
-            'format' => "VCF",
-            'validated' => true,
+            'validated' => false,
             'visible' => true
         ];
 
         $fileBasename = basename($filePath);
-        uploadGSFileBNS($user->getActiveProject(), "$localWorkingDir/$fileBasename", $filePath, $insertData, $metaData);
+        $uploadedFileIds[] = uploadGSFileBNS($user->getActiveProject(), "$localWorkingDir/$fileBasename", $filePath, $insertData, $metaData);
         getDataLogger()->info("File $fileBasename uploaded");
     }
+
+    return $uploadedFileIds;
 }

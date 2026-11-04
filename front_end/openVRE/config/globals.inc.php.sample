@@ -26,7 +26,7 @@ $GLOBALS['shared']     = "/shared_data/"; // VRE data directory
 $GLOBALS['logFile']    = $GLOBALS['root']."/logs/application.log"; // Log file path
 $GLOBALS['userDataDir']    = $GLOBALS['shared']."userdata/"; // User data directory
 $GLOBALS['pubDir']     = $GLOBALS['shared']."public/"; // Public data directory
-$GLOBALS['scriptsDir']  = dirname(__DIR__)."scripts/"; // User scripts directory
+$GLOBALS['scriptsDir']  = "/front_end/openVRE/scripts"; // Tool scripts directory, relative to FRONTEND_HOST_PATH (mounted into tool containers)
 $GLOBALS['sampleDataPath'] = "/var/www/html/openVRE/data/sampleData/"; // Sample data directory
 $GLOBALS['sampleData_default'] = "basic"; // Default workspace's dataset entry
 
@@ -71,7 +71,8 @@ $GLOBALS['adminRealm']             = $GLOBALS['authServer']."/admin/realms/".$GL
 // Vault integration and roles
 $GLOBALS['baoUrl'] = getenv('BAO_ADDR') . "/" . getenv('BAO_API_VERSION');
 $GLOBALS['baoRolename'] = getenv('BAO_ROLENAME');
-$GLOBALS['secretPath'] = getenv('BAO_SECRET_PATH');
+$GLOBALS['baoSecretPath'] = getenv('BAO_SECRET_PATH');
+$GLOBALS['baoCertFilePath'] = getenv("BAO_SSL_CAFILE");
 
 // EGA
 $GLOBALS['EGA_METADATA_TOKEN_ENDPOINT'] = 'https://idp.ega-archive.org/realms/EGA/protocol/openid-connect/token';
@@ -156,10 +157,10 @@ $GLOBALS['clouds'] = Array(
                         "scriptsDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['scriptsDir'],
                         "auth"              => array("required" => False)
                 ),
-                'EGA' => array(
-                        "dataDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['userDataDir'],
-                        "pubDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['pubDir'],
-                        "scriptsDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['scriptsDir'],
-                        "auth"              => array("required" => False)
-                )
+                // 'local_ega' => array(
+                //         "dataDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['userDataDir'],
+                //         "pubDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['pubDir'],
+                //         "scriptsDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['scriptsDir'],
+                //         "auth"              => array("required" => False)
+                // )
 );

@@ -732,8 +732,7 @@ class Tooljob
 
                     break;
                 case Launcher::docker_SGE:
-                    //$cmd  = $this->setBashCommandDockerSge($tool);
-                    $cmd  = $this->setBashCommandEGA($tool);
+                    $cmd  = $this->setBashCommandDockerSge($tool);
                     $this->createSubmitFile($cmd);
 
                     break;
@@ -1037,10 +1036,12 @@ class Tooljob
         $tokenProvider = new VaultTokenProvider($_SESSION['userToken']->getToken(), $GLOBALS['baoRolename'], $GLOBALS['baoUrl']);
         $vaultKey = $tokenProvider->getToken();
         $user = getUserById($_SESSION['userId']);
-        $vaultAddress = $GLOBALS['baoUrl'] . "/" . $GLOBALS['secretPath'] . $user->getSecretsId() . '/EGA';
+        $vaultAddress = $GLOBALS['baoUrl'] . "/" . $GLOBALS['baoSecretPath'] . $user->getSecretsId() . '/EGA';
         $userFolder = "/shared_data/userdata/" . $_SESSION['internalUserId'];
         $configFilePath = $userFolder . '/env.yml';
         $configContent = "BAO_TOKEN={$vaultKey}\nBAO_ADDR={$vaultAddress}\n";
+        $certFilePath = $GLOBALS['baoCertFilePath'] ?? null;
+        $certVolume = !empty($certFilePath) ? " -v " . $certFilePath . ":/tmp/ca.crt" : "";
 
         if (file_put_contents($configFilePath, $configContent) === false) {
             $this->logger->error("Failed to write configuration file: $configFilePath");
@@ -1049,6 +1050,7 @@ class Tooljob
 
         return "docker run --device /dev/fuse --security-opt apparmor:unconfined --cap-add SYS_ADMIN -v /var/run/docker.sock:/var/run/docker.sock " .
             " " . $customToolParameters .
+            $certVolume .
             " -v " . $this->jobDirectories->projectDirHost . ":" . $GLOBALS['shared'] . "public_tmp/ " .
             " -v " . $this->jobDirectories->userDirHost . ":" . $GLOBALS['shared'] . "userdata_tmp/" . $_SESSION['internalUserId'] .
             " --tmpfs " . "/clean_files:rw,uid=1000,gid=1000" .

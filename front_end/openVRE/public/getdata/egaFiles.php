@@ -66,21 +66,22 @@
 
                 <!-- Pagination -->
                 <div class="pagination">
+                    <?php $egaPageUrl = "getdata/uploadForm.php?page="; ?>
                     <?php if ($currentPage > 1): ?>
-                        <a href="/EGA?page=<?php echo $currentPage - 1; ?>">&laquo; Previous</a>
+                        <a href="<?php echo $egaPageUrl . ($currentPage - 1); ?>#load_from_ega">&laquo; Previous</a>
                     <?php endif; ?>
 
                     <?php
                     $start_page = max(1, $currentPage - 10);
-                    $end_page = min($total_pages, $currentPage + 9);
+                    $end_page = $total_pages;
 
                     for ($i = $start_page; $i <= $end_page; $i++): ?>
-                        <a href="/EGA?page=<?php echo $i; ?>"
+                        <a href="<?php echo $egaPageUrl . $i; ?>#load_from_ega"
                             class="<?php echo $i == $currentPage ? 'active' : ''; ?>"><?php echo $i; ?></a>
                     <?php endfor; ?>
 
-                    <?php if ($currentPage < $total_pages): ?>
-                        <a href="/EGA?page=<?php echo $currentPage + 1; ?>">Next &raquo;</a>
+                    <?php if ($hasNextPage): ?>
+                        <a href="<?php echo $egaPageUrl . ($currentPage + 1); ?>#load_from_ega">Next &raquo;</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -96,6 +97,13 @@
 
 
 <script>
+    // Reopen the EGA tab after following a datasets pagination link
+    window.addEventListener('load', function () {
+        if (window.location.hash === '#load_from_ega' && window.jQuery) {
+            jQuery('.nav-tabs a[href="#load_from_ega"]').tab('show');
+        }
+    });
+
     document.addEventListener('DOMContentLoaded', function () {
         const rows = document.querySelectorAll('.dataset-row');
         rows.forEach(row => {
@@ -114,8 +122,11 @@
         });
     });
 
+    const filesPerPage = 10;
+
     function fetchFiles(accessionId, offset, fileListBody, filePagination) {
-        fetch(`getdata/fetchEgaDatasets.php?action=fetch_files&accession_id=${accessionId}&offset=${offset}&limit=10`)
+        // One extra file is requested to know whether there is a next page
+        fetch(`getdata/fetchEgaDatasets.php?action=fetch_files&accession_id=${accessionId}&offset=${offset}&limit=${filesPerPage + 1}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -130,6 +141,8 @@
                 }
 
                 fileListBody.innerHTML = ''; // Clear previous file list
+                const hasNextFilesPage = data.length > filesPerPage;
+                data = data.slice(0, filesPerPage);
                 egaLocations = ['crg', 'spain'];
                 data.filter(file => file.locations.some(location => egaLocations.includes(location))).forEach(file => {
                     const row = document.createElement('tr');
@@ -156,9 +169,6 @@
 
                 // Add pagination controls
                 filePagination.innerHTML = '';
-                const totalFiles = data.length;
-                const filesPerPage = 5;
-                const totalFilePages = Math.ceil(totalFiles / filesPerPage);
 
                 if (offset > 0) {
                     const prevButton = document.createElement('button');
@@ -167,7 +177,7 @@
                     filePagination.appendChild(prevButton);
                 }
 
-                if (offset + filesPerPage < totalFiles) {
+                if (hasNextFilesPage) {
                     const nextButton = document.createElement('button');
                     nextButton.innerText = 'Next';
                     nextButton.addEventListener('click', () => fetchFiles(accessionId, offset + filesPerPage, fileListBody, filePagination));
@@ -215,9 +225,19 @@
                 throw new Error('Network response was not ok');
             }
 
-            location.href = "/workspace/";
+            return response.json();
+        }).then(data => {
+            const uploadedIds = (data && data.fileIds) || [];
+            if (uploadedIds.length === 0) {
+                throw new Error('No files were added to the workspace');
+            }
+
+            // Ask the user for the files metadata
+            const query = uploadedIds.map(id => 'fn[]=' + encodeURIComponent(id)).join('&');
+            location.href = "getdata/uploadForm2.php?" + query;
         }).catch(error => {
             console.error('Error:', error);
+            alert('Error adding files to the workspace: ' + error.message);
         });
     }
 

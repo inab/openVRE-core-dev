@@ -15,6 +15,6 @@ class VaultClientFactory
         }
 
         $tokenProvider = new VaultTokenProvider($_SESSION['userToken']->getToken(), $GLOBALS['baoRolename'], $GLOBALS['baoUrl']);
-        return new VaultClient($userSecretsId, $GLOBALS['secretPath'], $tokenProvider->getToken(), $GLOBALS['baoUrl']);
+        return new VaultClient($userSecretsId, $GLOBALS['baoSecretPath'], $tokenProvider->getToken(), $GLOBALS['baoUrl']);
     }
 }

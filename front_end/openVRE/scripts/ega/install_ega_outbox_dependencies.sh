@@ -26,7 +26,7 @@ pip install --upgrade pip wheel
 ln -s $(which pip) /usr/bin/pip
 pip install git+https://github.com/inab/crypt4ghfs.git@v1.2.6
 
-#echo "user_allow_other" >> /usr/local/etc/fuse.conf
+echo "user_allow_other" >> /usr/local/etc/fuse.conf
 echo "user_allow_other" >> /etc/fuse.conf
 
 mkdir -p /encrypted_files && chown application:application /encrypted_files

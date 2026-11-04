@@ -5,6 +5,7 @@ use OpenVRE\NotFoundException;
 use League\OAuth2\Client\Token\AccessToken;
 use OpenVRE\User;
 use OpenVRE\UserType;
+use OpenVRE\Site;
 
 
 function getProjectLogger()
