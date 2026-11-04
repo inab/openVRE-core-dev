@@ -1,11 +1,14 @@
 <?php
 header('Content-Type: application/json');
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Pragma: no-cache');
+header('Expires: 0');
 
 require __DIR__ . "/../../config/bootstrap.php";
 
 use OpenVRE\LoggerFactory;
 
-$siteId = $_GET['site'] ?? null;
+$siteId = $_REQUEST['site'] ?? $_GET['site'] ?? null;
 $action = $_REQUEST['action'] ?? null;
 
 error_log('objStorage DEBUG _REQUEST: ' . json_encode($_REQUEST));

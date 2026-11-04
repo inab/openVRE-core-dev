@@ -32,7 +32,8 @@ if (!$site) {
       <!-- BEGIN CONTENT BODY -->
       <div class="page-content">
 
-        <!-- BEGIN PAGE HEADER -->
+        <!-- BEGIN PAGE HEADER-->
+        <!-- BEGIN PAGE BAR -->
         <div class="page-bar">
           <ul class="page-breadcrumb">
             <li>
@@ -44,78 +45,82 @@ if (!$site) {
               <i class="fa fa-circle"></i>
             </li>
             <li>
-              <span>From <?php echo htmlspecialchars($site['name']); ?></span>
+              <span>From Storage</span>
+              <i class="fa fa-circle"></i>
+            </li>
+            <li>
+              <span><?php echo htmlspecialchars($site['name'] ?? 'Storage Site'); ?></span>
             </li>
           </ul>
         </div>
         <!-- END PAGE BAR -->
-
-        <!-- BEGIN PAGE TITLE -->
+        <!-- BEGIN PAGE TITLE-->
         <h1 class="page-title">
-          <?php echo htmlspecialchars($site['name']); ?>
-          <small>List of data available for exploration and downloading.</small>
+          <a href="javascript:;" target="_blank"><img src="assets/layouts/layout/img/icon.png" width=100></a>
+          Storage Browser - <?php echo htmlspecialchars($site['name'] ?? 'Container'); ?>
         </h1>
-        <!-- END PAGE TITLE -->
-        <!-- END PAGE HEADER -->
+        <!-- END PAGE TITLE-->
+        <!-- END PAGE HEADER-->
 
-        <!-- BEGIN ERRORS DIV -->
-        <div id="errorsTool" style="display:none;"></div>
+        <?php
+        if (isset($_SESSION['errorData'])) {
+          foreach ($_SESSION['errorData'] as $subTitle => $txts) {
+            if (count($txts) == 0) {
+              unset($_SESSION['errorData'][$subTitle]);
+            }
+          }
+        }
+        if (isset($_SESSION['errorData']) && $_SESSION['errorData']) {
+          if (isset($_SESSION['errorData']['Info'])) {
+            ?><div class="alert alert-info"><?php
+          } else {
+            ?><div class="alert alert-warning"><?php
+          }
+          foreach ($_SESSION['errorData'] as $subTitle => $txts) {
+            print "$subTitle<br/>";
+            foreach ($txts as $txt) {
+              print "<div style=\"margin-left:20px;\">$txt</div>";
+            }
+          }
+          unset($_SESSION['errorData']);
+          ?></div><?php
+        }
+        ?>
 
         <div class="row">
           <div class="col-md-12">
-            <?php
-            $error_data = false;
-            if (!empty($_SESSION['errorData'])) {
-              $error_data = true;
-
-              if (!empty($_SESSION['errorData']['Info'])) { ?>
-                <div class="alert alert-info">
-              <?php } else { ?>
-                <div class="alert alert-danger">
-              <?php }
-
-              foreach ($_SESSION['errorData'] as $subTitle => $txts) {
-                print "<strong>$subTitle</strong><br/>";
-                foreach ($txts as $txt) {
-                  print "<div>$txt</div>";
-                }
-              }
-              unset($_SESSION['errorData']);
-              ?>
+            <div class="portlet light portlet-fit bordered">
+              <div class="portlet-title">
+                <div class="caption">
+                  <i class="icon-share font-red-sunglo hide"></i>
+                  <span class="caption-subject font-dark bold uppercase">Browse Storage Containers</span>
                 </div>
-            <?php } ?>
-          </div>
-        </div>
-        <!-- END ERRORS DIV -->
+              </div>
 
-        <h4>Granted Access to:</h4>
+              <div class="row storage-toolbar" style="margin: 0 15px 15px 15px;">
+                <div class="col-md-6">
+                  <label class="storage-select-label">Bucket</label>
+                  <select id="containerDropdown" class="form-control storage-select" style="display:none;"></select>
+                </div>
+              </div>
 
-        <div class="actions">
-                <a id="getCredentialsButton" class="btn grey" disabled>Get Credentials</a>
-                <a id="getTestButton" class="btn green" >Get Test</a>
-                <a id="workflowsReload" class="btn grey" disabled>Reload</a>
-
-        </div>
-        <div id="loading-datatable" class="loadingForm" style="display:none;">
-          <div id="loading-spinner">LOADING</div>
-          <!-- <div id="loading-text">It could take a few minutes</div> -->
-        </div>
-
-        <div class="portlet light portlet-fit bordered" id="general" style="display:none;">
-          <div id="workflows" class="portlet-body">
-              
-            <select id="containerDropdown" class="form-control" style="margin-bottom: 20px;"></select>
-            <input type="hidden" id="base-url" value="<?php echo $GLOBALS['BASEURL']; ?>" />
-
-            <table id="workflowsTable" class="table table-striped table-hover table-bordered">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="workflow-data"></tbody>
-            </table>
+              <div class="table-responsive storage-table-wrap">
+                <table class="table table-striped table-hover table-bordered storage-tree-table">
+                  <thead>
+                    <tr>
+                      <th class="storage-name-col">Filename</th>
+                      <th class="storage-size-col">Size</th>
+                      <th class="storage-actions-col">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="repository-body">
+                    <tr>
+                      <td colspan="3">Loading...</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
           </div>
         </div>
         <!-- END PAGE CONTENT -->
@@ -145,44 +150,171 @@ if (!$site) {
   </div>
 
   <style type="text/css">
-    #workflowsTable_filter {
-      float: right;
+    .storage-toolbar {
+      margin-top: 10px;
     }
 
-    .btn-block {
-      width: 100%;
-      font-size: 12px;
+    .storage-select-label {
       display: block;
-      line-height: 1.5;
+      margin-bottom: 6px;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #5b6471;
+      font-weight: 600;
     }
 
-    .loadingForm {
-      position: fixed;
-      top: 0;
-      left: 0;
+    .storage-select {
       width: 100%;
-      height: 100%;
-      background-color: rgba(255, 255, 255, 0.7);
-      z-index: 1000;
+      border: 1px solid #dfe3e8;
+      border-radius: 6px;
+      background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%);
+      box-shadow: inset 0 1px 2px rgba(16, 24, 40, 0.03);
+      color: #1f2937;
+      padding: 8px 12px;
+      min-height: 40px;
     }
 
-    #loading-spinner {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      font-size: 14px;
-      color: #333;
+    .storage-table-wrap {
+      border: 1px solid #edf1f5;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #fff;
     }
 
-    #loading-text {
-      position: absolute;
-      top: calc(50% + 20px);
-      left: 50%;
-      transform: translateX(-50%);
+    .storage-tree-table {
+      margin-bottom: 0;
+    }
+
+    .storage-tree-table thead > tr > th {
+      background: #f8fafc;
+      color: #4b5563;
+      font-weight: 600;
+      padding: 12px 14px;
+      border-bottom: 1px solid #edf1f5;
+    }
+
+    .storage-name-col {
+      width: 60%;
+    }
+
+    .storage-size-col {
+      width: 18%;
+    }
+
+    .storage-actions-col {
+      width: 12%;
+      text-align: center;
+    }
+
+    #repository-body td:first-child {
+      padding-left: 12px;
+    }
+
+    #repository-body td {
+      padding-top: 10px;
+      padding-bottom: 10px;
+      vertical-align: middle;
+      font-size: 13px;
+      border-color: #edf1f5;
+    }
+
+    #repository-body tr:hover {
+      background-color: #f8fafc;
+    }
+
+    #repository-body .dir-row td:first-child,
+    #repository-body .file-row td:first-child {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 32px;
+    }
+
+    .folder-icon {
+      color: #f0ad4e;
+      font-size: 15px;
+      min-width: 14px;
+    }
+
+    .file-icon {
+      color: #4c87b9;
       font-size: 14px;
-      color: #333;
-    } 
+      min-width: 14px;
+    }
+
+    .folder-name,
+    .file-row td:first-child span:last-child {
+      display: inline-block;
+      line-height: 1.4;
+      color: #1f2937;
+    }
+
+    .folder-toggle {
+      border: 1px solid #dfe3e8;
+      background: #fff;
+      border-radius: 4px;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      margin-right: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: #6b7280;
+      box-shadow: none;
+    }
+
+    .folder-toggle i {
+      transition: transform .15s ease-in-out;
+      font-size: 12px;
+    }
+
+    .folder-toggle.open i {
+      transform: rotate(90deg);
+    }
+
+    .folder-toggle[disabled] {
+      opacity: 0.35;
+      cursor: default;
+    }
+
+    .dir-action-btn {
+      padding: 0 5px;
+      font-size: 10px;
+      line-height: 1;
+      min-width: 22px;
+      height: 22px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      color: #667085;
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+    }
+
+    .dir-action-btn[disabled] {
+      opacity: 0.55;
+      cursor: default;
+    }
+
+    .actions-container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .storage-size-cell {
+      white-space: nowrap;
+      color: #5f6c7b;
+    }
+
+    .file-indent {
+      width: 14px;
+      display: inline-block;
+    }
   </style>
 
   <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>

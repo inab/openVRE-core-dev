@@ -53,8 +53,24 @@ function getS3Client(array $site)
         
         // Test connection by attempting to list buckets
         getObjectStorageS3Logger()->debug('Testing S3 connection by listing buckets...');
-        $buckets = $s3Client->listBuckets();
-        getObjectStorageS3Logger()->debug('S3 connection successful. Buckets: ' . json_encode($buckets));
+        $bucketsResult = $s3Client->listBuckets();
+        $bucketsArray = $bucketsResult->toArray();
+        $bucketNames = [];
+
+        if (isset($bucketsArray['Buckets']) && is_array($bucketsArray['Buckets'])) {
+            foreach ($bucketsArray['Buckets'] as $bucketInfo) {
+                $bucketNames[] = $bucketInfo['Name'] ?? null;
+            }
+        }
+
+        getObjectStorageS3Logger()->debug('Raw ListBuckets result: ' . json_encode($bucketsArray, JSON_PRETTY_PRINT));
+        getObjectStorageS3Logger()->debug('Bucket names parsed from ListBuckets: ' . json_encode(array_filter($bucketNames)));
+
+        if (empty($bucketNames)) {
+            getObjectStorageS3Logger()->warning('No buckets returned by S3 ListBuckets. This can mean the Seaweed endpoint is reachable but the bucket list is empty, or the credentials/identity do not see those buckets.');
+        }
+
+        getObjectStorageS3Logger()->debug('S3 connection successful. Buckets: ' . json_encode($bucketsArray));
         
         return $s3Client;
     } catch (Exception $e) {
@@ -81,7 +97,7 @@ function getS3Credentials(array $site)
 
 function getS3Containers($s3Client)
 {
-    getObjectStorageLogger()->info(
+    getObjectStorageS3Logger()->info(
         'Getting S3 buckets'
     );
 
@@ -92,11 +108,89 @@ function getS3Containers($s3Client)
         ];
     }
 
-    // TEST DATA
-    return [
-        'status' => 'success',
-        'containers' => [
-            'my-bucket'
-        ]
-    ];
+    try {
+        $bucketsResult = $s3Client->listBuckets();
+        $bucketsArray = $bucketsResult->toArray();
+        $bucketNames = [];
+
+        if (isset($bucketsArray['Buckets']) && is_array($bucketsArray['Buckets'])) {
+            foreach ($bucketsArray['Buckets'] as $bucketInfo) {
+                if (!empty($bucketInfo['Name'])) {
+                    $bucketNames[] = $bucketInfo['Name'];
+                }
+            }
+        }
+
+        getObjectStorageS3Logger()->debug('Parsed bucket list from AWS SDK: ' . json_encode($bucketNames));
+
+        if (empty($bucketNames)) {
+            return [
+                'status' => 'success',
+                'containers' => []
+            ];
+        }
+
+        return [
+            'status' => 'success',
+            'containers' => $bucketNames
+        ];
+    } catch (Exception $e) {
+        getObjectStorageS3Logger()->error('Failed to list S3 buckets: ' . $e->getMessage());
+        return [
+            'error' => true,
+            'message' => $e->getMessage()
+        ];
+    }
+}
+
+function getS3ContainerFiles($container, $s3Client)
+{
+    getObjectStorageS3Logger()->info('Getting S3 files for bucket: ' . $container);
+
+    if (!$s3Client || empty($container)) {
+        return [
+            'error' => true,
+            'message' => 'Invalid S3 client or container name.'
+        ];
+    }
+
+    try {
+        $result = $s3Client->listObjectsV2([
+            'Bucket' => $container,
+            'MaxKeys' => 1000
+        ]);
+
+        $items = $result->get('Contents', []);
+        $files = [];
+
+        foreach ($items as $item) {
+            $key = $item['Key'] ?? null;
+            if ($key === null || $key === '') {
+                continue;
+            }
+
+            $files[] = [
+                'Name' => $key,
+                'name' => $key,
+                'path' => $key,
+                'size' => (int)($item['Size'] ?? 0),
+                'Size' => (int)($item['Size'] ?? 0),
+                'LastModified' => $item['LastModified'] ?? null,
+                'isDir' => false
+            ];
+        }
+
+        getObjectStorageS3Logger()->debug('Parsed S3 files: ' . json_encode($files));
+
+        return [
+            'status' => 'success',
+            'files' => $files
+        ];
+    } catch (Exception $e) {
+        getObjectStorageS3Logger()->error('Failed to list S3 container files: ' . $e->getMessage());
+        return [
+            'error' => true,
+            'message' => $e->getMessage()
+        ];
+    }
 }

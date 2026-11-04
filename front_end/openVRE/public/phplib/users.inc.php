@@ -101,8 +101,24 @@ function createUserFromToken($login, $token, $userInfo = array(), $anonID = fals
         }
 
         if (isset($userInfo['roles'])) {
-            $userAttributes['roles'] = explode(',', $userInfo['roles']);
+            if (is_array($userInfo['roles'])) {
+                $userAttributes['roles'] = $userInfo['roles'];
+            } else {
+                $userAttributes['roles'] = explode(',', (string)$userInfo['roles']);
+            }
+        } else {
+            $userAttributes['roles'] = [];
         }
+
+        getUsersLogger()->info("OIDC claims received: " . json_encode([
+            'keys' => array_keys($userInfo),
+            'email' => $userInfo['email'] ?? null,
+            'provider' => $userInfo['provider'] ?? null,
+            'roles' => $userInfo['roles'] ?? null,
+            'sub' => $userInfo['sub'] ?? null,
+            'given_name' => $userInfo['given_name'] ?? null,
+            'family_name' => $userInfo['family_name'] ?? null,
+        ]));
 
         $_SESSION['allowedDatasetIds'] = [];
         if (isset($userInfo['ga4gh_passport_v1'])) {
@@ -120,6 +136,13 @@ function createUserFromToken($login, $token, $userInfo = array(), $anonID = fals
         }
 
         $_SESSION['tokenInfo'] = $userInfo;
+    }
+
+    $userAttributes['AuthProvider'] = $userAttributes['AuthProvider'] ?? '';
+    $userAttributes['roles'] = $userAttributes['roles'] ?? [];
+    if (!is_array($userAttributes['roles'])) {
+        getUsersLogger()->warning("Unexpected roles format from Keycloak: " . json_encode($userAttributes['roles']));
+        $userAttributes['roles'] = [];
     }
 
     $objUser = new User($userAttributes['Email'], $userAttributes['secretsId'], $userAttributes['Surname'], $userAttributes['Name'], "", $userAttributes['Type'], "", "", $userAttributes['AuthProvider'], "", $userAttributes['roles']);
