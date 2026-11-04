@@ -24,8 +24,9 @@ $GLOBALS['queueTask']  = "local.q"; //default queue
 $GLOBALS['root']       = dirname(__DIR__); // VRE root directory
 $GLOBALS['shared']     = "/shared_data/"; // VRE data directory
 $GLOBALS['logFile']    = $GLOBALS['root']."/logs/application.log"; // Log file path
-$GLOBALS['dataDir']    = $GLOBALS['shared']."userdata/"; // User data directory
+$GLOBALS['userDataDir']    = $GLOBALS['shared']."userdata/"; // User data directory
 $GLOBALS['pubDir']     = $GLOBALS['shared']."public/"; // Public data directory
+$GLOBALS['scriptsDir']  = "/front_end/openVRE/scripts"; // Tool scripts directory, relative to FRONTEND_HOST_PATH (mounted into tool containers)
 $GLOBALS['sampleDataPath'] = "/var/www/html/openVRE/data/sampleData/"; // Sample data directory
 $GLOBALS['sampleData_default'] = "basic"; // Default workspace's dataset entry
 
@@ -70,7 +71,8 @@ $GLOBALS['adminRealm']             = $GLOBALS['authServer']."/admin/realms/".$GL
 // Vault integration and roles
 $GLOBALS['baoUrl'] = getenv('BAO_ADDR') . "/" . getenv('BAO_API_VERSION');
 $GLOBALS['baoRolename'] = getenv('BAO_ROLENAME');
-$GLOBALS['secretPath'] = getenv('BAO_SECRET_PATH');
+$GLOBALS['baoSecretPath'] = getenv('BAO_SECRET_PATH');
+$GLOBALS['baoCertFilePath'] = getenv("BAO_SSL_CAFILE");
 
 // EGA
 $GLOBALS['EGA_METADATA_TOKEN_ENDPOINT'] = 'https://idp.ega-archive.org/realms/EGA/protocol/openid-connect/token';
@@ -148,17 +150,17 @@ $GLOBALS['placeholder_textarea'] = "Click right button to select file(s)"; // te
 
 
 // Cloud infrastructures
-$GLOBALS['cloud']              = "my_on_premises_cloud"; // VRE central cloud. Options are any of $GLOBALS['clouds']
 $GLOBALS['clouds'] = Array(
                 'local' => array(
-                        "http_host"         => "www.mydomain.com",           // used in getCurrentCloud
-                        "dataDir_fs"        => "/NFS/export/path/userdata/", // export path for NFS server
-                        "pubDir_fs"         => "/NFS/export/path/public/",   // export path for NFS server
-                        "dataDir_virtual"   => $GLOBALS['dataDir'],
-                        "pubDir_virtual"    => $GLOBALS['pubDir'],
-                        "dataDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['dataDir'],
+                        "dataDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['userDataDir'],
                         "pubDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['pubDir'],
-                        "imageTypes"        => array(),                      // list of cloud OCCI templates indexed by RAM (GB)
+                        "scriptsDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['scriptsDir'],
                         "auth"              => array("required" => False)
-                )
+                ),
+                // 'local_ega' => array(
+                //         "dataDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['userDataDir'],
+                //         "pubDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['pubDir'],
+                //         "scriptsDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['scriptsDir'],
+                //         "auth"              => array("required" => False)
+                // )
 );

@@ -87,8 +87,7 @@
 		case 'adminJobs':
 		case 'dashboard':
 		case 'datasets':
-		case 'objStorage': 
-		case 'logs': ?>
+		case 'objStorage': ?>
 			<link href="assets/global/plugins/bootstrap-fileinput/bootstrap-fileinput.css" rel="stylesheet" type="text/css" />
 			<link href="assets/global/plugins/datatables/datatables.min.css" rel="stylesheet" type="text/css" />
 			<link href="assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.css" rel="stylesheet" type="text/css" />
@@ -147,9 +146,6 @@
 				<link href="assets/pages/css/login.min.css" rel="stylesheet" type="text/css" />
 			<?php } ?>
 		<?php break;
-		case 'lockScreen': ?>
-			<link href="assets/pages/css/lock.min.css" rel="stylesheet" type="text/css" />
-		<?php break;
 		case 'usrProfile': ?>
 			<link href="assets/pages/css/profile.min.css" rel="stylesheet" type="text/css" />
 		<?php break;
@@ -183,7 +179,7 @@
 		case 'adminJobs':
 		case 'dashboard':
 		case 'datasets':
-		case 'objStorage': 
+		case 'objStorage':
 		case 'sampleDataList':
 		case 'dataFromTxt':
 		case 'dataFromID':

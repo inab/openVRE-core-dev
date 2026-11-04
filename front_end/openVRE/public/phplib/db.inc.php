@@ -1,38 +1,27 @@
 <?php
 
-require_once __DIR__ . "/../../vendor/autoload.php";
+use OpenVRE\User;
 
 $connectionUri = "mongodb://" . getenv('MONGO_CREDENTIALS') . "@" . getenv('MONGO_SERVER') . "/?authSource=" . getenv('MONGO_MAIN_DB');
-$VREConn =  new MongoDB\Client(
-	$connectionUri,
-	array(
-		'readConcernLevel' => 'local'
-	),
-	array(
-		'typeMap' => array(
-			'root'     => 'array',
-			'document' => 'array',
-			'array'    => 'array'
-		)
-	)
-);
+$clientTypeMap = array('typeMap' => array('root' => 'array', 'document' => 'array', 'array' => 'array'));
+$VREConn =  new MongoDB\Client($connectionUri, array('readConcernLevel' => 'local'), $clientTypeMap);
 
-// create handlers
 
 $dbname = getenv('MONGO_MAIN_DB');
 $GLOBALS['mongodbClient']         = $VREConn;
-$GLOBALS['db']              = $VREConn->$dbname;
-$GLOBALS['usersCol']        = $GLOBALS['db']->users;
-$GLOBALS['filesCol']        = $GLOBALS['db']->files;
-$GLOBALS['filesMetaCol']    = $GLOBALS['db']->filesMetadata;
-$GLOBALS['logMailCol']      = $GLOBALS['db']->checkMail;
-$GLOBALS['toolsCol']        = $GLOBALS['db']->tools;
-$GLOBALS['visualizersCol']  = $GLOBALS['db']->visualizers;
-$GLOBALS['fileFormatsCol']  = $GLOBALS['db']->file_formats;
-$GLOBALS['dataTypesCol']    = $GLOBALS['db']->data_types;
-$GLOBALS['helpsCol']        = $GLOBALS['db']->helps;
-$GLOBALS['sampleDataCol']   = $GLOBALS['db']->sampleData;
-$GLOBALS['actionLogs']      = $GLOBALS['db']->action_logs;
-$GLOBALS['rolePermissions']      = $GLOBALS['db']->role_permissions;
-//adding new cred for SITES collection
-$GLOBALS['sitesCol']   = $GLOBALS['db']->sites;
+$databaseConnection = $VREConn->getDatabase($dbname);
+$userTypeMap = ['typeMap' => ['array' => 'array', 'root' => User::class, 'document' => 'array']];
+
+$GLOBALS['usersCol']        = $databaseConnection->getCollection('users', $userTypeMap);
+$GLOBALS['filesCol']        = $databaseConnection->files;
+$GLOBALS['filesMetaCol']    = $databaseConnection->filesMetadata;
+$GLOBALS['logMailCol']      = $databaseConnection->checkMail;
+$GLOBALS['toolsCol']        = $databaseConnection->getCollection('tools');
+$GLOBALS['visualizersCol']  = $databaseConnection->visualizers;
+$GLOBALS['fileFormatsCol']  = $databaseConnection->file_formats;
+$GLOBALS['dataTypesCol']    = $databaseConnection->data_types;
+$GLOBALS['helpsCol']        = $databaseConnection->helps;
+$GLOBALS['sampleDataCol']   = $databaseConnection->sampleData;
+$GLOBALS['actionLogs']      = $databaseConnection->action_logs;
+$GLOBALS['rolePermissions']      = $databaseConnection->role_permissions;
+$GLOBALS['sitesCol']   = $databaseConnection->sites;

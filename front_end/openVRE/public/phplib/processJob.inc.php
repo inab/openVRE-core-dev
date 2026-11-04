@@ -1,5 +1,6 @@
 <?php
 
+use OpenVRE\Launcher;
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
 use OpenVRE\ProcessK8s;
@@ -19,13 +20,13 @@ function getJobProcessLogger()
 }
 
 
-function execJob($workDir, $shFile, $queue, $cpus = 1, $mem = 0, $logFile = "job_output.log", $errFile = "job_error.log", $jobManager = "docker_SGE", $toolId = "", $jobOptions = array())
+function execJob($workDir, $shFile, $queue, $jobManager, $cpus = 1, $mem = 0, $jobOptions = array())
 {
     getJobProcessLogger()->info("Start job submission via SGE");
 
-    if (is_null($_SESSION['User']['id'])) {
+    if (is_null($_SESSION['internalUserId'])) {
         getJobProcessLogger()->error("User ID not found in session.");
-        LoggerFactory::getPersistentLogger()->error("User ID {userId} not found in session.", array('userId' => $_SESSION['User']['id']));
+        LoggerFactory::getPersistentLogger()->error("User ID {userId} not found in session.", array('userId' => $_SESSION['internalUserId']));
         throw new NotFoundException("User ID not found in session.");
     }
 
@@ -47,17 +48,19 @@ function execJob($workDir, $shFile, $queue, $cpus = 1, $mem = 0, $logFile = "job
         throw new NotFoundException("Queue not provided.");
     }
 
-    $jobname = $_SESSION['User']['id'] . "#" . basename($shFile);
+    $jobname = $_SESSION['internalUserId'] . "#" . basename($shFile);
 
     switch ($jobManager) {
         case "docker_SGE":
-            getJobProcessLogger()->info("Submitting job via docker_SGE. Parameters: shFile=$shFile, workDir=$workDir, queue=$queue, jobname=$jobname, cpus=$cpus, mem=$mem, logFile=$logFile, errFile=$errFile");
-            $process = new ProcessSGE($shFile, $workDir, $queue, $jobname, $cpus, $mem, $logFile, $errFile);
+            getJobProcessLogger()->debug("Submitting job via docker_SGE. Parameters: shFile=$shFile, workDir=$workDir, queue=$queue, jobname=$jobname, cpus=$cpus, mem=$mem");
+            $process = new ProcessSGE($shFile, $workDir, $queue, $jobname, $cpus, $mem);
             break;
         case "Slurm_Singularity":
             $remote_system = $_REQUEST['sites']['site_list'][0];
-            getJobProcessLogger()->info("Submitting job via Slurm_Singularity to $remote_system. Parameters: shFile=$shFile, workDir=$workDir, logFile=$logFile, errFile=$errFile");
-            $process = new ProcessSlurm($shFile, $workDir, $logFile, $errFile, $remote_system);
+            $user = getUserById($_SESSION['userId']);
+            $userSecretsId = $user->getSecretsId();
+            getJobProcessLogger()->debug("Submitting job via Slurm_Singularity to $remote_system. Parameters: shFile=$shFile, workDir=$workDir");
+            $process = new ProcessSlurm($shFile, $workDir, $userSecretsId, $remote_system);
             break;
         case "kubernetes_native":
             $schedUrl = getenv("OPENVRE_K8S_SCHEDULER_URL") ?: "";
@@ -76,7 +79,7 @@ function execJob($workDir, $shFile, $queue, $cpus = 1, $mem = 0, $logFile = "job
             $process = new ProcessK8s($shFile,$workDir,$jobname,(int)$cpus,(int)$mem,is_array($jobOptions) ? $jobOptions : []);
             break;
         default:
-            $process = new ProcessSGE($shFile, $workDir, $queue, $jobname, $cpus, $mem, $logFile, $errFile);
+            $process = new ProcessSGE($shFile, $workDir, $queue, $jobname, $cpus, $mem);
             break;
     }
 
@@ -101,23 +104,32 @@ function getRunningJobInfo($pid, $launcherType = null)
     }
 
     if (is_null($launcherType) && is_numeric($pid)) {
+        $launcherType = Launcher::SGE;
+    } elseif (is_null($launcherType) && strpos((string)$pid, "-") !== false) {
+        $launcherType = Launcher::kubernetes_native;
+    }
+
+    if (Launcher::tryFrom($launcherType) === null) {
         $launcherType = "SGE";
     } elseif (strpos((string)$pid, "-") !== false) {
         $launcherType = "kubernetes_native";
     }
 
-    if ($launcherType == "SGE" || $launcherType == "docker_SGE") {
-        $process = new ProcessSGE();
-        $job = $process->getRunningJobInfo($pid);
-    } elseif ($launcherType == "kubernetes_native") {
-        $process = new ProcessK8s();
-        $job = $process->getRunningJobInfo($pid);
-    } elseif ($launcherType == "Slurm_Singularity") {
-        $process = new ProcessSlurm();
-        $job = $process->getRunningJobInfo($pid);
-    } else {
+    if (Launcher::tryFrom($launcherType) === null) {
         getJobProcessLogger()->error("Cannot monitor job '$pid' of type '$launcherType'. Launcher not implemented.");
         throw new UnexpectedValueException("Cannot monitor job '$pid' of type '$launcherType'. Launcher not implemented.");
+    }
+
+    $job = [];
+    if (in_array($launcherType, [Launcher::SGE->value, Launcher::docker_SGE->value, Launcher::docker_SGE_EGA->value], true)) {
+        $process = new ProcessSGE();
+        $job = $process->getRunningJobInfo($pid);
+    } elseif ($launcherType == Launcher::kubernetes_native->value) {
+        $process = new ProcessK8s();
+        $job = $process->getRunningJobInfo($pid);
+    } elseif ($launcherType == Launcher::slurm->value) {
+        $process = new ProcessSlurm();
+        $job = $process->getRunningJobInfo($pid);
     }
 
     return $job;
@@ -127,7 +139,7 @@ function getRunningJobInfo($pid, $launcherType = null)
 function getPidFromOutfile($outfile)
 {
     $pid = 0;
-    $SGE_updated = getUserJobs($_SESSION['userId']);
+    $SGE_updated = getUserJobs($_SESSION['internalUserId']);
     foreach ($SGE_updated as $data) {
         $outs = is_array($data['out']) ? $data['out'] : array($data['out']);
         if (in_array($outfile, $outs)) {
@@ -147,7 +159,7 @@ function delJobFromOutfiles($outfiles)
     if (count($outfiles) == 0)
         return 1;
 
-    $SGE_updated = getUserJobs($_SESSION['userId']);
+    $SGE_updated = getUserJobs($_SESSION['internalUserId']);
 
     foreach ($outfiles as $outfile) {
         $pid = getPidFromOutfile($outfile);
@@ -185,7 +197,7 @@ function delJobFromOutfiles($outfiles)
                 }
 
                 foreach ($files as $fn) {
-                    $rfn = $GLOBALS['dataDir'] . "/$fn";
+                    $rfn = $GLOBALS['userDataDir'] . "/$fn";
                     $ofn = $GLOBALS['filesCol']->findOne(array('_id' => $fn));
                     if (!empty($ofn)) {
                         try {
@@ -199,9 +211,6 @@ function delJobFromOutfiles($outfiles)
                         $_SESSION['errorData']['SGE'][] = "Cannot unlink $rfn" . error_get_last()["message"];
                     }
                 }
-                //update pending jobs
-                //unset($SGE_updated[$pid]);
-                //delUserJob($_SESSION['userId'],$pid);
             }
         } else {
             $_SESSION['errorData']['SGE'][] = "Cannot find job information for '" . basename($outfile) . "'.  &nbsp;<a href=\"workspace/workspace.php\">[ OK ]</a>";
@@ -217,16 +226,19 @@ function delJob($pid, $launcherType = null, $login = null)
         throw new NotFoundException("Job ID not provided.");
     }
 
+    $userId = $login ?? $_SESSION['userId'];
+    $user = getUserById($userId);
+
     // guess launcher
     if (!$launcherType && is_numeric($pid)) {
-        $launcherType = "docker_SGE";
+        $launcherType = Launcher::docker_SGE;
     } elseif (strpos((string)$pid, "-") !== false) {
-        $launcherType = "kubernetes_native";
+        $launcherType = Launcher::kubernetes_native;
     }
 
     // cancel job
     $r_sge = false;
-    if ($launcherType == "SGE" || $launcherType == "docker_SGE") {
+    if ($launcherType == Launcher::SGE || $launcherType == Launcher::docker_SGE) {
         $processSGE = new ProcessSGE();
         list($r_sge, $msg_sge) = $processSGE->stop($pid);
     } elseif ($launcherType == "kubernetes_native") {
@@ -242,7 +254,7 @@ function delJob($pid, $launcherType = null, $login = null)
         throw new UnexpectedValueException("Cannot delete job of type '$launcherType' [id = $pid]. Launcher not implemented.");
     }
 
-    $jobUser = $_SESSION['User']['lastjobs'][$pid];
+    $jobUser = $user->getLastJobs()[$pid];
 
     if ($jobUser && $jobUser['job_type'] == "interactive") {
         return false;
@@ -260,6 +272,6 @@ function delJob($pid, $launcherType = null, $login = null)
     sleep(15);
 
     if (!$login) {
-        $login = $_SESSION['User']['_id'];
+        $login = $_SESSION['userId'];
     }
 }

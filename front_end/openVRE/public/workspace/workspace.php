@@ -20,8 +20,6 @@ function getWorkspaceLogger()
 }
 
 
-// Check operation and input files
-
 if (is_null($_REQUEST['op'])) {
 	header("location:../workspace/");
 }
@@ -32,20 +30,21 @@ if (is_null($_REQUEST['fn']) && is_null($_REQUEST['fnPath']) && !preg_match('/ca
 if (is_array($_REQUEST['fn']) && $_REQUEST['op'] != 'moveFiles')
 	$_REQUEST['fn'] = $_REQUEST['fn'][0];
 
-$fileData = $GLOBALS['filesCol']->findOne(array('_id' => $_REQUEST['fn'], 'owner' => $_SESSION['User']['id']));
+$user = getUserById($_SESSION['userId']);
+$fileData = $GLOBALS['filesCol']->findOne(array('_id' => $_REQUEST['fn'], 'owner' => $_SESSION['internalUserId']));
 $fileMeta = $GLOBALS['filesMetaCol']->findOne(array('_id' => $_REQUEST['fn']));
 $filePath = getAttr_fromGSFileId($_REQUEST['fn'], 'path');
-$rfn      = $GLOBALS['dataDir'] . "/$filePath";
+$rfn      = $GLOBALS['userDataDir'] . "/$filePath";
 
 // user project directory
-$userPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+$userPath = getAttr_fromGSFileId($user->getDataDir(), "path");
 
 // Process operation
 if (isset($_REQUEST['op'])) {
 	switch ($_REQUEST['op']) {
 
 		case 'newFolder':
-			$r = createGSDirBNS($GLOBALS['filesCol'], $_REQUEST['fn']);
+			$r = createGSDirBNS($user->getActiveProject(), $GLOBALS['filesCol'], $_REQUEST['fn']);
 			if ($r == 0) {
 				mkdir($rfn, 0777);
 				chmod($rfn, 0777);
@@ -53,7 +52,7 @@ if (isset($_REQUEST['op'])) {
 			break;
 
 		case 'downloadFile':
-			if (hasPermissions($_SESSION['User']['_id'], Permission::DownloadFile)) {
+			if (hasPermissions($_SESSION['userId'], Permission::DownloadFile)) {
 				set_time_limit(0);
 				ini_set('memory_limit', '512M');
 
@@ -64,15 +63,15 @@ if (isset($_REQUEST['op'])) {
 				downloadFile($rfn);
 				exit(0);
 			} else {
-				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to download file " . $_REQUEST['fn']);
+				getWorkspaceLogger()->error("User " . $_SESSION['internalUserId'] . " does not have permission to download file " . $_REQUEST['fn']);
 				throw new UnexpectedValueException("User not allowed to download file " . $_REQUEST['fn']);
 			}
 
 			break;
 		case 'downloadAll':
-			if (hasPermissions($_SESSION['User']['_id'], Permission::DownloadFile)) {
+			if (hasPermissions($_SESSION['userId'], Permission::DownloadFile)) {
 				$newName = "files.tar.gz";
-				$tmpZip = $GLOBALS['dataDir'] . "/" . $userPath . "/" . $GLOBALS['tmpUser_dir'] . "/" . basename($newName);
+				$tmpZip = $GLOBALS['userDataDir'] . "/" . $userPath . "/" . $GLOBALS['tmpUser_dir'] . "/" . basename($newName);
 
 				$fls = "";
 
@@ -81,7 +80,7 @@ if (isset($_REQUEST['op'])) {
 						$filePath2 = getAttr_fromGSFileId($v, 'path');
 						$relpath = implode("/", array_slice(explode('/', $filePath2), 0, -1));
 						$filnam = end(explode('/', $filePath2));
-						$rfn2      = $GLOBALS['dataDir'] . "/$relpath";
+						$rfn2      = $GLOBALS['userDataDir'] . "/$relpath";
 						$fls .= "-C $rfn2 $filnam ";
 					}
 				}
@@ -99,24 +98,24 @@ if (isset($_REQUEST['op'])) {
 				unlink($tmpZip);
 				exit(0);
 			} else {
-				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to download files.");
+				getWorkspaceLogger()->error("User " . $_SESSION['internalUserId'] . " does not have permission to download files.");
 				throw new UnexpectedValueException("User not allowed to download files.");
 			}
 
 			break;
 
 		case 'downloadtgz':
-			if (hasPermissions($_SESSION['User']['_id'], Permission::DownloadFile)) {
+			if (hasPermissions($_SESSION['userId'], Permission::DownloadFile)) {
 				if (filetype($rfn) != 'dir') {
 					$_SESSION['errorData']['Error'][] = "Cannot tar " . $_REQUEST['fn'] . " File is not a directory";
 					break;
 				}
-				if (trim($rfn, "/") == trim($GLOBALS['dataDir'], "/")) {
+				if (trim($rfn, "/") == trim($GLOBALS['userDataDir'], "/")) {
 					$_SESSION['errorData']['Error'][] = "Cannot tar " . $_REQUEST['fn'] . " . Make sure your user session is active.";
 					break;
 				}
 				$newName = $_REQUEST['fn'] . ".tar.gz";
-				$tmpZip = $GLOBALS['dataDir'] . "/" . $userPath . "/" . $GLOBALS['tmpUser_dir'] . "/" . basename($newName);
+				$tmpZip = $GLOBALS['userDataDir'] . "/" . $userPath . "/" . $GLOBALS['tmpUser_dir'] . "/" . basename($newName);
 
 				$cmd = "/bin/tar -czf $tmpZip -C $rfn . 2>&1";
 
@@ -131,14 +130,14 @@ if (isset($_REQUEST['op'])) {
 				unlink($tmpZip);
 				exit(0);
 			} else {
-				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to download files.");
+				getWorkspaceLogger()->error("User " . $_SESSION['internalUserId'] . " does not have permission to download files.");
 				throw new UnexpectedValueException("User not allowed to download files.");
 			}
 
 			break;
 
 		case 'openPlainFileEdit':
-			if (hasPermissions($_SESSION['User']['_id'], Permission::EditFile)) {
+			if (hasPermissions($_SESSION['userId'], Permission::EditFile)) {
 				$text = file_get_contents($rfn);
 ?>
 				<form action="" method="post">
@@ -150,14 +149,14 @@ if (isset($_REQUEST['op'])) {
 <?php
 				exit;
 			} else {
-				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to edit files.");
+				getWorkspaceLogger()->error("User " . $_SESSION['internalUserId'] . " does not have permission to edit files.");
 				throw new UnexpectedValueException("User not allowed to edit files.");
 			}
 
 			break;
 
 		case 'openPlainFile':
-			if (hasPermissions($_SESSION['User']['_id'], Permission::ReadFile)) {
+			if (hasPermissions($_SESSION['userId'], Permission::ReadFile)) {
 				$fileInfo = pathinfo($rfn);
 				$contentType = "text/plain";
 				$fileExtension = $fileInfo['extension'];
@@ -180,14 +179,14 @@ if (isset($_REQUEST['op'])) {
 				print passthru("/bin/cat \"$rfn\"");
 				exit(0);
 			} else {
-				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to read files.");
+				getWorkspaceLogger()->error("User " . $_SESSION['internalUserId'] . " does not have permission to read files.");
 				throw new UnexpectedValueException("User not allowed to read files.");
 			}
 
 			break;
 
 		case 'openPlainFileFromPath':
-			if (hasPermissions($_SESSION['User']['_id'], Permission::ReadFile)) {
+			if (hasPermissions($_SESSION['userId'], Permission::ReadFile)) {
 				if (!$_REQUEST['fnPath']) {
 					getWorkspaceLogger()->error("Cannot open file. Variable 'fnPath' not received.");
 					throw new UnexpectedValueException("Cannot open file. Variable 'fnPath' not received.");
@@ -195,7 +194,7 @@ if (isset($_REQUEST['op'])) {
 
 				$rfn = (preg_match('/^\//', $_REQUEST['fnPath'])
 					? $_REQUEST['fnPath']
-					: $GLOBALS['dataDir'] . "/" . $_REQUEST['fnPath']);
+					: $GLOBALS['userDataDir'] . "/" . $_REQUEST['fnPath']);
 
 				$fileInfo = pathinfo($rfn);
 				$contentType = "text/plain";
@@ -218,7 +217,7 @@ if (isset($_REQUEST['op'])) {
 				print passthru("/bin/cat \"$rfn\"");
 				exit;
 			} else {
-				getWorkspaceLogger()->error("User " . $_SESSION['User']['id'] . " does not have permission to read files.");
+				getWorkspaceLogger()->error("User " . $_SESSION['internalUserId'] . " does not have permission to read files.");
 				throw new UnexpectedValueException("User not allowed to read files.");
 			}
 
@@ -253,7 +252,7 @@ if (isset($_REQUEST['op'])) {
 
 		case 'cancelJobDir':
 			$jobList = array();
-			$jobData = getUserJobs($_SESSION['userId']);
+			$jobData = getUserJobs($_SESSION['internalUserId']);
 			if (count($jobData)) {
 				foreach ($jobData as $data) {
 					$filesId = (!is_array($data['out']) ? array($data['out']) : $data['out']);
@@ -276,7 +275,7 @@ if (isset($_REQUEST['op'])) {
 			$_SESSION['errorData']['error'][] = "Are you sure you want to cancel job for file '" . basename($_REQUEST['fn']) . "'? ";
 			$pid = $_REQUEST['pid'];
 			$jobInfo = getRunningJobInfo($pid);
-			$SGE_updated = getUserJobs($_SESSION['userId']);
+			$SGE_updated = getUserJobs($_SESSION['internalUserId']);
 			$succList = "";
 			if (isset($jobInfo['jid_successor_list'])) {
 				foreach (explode(",", trim($jobInfo['jid_successor_list'])) as $pidSucc) {
@@ -302,11 +301,11 @@ if (isset($_REQUEST['op'])) {
 
 		case 'cancelJobDirSure':
 			$jobList = array();
-			$jobData = getUserJobs($_SESSION['User']['_id']);
+			$jobData = getUserJobs($_SESSION['userId']);
 
 			if (count($jobData)) {
 				foreach ($jobData as $jobId => $data) {
-					if ($data['output_dir'] == $rfn) {
+					if ($data['outputDir'] == $rfn) {
 						delJob($jobId);
 					}
 				}
@@ -395,7 +394,7 @@ if (isset($_REQUEST['op'])) {
 				if (is_file($rfn_Tmp)) {
 					$insertData = array(
 						'_id'   => $_REQUEST['fn'],
-						'owner' => $_SESSION['User']['id'],
+						'owner' => $_SESSION['internalUserId'],
 						'size'  => filesize($rfn_Tmp),
 						'mtime' => new MongoDB\BSON\UTCDateTime(filemtime($rfn_Tmp) * 1000),
 						'path'  => $fn_Tmp
@@ -403,7 +402,7 @@ if (isset($_REQUEST['op'])) {
 					$insertMeta = $fileMeta;
 					$insertMeta['compress'] = 0;
 
-					uploadGSFileBNS($fn_Tmp, $rfn_Tmp, $insertData, $insertMeta);
+					uploadGSFileBNS($user->getActiveProject(), $fn_Tmp, $rfn_Tmp, $insertData, $insertMeta);
 					if (is_file($rfn)) {
 						unlink($rfn);
 					}
@@ -431,7 +430,7 @@ if (isset($_REQUEST['op'])) {
 
 				$insertData = array(
 					'_id'   => $_REQUEST['fn'],
-					'owner' => $_SESSION['User']['id'],
+					'owner' => $_SESSION['internalUserId'],
 					'size'  => filesize($rfn_TmpZip),
 					'path'  => $fn_TmpZip,
 					'mtime' => new MongoDB\BSON\UTCDateTime(filemtime($rfn_TmpZip) * 1000)
@@ -441,7 +440,7 @@ if (isset($_REQUEST['op'])) {
 				$insertMeta = $fileMeta;
 				$insertMeta['compressed'] = "zip";
 
-				uploadGSFileBNS($fn_TmpZip, $rfn_TmpZip, $insertData, $insertMeta);
+				uploadGSFileBNS($user->getActiveProject(), $fn_TmpZip, $rfn_TmpZip, $insertData, $insertMeta);
 			} else {
 				$_SESSION['errorData']['error'][] = "Compressed ZIP file not created.";
 				if ($output)
@@ -456,7 +455,7 @@ if (isset($_REQUEST['op'])) {
 
 		case 'moveFiles':
 		case 'moveFile':
-			if (hasPermissions($_SESSION['User']['_id'], Permission::MoveFile)) {
+			if (hasPermissions($_SESSION['userId'], Permission::MoveFile)) {
 				if (empty($_REQUEST['target'])) {
 					getWorkspaceLogger()->error("Error while moving file. Target path not given.");
 					print('{"error":true, "msg": "Error while moving file. Target path not given."}');
@@ -474,20 +473,20 @@ if (isset($_REQUEST['op'])) {
 					die();
 				}
 			} else {
-				getWorkspaceLogger()->error("User" . $_SESSION['User']['_id'] . " does not have permission to move files.");
+				getWorkspaceLogger()->error("User" . $_SESSION['userId'] . " does not have permission to move files.");
 				print '{"error":true, "msg": "User does not have permission to move files."}';
 			}
 
 			break;
 		case 'moveDir':
-			if (hasPermissions($_SESSION['User']['_id'], Permission::MoveFile)) {
+			if (hasPermissions($_SESSION['userId'], Permission::MoveFile)) {
 				if (is_null($_REQUEST['target'])) {
 					$_SESSION['errorData']['Error'][] = "Error while moving directory. Target path not given.";
 					print('{"error":true, "msg": "Error while moving directory. Target path not given."}');
 					die();
 					break;
 				}
-				$rfn_target = $GLOBALS['dataDir'] . "/" . $_REQUEST['target'];
+				$rfn_target = $GLOBALS['userDataDir'] . "/" . $_REQUEST['target'];
 
 				// Move file in mongo
 				moveGSDirBNS($filePath, $_REQUEST['target']);
@@ -502,7 +501,7 @@ if (isset($_REQUEST['op'])) {
 				print('{"error":false, "msg": "Directory successfully moved!"}');
 				die();
 			} else {
-				getWorkspaceLogger()->error("User" . $_SESSION['User']['_id'] . " does not have permission to move directories.");
+				getWorkspaceLogger()->error("User" . $_SESSION['userId'] . " does not have permission to move directories.");
 				print '{"error":true, "msg": "User does not have permission to move directories."}';
 			}
 

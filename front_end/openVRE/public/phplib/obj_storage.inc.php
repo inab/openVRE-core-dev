@@ -1,9 +1,9 @@
 <?php
 
+use OpenVRE\LinkedAccount;
 use OpenVRE\LoggerFactory;
 use OpenVRE\Site;
 use OpenVRE\SwiftClient;
-use OpenVRE\VaultClientFactory;
 
 
 function getObjectStorageLogger()
@@ -18,11 +18,11 @@ function getObjectStorageLogger()
 }
 
 
-function getSwiftClient()
+function getSwiftClient(string $userSecretsId)
 {
 	try {
-		$vaultClient = VaultClientFactory::create();
-		$credentials = $vaultClient->retrieveDatafromVault(Site::Swift);
+		$swiftAccount = new LinkedAccount(Site::Swift);
+		$credentials = $swiftAccount->getCredentials($userSecretsId);
 		$appId = $credentials['app_id'];
 		$appSecret = $credentials['app_secret'];
 
@@ -68,12 +68,13 @@ function getContainerFiles($container, $swiftClient)
 }
 
 
-function initiateFileDownload($swiftClient, $fileUrl, $container)
+function initiateFileDownload(SwiftClient $swiftClient, $fileUrl, $container, $userDataDir)
 {
 	// Set destination working directory/uploads
-	$dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+	$dataDirPath = getAttr_fromGSFileId($userDataDir, "path");
 	$wd = $dataDirPath . "/uploads";
-	$wdP = $GLOBALS['dataDir'] . "/" . $wd;
+	$wdP = $userDataDir . "/" . $wd;
+
 	// Log paths for debugging
 	getObjectStorageLogger()->debug("Data directory path: $dataDirPath");
 	getObjectStorageLogger()->debug("Working directory (wd): $wd");
@@ -94,39 +95,28 @@ function initiateFileDownload($swiftClient, $fileUrl, $container)
 
 	// Adjust fileUrl to remove any leading slashes if necessary
 	$fileUrl = ltrim($fileUrl, '/');
-	$downloadSuccess = $swiftClient->runDownloadFile($wdP . '/', $container, $fileUrl);
-	getObjectStorageLogger()->debug("Command output: $downloadSuccess");
+	$swiftClient->runDownloadFile($wdP . '/', $container, $fileUrl);
+	// Handle successful download
+	getObjectStorageLogger()->debug("File downloaded successfully to $fullPath");
+	chmod($fullPath, 0666);
+	$insertData = array(
+		'owner' => $_SESSION['internalUserId'],
+		'size' => filesize($fullPath),
+		'mtime' => new MongoDB\BSON\UTCDateTime(filemtime($fullPath) * 1000)
+	);
+	$metaData = array(
+		'validated' => false
+	);
 
-	getObjectStorageLogger()->debug("basename: $fileName");
-	getObjectStorageLogger()->debug("Full path: $fullPath");
-	if ($downloadSuccess) {
-		// Handle successful download
-		getObjectStorageLogger()->debug("File downloaded successfully to $fullPath");
+	// Save the path with the directory structure in the database
+	$fnId = uploadGSFileBNS("$wd/$fileName", $fullPath, $insertData, $metaData, false);
 
-		chmod($fullPath, 0666);
-		$insertData = array(
-			'owner' => $_SESSION['User']['id'],
-			'size' => filesize($fullPath),
-			'mtime' => new MongoDB\BSON\UTCDateTime(filemtime($fullPath) * 1000)
-		);
-		$metaData = array(
-			'validated' => false
-		);
-
-		// Save the path with the directory structure in the database
-		$fnId = uploadGSFileBNS("$wd/$fileName", $fullPath, $insertData, $metaData, false);
-
-		if ($fnId == "0") {
-			$errorMsg = "Error occurred while registering the downloaded file";
-			getObjectStorageLogger()->error($errorMsg);
-			return array('status' => 'error', 'message' => $errorMsg);
-		} else {
-			getObjectStorageLogger()->info("File registered successfully with ID: $fnId");
-			return json_encode(array('status' => 'success', 'fileId' => $fnId));
-		}
-	} else {
-		$errorMsg = "Failed to download file: $fileName";
+	if ($fnId == "0") {
+		$errorMsg = "Error occurred while registering the downloaded file";
 		getObjectStorageLogger()->error($errorMsg);
 		return array('status' => 'error', 'message' => $errorMsg);
+	} else {
+		getObjectStorageLogger()->info("File registered successfully with ID: $fnId");
+		return json_encode(array('status' => 'success', 'fileId' => $fnId));
 	}
 }

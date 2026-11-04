@@ -37,10 +37,31 @@ if (isset($_SERVER['OIDC_access_token'])) {
     $user = getUserById(sanitizeString($_SERVER['OIDC_CLAIM_email']));
     if (is_null($user)) {
         try {
-            $user = createUserFromToken($_SERVER['OIDC_CLAIM_email'], $accessToken, $userInfo, false);
+            $user = createUserFromToken($accessToken, $userInfo);
             getLoginLogger()->info("Created new user from user access token.");
         } catch (\Exception $e) {
             exit('Login error: failed to create local VRE user: ' . $e->getMessage());
+        }
+
+        try {
+            getLoginLogger()->debug("Creating workspace for internal user id: " . $user->getInternalId());
+            $dataDirId =  prepUserWorkSpace($user->getActiveProject(), $user->getInternalId());
+            $user->setDataDir($dataDirId);
+            getLoginLogger()->info("Workspace created for internal user id: " . $user->getInternalId());
+
+            getUsersLogger()->debug("Saving new user into Mongo database");
+            saveNewUser($user);
+        } catch (Throwable $e) {
+            getUsersLogger()->error("Error setting up new user, clearing session");
+            // createUserFromToken already filled the session; drop it so the user is not left half logged in
+            session_unset();
+            throw $e;
+        }
+
+        if (!$user->getName() || !$user->getSurname() || !$user->getInstitution()) {
+            getUsersLogger()->info("User metadata incomplete, redirecting to profile page");
+            redirect($GLOBALS['BASEURL'] . 'user/usrProfile.php');
+            exit(0);
         }
     }
 
@@ -99,10 +120,31 @@ if (isset($_SERVER['OIDC_access_token'])) {
     // If new user, create or import from anon
     if (is_null($user)) {
         try {
-            $user = createUserFromToken($userInfo['email'], $accessToken, $userInfo, false);
+            $user = createUserFromToken($accessToken, $userInfo);
             getLoginLogger()->info("Created new user from user access token.");
         } catch (\Exception $e) {
             exit('Login error: failed to create local VRE user: ' . $e->getMessage());
+        }
+
+        try {
+            getLoginLogger()->debug("Creating workspace for internal user id: " . $user->getInternalId());
+            $dataDirId =  prepUserWorkSpace($user->getActiveProject(), $user->getInternalId());
+            $user->setDataDir($dataDirId);
+            getLoginLogger()->info("Workspace created for internal user id: " . $user->getInternalId());
+
+            getUsersLogger()->debug("Saving new user into Mongo database");
+            saveNewUser($user);
+        } catch (Throwable $e) {
+            getUsersLogger()->error("Error setting up new user, clearing session");
+            // createUserFromToken already filled the session; drop it so the user is not left half logged in
+            session_unset();
+            throw $e;
+        }
+
+        if (!$user->getName() || !$user->getSurname() || !$user->getInstitution()) {
+            getUsersLogger()->info("User metadata incomplete, redirecting to profile page");
+            redirect($GLOBALS['BASEURL'] . 'user/usrProfile.php');
+            exit(0);
         }
     }
 

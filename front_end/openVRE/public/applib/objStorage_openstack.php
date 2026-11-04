@@ -46,7 +46,8 @@ function logError($errorMessage, $responseText = '')
 
 // Get user openstack credentials.
 if ($_REQUEST['action'] == "getOpenstackUser") {
-    $swiftClient = getSwiftClient();
+    $user = getUserById($_SESSION['userId']);
+    $swiftClient = getSwiftClient($user->getSecretsId());
     if (!$swiftClient) {
         logError('Failed to obtain Swift client.');
         echo json_encode(array('error' => 'Failed to obtain Swift client.'));
@@ -62,7 +63,8 @@ if ($_REQUEST['action'] == "getOpenstackUser") {
 if (isset($_REQUEST['action']) && $_REQUEST['action'] == "getContainerFiles" && isset($_POST['container'])) {
     $container = $_POST['container'];
     getObjectStorageOpenstackLogger()->info("Main script - received container: $container");
-    $swiftClient = getSwiftClient();
+    $user = getUserById($_SESSION['userId']);
+    $swiftClient = getSwiftClient($user->getSecretsId());
 
     if (!$swiftClient) {
         logError('Failed to obtain Swift client.');
@@ -80,7 +82,8 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] == "getContainerFiles" && 
 if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'downloadFile' && isset($_POST['fileName'])) {
     $fileName = $_POST['fileName']; // Get the file URL (container/filename)
     $container = $_POST['container'];
-    $swiftClient = getSwiftClient();
+    $user = getUserById($_SESSION['userId']);
+    $swiftClient = getSwiftClient($user->getSecretsId());
 
     if (!$swiftClient) {
         logError('Failed to obtain Swift client.');
@@ -89,7 +92,7 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] === 'downloadFile' && isse
     }
 
     try {
-        $fileId = initiateFileDownload($swiftClient, $fileName, $container);
+        $fileId = initiateFileDownload($swiftClient, $fileName, $container, $user->getDataDir());
         getObjectStorageOpenstackLogger()->info("File downloaded successfully. File ID: " . $fileId . " is present in the workspace.");
         echo json_encode(array('status' => 'success', 'fileId' => $fileId));
     } catch (Exception $e) {

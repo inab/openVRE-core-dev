@@ -1,6 +1,7 @@
 <?php
 
 use OpenVRE\LoggerFactory;
+use OpenVRE\User;
 use OpenVRE\UserType;
 
 
@@ -191,17 +192,17 @@ function getTools_ByDT($toolsDT, $filesDT)
 	return $toolsList;
 }
 
-function getTools_ListByID($array, $status)
+function getTools_ListByID(User $user, $array)
 {
 	$array = array_values($array);
-	$tl = $GLOBALS['toolsCol']->find(array('_id' => array('$in' => $array), 'status' => array('$in' => [$status, 3])), array("name" => true, "status" => true));
-	if ($_SESSION['User']['Type'] == UserType::ToolDev->value) {
+	$tl = $GLOBALS['toolsCol']->find(array('_id' => array('$in' => $array), 'status' => array('$in' => [1, 3])), array("name" => true, "status" => true));
+	if ($_SESSION['userType'] == UserType::ToolDev->value) {
 
 		$tools_list = iterator_to_array($tl, false);
 
 		foreach ($tools_list as $key => $tool) {
 
-			if ($tool["status"] == 3 && !in_array($tool["_id"], $_SESSION['User']["ToolsDev"])) {
+			if ($tool["status"] == 3 && !in_array($tool["_id"], $user->getDevelopedTools())) {
 				unset($tools_list[$key]);
 			}
 		}
@@ -316,59 +317,4 @@ function getTools_Help()
 	}
 
 	return $array;
-}
-
-// FILTER VISUALIZERS
-
-function getFiles_FileTypes($fn)
-{
-
-	$fdt = $GLOBALS['filesMetaCol']->find(array('_id' => array('$in' => $fn)), array("_id" => false, "format" => true));
-
-	$a = array();
-
-	foreach ($fdt as $v) $a[] = $v["format"];
-
-	return $a;
-}
-
-function getVisualizers_FileTypes()
-{
-
-	$dt = $GLOBALS['visualizersCol']->find(array("external" => true), array("accepted_file_types" => true));
-
-	$array = array();
-
-	foreach ($dt as $viewer) {
-
-		$array[] = $viewer;
-	}
-
-	return $array;
-}
-
-function getVisualizers_ByFT($visFT, $filesFT)
-{
-
-	$visualizersList = array();
-
-	foreach ($visFT as $vft) {
-
-		$accepted = false;
-
-		if (count(array_intersect($filesFT, $vft["accepted_file_types"])) == count($filesFT)) {
-
-			$visualizersList[] = $vft["_id"];
-		}
-	}
-
-	return $visualizersList;
-}
-
-function getVisualizers_ListByID($array)
-{
-
-	$tl = $GLOBALS['visualizersCol']->find(array('_id' => array('$in' => $array)), array("name" => true));
-
-	return iterator_to_array($tl, false);
 }

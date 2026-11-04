@@ -3,8 +3,9 @@
 require __DIR__ . "/../../config/bootstrap.php";
 redirectOutside();
 
-$tls = getTools_List(1);
-$tlsProv = getTools_List(0);
+$user = getUserById($_SESSION['userId']);
+$tls = getTools_List($user, 1);
+$tlsProv = getTools_List($user, 0);
 $vslzrs = getVisualizers_List(1);
 $vslzrsProv = getVisualizers_List(0);
 

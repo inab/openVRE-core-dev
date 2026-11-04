@@ -6,12 +6,17 @@ var CountdownToken = function () {
 	return {
 		//main function to initiate the module
 		init: function () {
+			if (window.countdownTokenInterval) {
+				clearInterval(window.countdownTokenInterval);
+			}
+
+			window.tokenRefreshTriggered = false;
 
 			var countDownDate = $('#exp-token').val() * 1000;
 
 			var iteration = 0;
 
-			var x = setInterval(function () {
+			window.countdownTokenInterval = setInterval(function () {
 
 				//var now = new Date().getTime();
 				var now = ($('#curr-time').val() - iteration) * 1000;
@@ -30,10 +35,12 @@ var CountdownToken = function () {
 				$("#token-exp-date").val("Token will expire in " + minutes.substr(-2) + "m " + seconds.substr(-2) + "s, at " + formattedTime);
 
 				if (distance < 30000) {
-					clearInterval(x);
+					clearInterval(window.countdownTokenInterval);
 					$("#token-exp-date").val("Token is about to expire, refreshing...");
-					globalThis.location.href = 'applib/refreshToken.php?force=1';
-
+					if (!window.tokenRefreshTriggered) {
+						window.tokenRefreshTriggered = true;
+						globalThis.location.href = 'applib/refreshToken.php?force=1';
+					}
 				}
 
 				iteration--;
@@ -149,11 +156,11 @@ var Profile = function () {
 						d = data.replace(/(\r\n|\n|\r|\t)/gm, "");
 						if (d == '1') {
 							$('#succ-chg-prf').fadeIn(300);
-							$('.profile-usertitle-name').html($('input[name="Name"]').val() + ' ' + $('input[name="Surname"]').val());
-							$('.profile-usertitle-job').html($('input[name="Inst"]').val());
-							$('.top-menu span.username').html($('input[name="Name"]').val());
-							$('.top-menu #avatar-no-picture').html($('input[name="Name"]').val().slice(0, 1) + $('input[name="Surname"]').val().slice(0, 1));
-							$('.profile-userpic #avatar-usr-profile').html($('input[name="Name"]').val().slice(0, 1) + $('input[name="Surname"]').val().slice(0, 1));
+							$('.profile-usertitle-name').html($('input[name="name"]').val() + ' ' + $('input[name="surname"]').val());
+							$('.profile-usertitle-job').html($('input[name="institution"]').val());
+							$('.top-menu span.username').html($('input[name="name"]').val());
+							$('.top-menu #avatar-no-picture').html($('input[name="name"]').val().slice(0, 1) + $('input[name="surname"]').val().slice(0, 1));
+							$('.profile-userpic #avatar-usr-profile').html($('input[name="name"]').val().slice(0, 1) + $('input[name="surname"]').val().slice(0, 1));
 							if (isFirstTime == 1) location.href = baseURL + 'home/';
 
 						} else {
