@@ -9,6 +9,41 @@ use OpenVRE\LoggerFactory;
 // Chunked so large file downloads keep streaming instead of filling memory.
 ob_start(null, 1024 * 1024);
 
+// Whether redirecting to home/redirect.php would bring the user back into the
+// failing request (or cannot work at all), causing a redirect loop
+function exceptionRedirectWouldLoop(): bool
+{
+    // Exception raised before the session or libs were loaded
+    if (session_status() !== PHP_SESSION_ACTIVE || !function_exists('checkLoggedIn')) {
+        return true;
+    }
+
+    // Login/logout flow: redirect.php sends the user straight back through it
+    $script = $_SERVER['SCRIPT_NAME'] ?? '';
+    foreach (["/login.php", "/logout.php", "/applib/loginToken.php", "/home/redirect.php"] as $flowScript) {
+        if (str_ends_with($script, $flowScript)) {
+            return true;
+        }
+    }
+
+    // No valid user in session: every page would send the user to login again
+    try {
+        if (!checkLoggedIn()) {
+            return true;
+        }
+    } catch (Throwable) {
+        return true;
+    }
+
+    // redirect.php sends the user to the currentPage cookie (or home/)
+    $target = parse_url($_COOKIE['currentPage'] ?? ($GLOBALS['BASEURL'] . "home/"));
+    $request = parse_url(urldecode($_SERVER['REQUEST_URI'] ?? ''));
+    $normalize = fn($path) => rtrim(preg_replace('#/index\.php$#', '/', $path ?? ''), '/');
+
+    return $normalize($target['path'] ?? '') === $normalize($request['path'] ?? '')
+        && ($target['query'] ?? '') === ($request['query'] ?? '');
+}
+
 set_exception_handler(function (Throwable $e) {
     $errorId = bin2hex(random_bytes(6));
 
@@ -22,13 +57,18 @@ set_exception_handler(function (Throwable $e) {
         $e->getLine()
     ));
 
-    // Render the error in place: redirecting sends the user back to the failing
-    // page (via the currentPage cookie) and ends up in a redirect loop
     $errorMessage = $e->getMessage();
     while (ob_get_level() > 0) {
         ob_end_clean();
     }
 
+    // Usual case: show the error on the user's page, keeping the session
+    if (!headers_sent() && !exceptionRedirectWouldLoop()) {
+        $_SESSION['errorData']['Error'][] = $errorMessage;
+        redirect($GLOBALS['BASEURL'] . "home/redirect.php");
+    }
+
+    // Otherwise render the error in place to avoid a redirect loop
     $isAjax = strtolower($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'xmlhttprequest'
         || str_contains($_SERVER['HTTP_ACCEPT'] ?? '', 'application/json');
 

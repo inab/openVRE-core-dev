@@ -23,8 +23,13 @@ function updateAccount(LinkedAccount $linkedAccount, string $userSecretsId, $cre
 		$_SESSION['errorData']['Info'][] = $linkedAccount->getSite()->value . " account successfully linked.";
 		redirect($_SERVER['HTTP_REFERER']);
 	} catch (Exception $e) {
-		getLinkedAccountLogger()->error("Could not connect to" . $linkedAccount->getSite()->value . ": " . $e->getMessage());
-		throw new UnexpectedValueException("Could not connect to " . $linkedAccount->getSite()->value . ". Check your credentials and try again.");
+		getLinkedAccountLogger()->error("Could not connect to " . $linkedAccount->getSite()->value . ": " . $e->getMessage());
+		// Back to the form so the user can retry, instead of the generic exception redirect
+		$_SESSION['errorData']['Error'][] = "Could not connect to " . $linkedAccount->getSite()->value . ". Check your credentials and try again.";
+		if (!empty($_SERVER['HTTP_REFERER'])) {
+			redirect($_SERVER['HTTP_REFERER']);
+		}
+		redirectToLinkedAccount($linkedAccount->getSite()->value, "new");
 	}
 }
 
