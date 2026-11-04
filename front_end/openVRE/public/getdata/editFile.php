@@ -207,7 +207,9 @@ redirectOutside();
 										<input type="hidden" id="data_type_selected" value="<?php echo $filesMeta[$idx]['data_type']; ?>">
 
 										<div class="form-group display-hide" id="dataType<?php echo $idx; ?>">
-											<label>Data Type * </span></label>
+											<label>Data Type *</label>
+											<select name="data_type" id="data_type_sel<?php echo $idx; ?>" class="form-control data-type-selector" onchange="customfromDataType(this.value, <?php echo $idx; ?>)" disabled>
+											</select>
 										</div>
 
 										<div class="form-group descriptionTR" id="descriptionTR<?php echo $idx; ?>">

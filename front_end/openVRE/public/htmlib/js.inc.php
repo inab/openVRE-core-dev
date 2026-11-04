@@ -237,7 +237,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 	<?php break;
 	case 'editFile': ?>
 		<script src="assets/pages/scripts/form-validatefiles.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
-		<script src="assets/pages/scripts/get-taxon-id.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 	<?php break;
 	case 'editFile_v2': ?>
 		<script src="assets/pages/scripts/editFile_v2.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
