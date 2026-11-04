@@ -6,8 +6,10 @@ use MongoDB\BSON\Persistable;
 use Monolog\Logger;
 
 
-class Tool extends Persistable
+class Tool implements Persistable
 {
+    use BsonHydration;
+
     private array $arguments = [];
     private bool $isExternal;
     private string $id;
@@ -183,12 +185,12 @@ class Tool extends Persistable
 
     public function bsonUnserialize(array $data): void
     {
-        foreach ($data as $key => $value) {
-            if (property_exists($this, $key)) {
-                $this->$key = $value;
-            } elseif ($key == '_id') {
-                $this->setId($value);
-            }
+        // The constructor is not called when hydrating from MongoDB
+        $this->logger = new Logger('Tool');
+
+        if (isset($data['_id'])) {
+            $this->setId((string) $data['_id']);
         }
+        $this->hydrateFromBson($data, ['logger', 'id']);
     }
 }

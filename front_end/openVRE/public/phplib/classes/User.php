@@ -9,6 +9,8 @@ use UnexpectedValueException;
 
 class User implements Persistable
 {
+    use BsonHydration;
+
     private string $_id;
     private string $email;
     private string $secretsId;
@@ -269,10 +271,8 @@ class User implements Persistable
 
     public function bsonUnserialize(array $data): void
     {
-        foreach ($data as $key => $value) {
-            if (property_exists($this, $key)) {
-                $this->$key = $value;
-            }
-        }
+        // The constructor is not called when hydrating from MongoDB
+        $this->logger = LoggerFactory::getLogger('User');
+        $this->hydrateFromBson($data, ['logger']);
     }
 }

@@ -6,8 +6,10 @@ use MongoDB\BSON\Persistable;
 use Monolog\Logger;
 
 
-class ToolInfrastructure extends Persistable
+class ToolInfrastructure implements Persistable
 {
+    use BsonHydration;
+
     private array $clouds = [];
     private int $cpus;
     private string $executable;
@@ -110,5 +112,19 @@ class ToolInfrastructure extends Persistable
     public function setVolumes(array $volumes): void
     {
         $this->volumes = $volumes;
+    }
+
+    public function bsonSerialize(): array
+    {
+        $data = get_object_vars($this);
+        unset($data['logger']);
+        return $data;
+    }
+
+    public function bsonUnserialize(array $data): void
+    {
+        // The constructor is not called when hydrating from MongoDB
+        $this->logger = LoggerFactory::getLogger('Tool infrastructure');
+        $this->hydrateFromBson($data, ['logger']);
     }
 }
