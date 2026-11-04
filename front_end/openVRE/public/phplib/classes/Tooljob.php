@@ -4,6 +4,7 @@ namespace OpenVRE;
 
 use MongoDB\BSON\UTCDateTime;
 use Monolog\Logger;
+use OpenVRE\Site;
 use UnexpectedValueException;
 
 
@@ -1036,7 +1037,7 @@ class Tooljob
         $tokenProvider = new VaultTokenProvider($_SESSION['userToken']->getToken(), $GLOBALS['baoRolename'], $GLOBALS['baoUrl']);
         $vaultKey = $tokenProvider->getToken();
         $user = getUserById($_SESSION['userId']);
-        $vaultAddress = $GLOBALS['baoUrl'] . "/" . $GLOBALS['baoSecretPath'] . $user->getSecretsId() . '/EGA';
+        $vaultAddress = $GLOBALS['baoUrl'] . "/" . $GLOBALS['baoSecretPath'] . $user->getSecretsId() . '/'. Site::EGA->value;
         $userFolder = "/shared_data/userdata/" . $_SESSION['internalUserId'];
         $configFilePath = $userFolder . '/env.yml';
         $configContent = "BAO_TOKEN={$vaultKey}\nBAO_ADDR={$vaultAddress}\n";

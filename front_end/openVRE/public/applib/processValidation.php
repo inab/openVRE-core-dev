@@ -3,6 +3,7 @@
 require __DIR__ . "/../../config/bootstrap.php";
 
 use OpenVRE\LoggerFactory;
+use OpenVRE\Site;
 
 redirectOutside();
 
@@ -46,7 +47,7 @@ $rfn    = $GLOBALS['userDataDir'] . "/" . $fnPath;
 $resp['fileId']   = $fn;
 $resp['filename'] = basename($fnPath);
 
-if (!is_file($rfn) && !$fnFile['uri'] && $fnFile['data_source'] !== 'EGA') {
+if (!is_file($rfn) && !$fnFile['uri'] && $fnFile['data_source'] !== Site::EGA->value) {
 	$resp['msg'] = "Error: Cannot find file '" . basename($fnPath) . "' . Not stored in disk anymore.</br>";
 	print json_encode($resp);
 	die();
