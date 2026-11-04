@@ -96,7 +96,10 @@ $sites = getSitesInfo($toolId);
 						<form action="#" class="horizontal-form" id="tool-input-form">
 							<input type="hidden" name="tool" value="<?php echo $toolId; ?>" />
 							<input type="hidden" id="base-url" value="<?php echo $GLOBALS['BASEURL']; ?>" />
-							<input type="hidden" name="sync_files" id="sync_files" value="false" />
+							<!-- launchTool.php checks empty(): leave blank unless files must be synced -->
+							<input type="hidden" name="sync_files" id="sync_files" value="" />
+							<!-- launchTool.php / processJob read the site list for MareNostrum sync and Slurm -->
+							<input type="hidden" name="sites[site_list][]" id="siteList" value="" />
 
 							<!-- BEGIN PORTLET 1: PROJECT -->
 							<div class="portlet box blue-oleo">
@@ -111,7 +114,7 @@ $sites = getSitesInfo($toolId);
 											<div class="col-md-6">
 												<div class="form-group">
 													<label class="control-label">Select Project</label>
-													<?php InputTool_getSelectProjects(); ?>
+													<?php InputTool_getSelectProjects($user); ?>
 												</div>
 											</div>
 											<div class="col-md-6">
@@ -148,8 +151,8 @@ $sites = getSitesInfo($toolId);
 											<div class="col-md-6">
 												<div class="form-group">
 													<label class="control-label">Available locations in the network (default: all active sites)</label>
-													<select id="siteDropdown" name="sites[site_list][]" class="form-control">
-														<?php echo InputTool_generateLocationOptions($sites); ?>
+													<select id="siteDropdown" name="site" class="form-control">
+														<?php echo inputToolGenerateLocationOptions($sites); ?>
 													</select>
 													<p id="syncFilesNotice" class="help-block text-info" style="display:none;margin-top:8px;">
 														Files will be transferred to the HPC facility.
@@ -160,7 +163,7 @@ $sites = getSitesInfo($toolId);
 												<div class="form-group">
 													<label class="control-label">Available Launcher</label>
 													<select id="launcherDropdown" name="arguments_exec[site_list][]" class="form-control">
-														<?php echo InputTool_generateLauncherOptions($sites); ?>
+														<?php echo inputToolGenerateLauncherOptions($sites); ?>
 													</select>
 												</div>
 											</div>
@@ -234,9 +237,14 @@ $sites = getSitesInfo($toolId);
 	<script>
 		var sitesData = <?php echo json_encode($sites); ?>;
 
+		// site documents from getSitesInfo() are identified by _id (e.g. "local", "MareNostrum")
+		function findSite(siteId) {
+			return sitesData.find(site => String(site._id) === String(siteId));
+		}
+
 		function updateLauncherOptions(selectedSiteId, selectedJobManager) {
 			var launcherOptions = '';
-			var selectedSite = sitesData.find(site => String(site.site_id) === String(selectedSiteId) || String(site.name) === String(selectedSiteId));
+			var selectedSite = findSite(selectedSiteId);
 
 			if (selectedSite && selectedSite.launcher) {
 				if (Array.isArray(selectedSite.launcher)) {
@@ -257,72 +265,24 @@ $sites = getSitesInfo($toolId);
 			$('#launcherDropdown').html(launcherOptions);
 		}
 
-		// unified handler: update launcher options and sync_files + notice
-		$('#siteDropdown').on('change', function() {
-			var val = $(this).val();
-			var selectedVals = Array.isArray(val) ? val.filter(Boolean) : (val ? [val] : []);
-
-			// determine if any selected value corresponds to MareNostrum
-			var isMare = selectedVals.some(function(v) {
-				var s = sitesData.find(function(site) {
-					return String(site.site_id) === String(v) || String(site.name) === String(v);
-				});
-				return (s && s.name === 'MareNostrum') || String(v) === 'MareNostrum';
-			});
-
-			if (isMare) {
-				$('#sync_files').val('true');
-				$('#syncFilesNotice').show();
-			} else {
-				$('#sync_files').val('false');
-				$('#syncFilesNotice').hide();
-			}
-
-			// update launcher options using the first selected value (if any)
-			var selectedJobManager = $('#hiddenJobManager').val();
-			updateLauncherOptions(selectedVals[0] || '', selectedJobManager);
-		});
-
-		// initial trigger to set correct state on load
-		function initSiteDropdownState() {
-			$('#siteDropdown').trigger('change');
-		}
-
-		// evaluate current selection (covers default value / plugins that init later)
+		// keep site list, sync_files + notice and launcher options in line with the selected site
 		function evaluateCurrentSite() {
-			var val = $('#siteDropdown').val();
-			var selectedVals = Array.isArray(val) ? val.filter(Boolean) : (val ? [val] : []);
+			var siteId = $('#siteDropdown').val() || '';
+			var isMare = siteId === 'MareNostrum';
 
-			var isMare = selectedVals.some(function(v) {
-				var s = sitesData.find(function(site) {
-					return String(site.site_id) === String(v) || String(site.name) === String(v);
-				});
-				return (s && s.name === 'MareNostrum') || String(v) === 'MareNostrum';
-			});
+			$('#siteList').val(siteId);
+			$('#sync_files').val(isMare ? '1' : '');
+			$('#syncFilesNotice').toggle(isMare);
 
-			if (isMare) {
-				$('#sync_files').val('true');
-				$('#syncFilesNotice').show();
-			} else {
-				$('#sync_files').val('false');
-				$('#syncFilesNotice').hide();
-			}
-
-			var selectedJobManager = $('#hiddenJobManager').val();
-			updateLauncherOptions(selectedVals[0] || '', selectedJobManager);
+			var currentLauncher = ($('#launcherDropdown').val() || '').split('_').slice(1).join('_');
+			updateLauncherOptions(siteId, currentLauncher);
 		}
 
-		// call evaluation on ready and after short delays to cover plugin init timing
-		$(function() {
-			initSiteDropdownState();
-			evaluateCurrentSite();
-			setTimeout(evaluateCurrentSite, 150);
-			setTimeout(evaluateCurrentSite, 400);
-		});
-		$(window).on('load', function() {
-			setTimeout(initSiteDropdownState, 50);
-			setTimeout(evaluateCurrentSite, 100);
-		});
+		$('#siteDropdown').on('change', evaluateCurrentSite);
+
+		// evaluate on ready and again on load to cover plugins that init the select later
+		$(evaluateCurrentSite);
+		$(window).on('load', evaluateCurrentSite);
 	</script>
 
 
