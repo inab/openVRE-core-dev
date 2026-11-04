@@ -23,8 +23,13 @@ function updateAccount(LinkedAccount $linkedAccount, string $userSecretsId, $cre
 		$_SESSION['errorData']['Info'][] = $linkedAccount->getSite()->value . " account successfully linked.";
 		redirect($_SERVER['HTTP_REFERER']);
 	} catch (Exception $e) {
-		getLinkedAccountLogger()->error("Could not connect to" . $linkedAccount->getSite()->value . ": " . $e->getMessage());
-		throw new UnexpectedValueException("Could not connect to " . $linkedAccount->getSite()->value . ". Check your credentials and try again.");
+		getLinkedAccountLogger()->error("Could not connect to " . $linkedAccount->getSite()->value . ": " . $e->getMessage());
+		// Back to the form so the user can retry, instead of the generic exception redirect
+		$_SESSION['errorData']['Error'][] = "Could not connect to " . $linkedAccount->getSite()->value . ". Check your credentials and try again.";
+		if (!empty($_SERVER['HTTP_REFERER'])) {
+			redirect($_SERVER['HTTP_REFERER']);
+		}
+		redirectToLinkedAccount($linkedAccount->getSite()->value, "new");
 	}
 }
 
@@ -35,6 +40,22 @@ function removeAccount(LinkedAccount $linkedAccount)
 	redirect($_SERVER['HTTP_REFERER']);
 }
 
+function redirectToLinkedAccount($account, $action, $site_id = null): void
+{
+	$params = [
+		'account' => $account,
+		'action' => $action,
+	];
+
+	if ($site_id !== null && $site_id !== '') {
+		$params['site_id'] = $site_id;
+	}
+
+	$url = '/user/linkedAccount.php?' . http_build_query($params);
+
+	header('Location: ' . $url);
+	exit;
+}
 
 function generateSSHButtons()
 {

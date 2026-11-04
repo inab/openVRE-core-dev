@@ -9,8 +9,9 @@ use OpenVRE\LoggerFactory;
 
 $logger = LoggerFactory::getLogger('Fetch EGA datasets');
 
-$currentPage = isset($_GET['page']) ? (int) $_GET['page'] : 1;
-$offset = ($currentPage - 1) * 10;
+$datasetsPerPage = 10;
+$currentPage = max(1, isset($_GET['page']) ? (int) $_GET['page'] : 1);
+$offset = ($currentPage - 1) * $datasetsPerPage;
 
 $user = getUserById($_SESSION['userId']);
 $egaLinkedAccount = new EGALinkedAccount();
@@ -41,6 +42,9 @@ if (isset($_GET['action']) && $_GET['action'] === 'fetch_files') {
     exit;
 }
 
-$dataArray = $egaLinkedAccount->fetchDatasets($accessToken, $offset, 10);
-$total_count = count($dataArray);
-$total_pages = ceil($total_count / 10);
+// The EGA API does not return the total number of datasets, so one extra
+// dataset is requested to know whether there is a next page
+$dataArray = $egaLinkedAccount->fetchDatasets($accessToken, $offset, $datasetsPerPage + 1) ?? [];
+$hasNextPage = count($dataArray) > $datasetsPerPage;
+$dataArray = array_slice($dataArray, 0, $datasetsPerPage);
+$total_pages = $hasNextPage ? $currentPage + 1 : $currentPage;

@@ -201,6 +201,8 @@ class RemoteSSH
             $sifStatus = preg_match('/(SIFExists|SIFMissing)/', $sifStatus, $matches) ? $matches[1] : "Unknown";
             if ($sifStatus !== "SIFExists") {
                 $this->logger->error("Required Singularity image is missing: $singularityImage");
+                if (session_status() === PHP_SESSION_NONE) { session_start(); }
+                $_SESSION['errorData']['Error'][] = "Required Singularity image is missing: $singularityImage";
                 throw new UnexpectedValueException("Required Singularity image is missing: $singularityImage");
             }
         }

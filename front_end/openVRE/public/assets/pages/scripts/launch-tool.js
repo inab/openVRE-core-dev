@@ -14,37 +14,40 @@ var createDatatableTools = function () {
     };
 
     table = $('#tools-list').DataTable({
-      lengthMenu: [[20, -1], [20, "All"]],
-      // set the initial value
-      "pageLength": 20,
-      //"searchHighlight": true,
-      "order": [
-        [1, "asc"]
-      ], // set first column as a default sort by asc
-      "initComplete": function (settings, json) {
-        $("#loading-datatable").hide();
-        $('#tools-list').show();
-      },
-      "columns": [
-        {
-          "className": 'details-control',
-          "orderable": false,
-          "defaultContent": '',
-          "render": function () {
-            return '<i class="fa fa-plus-square font-green" aria-hidden="true"></i>';
-          },
-        },
-        { "defaultContent": '' },
-        { "defaultContent": '' },
-        { "defaultContent": '' }
-      ],
-      "columnDefs": [
-        { "targets": [0], "searchable": false },
-        { "targets": [4], "visible": false },
-        { "targets": [5], "visible": false },
-        { "targets": [6], "visible": false },
-        { "targets": [7], "visible": false, "searchable": false },
-      ]
+      lengthMenu: [[20,-1],[20,"All"]],
+       // set the initial value
+       "pageLength": 20,
+      // DataTables 1.10.8 width calc breaks on jQuery 3 with hidden columns + overlay scrollbars
+
+       "autoWidth": false,
+       //"searchHighlight": true,
+       "order": [
+           [1, "asc"]
+       ], // set first column as a default sort by asc
+       "initComplete": function (settings, json) {
+         $("#loading-datatable").hide();
+         $('#tools-list').show();
+       },
+       "columns": [
+            {
+                "className":      'details-control',
+                "orderable":      false,
+                "defaultContent": '',
+                "render": function () {
+                  return '<i class="fa fa-plus-square font-green" aria-hidden="true"></i>';
+                },
+            },
+            { "defaultContent": '' },
+            { "defaultContent": '' },
+            { "defaultContent": '' }
+        ],
+        "columnDefs": [
+            { "targets": [ 0 ], "searchable": false },
+            { "targets": [ 4 ], "visible": false },
+            { "targets": [ 5 ], "visible": false },
+            { "targets": [ 6 ], "visible": false },
+	          { "targets": [ 7 ], "visible": false, "searchable": false }
+        ]
     });
 
     // create table with secondary data on clicking row

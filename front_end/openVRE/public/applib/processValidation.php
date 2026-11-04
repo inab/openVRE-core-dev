@@ -3,6 +3,7 @@
 require __DIR__ . "/../../config/bootstrap.php";
 
 use OpenVRE\LoggerFactory;
+use OpenVRE\Site;
 
 redirectOutside();
 
@@ -46,14 +47,14 @@ $rfn    = $GLOBALS['userDataDir'] . "/" . $fnPath;
 $resp['fileId']   = $fn;
 $resp['filename'] = basename($fnPath);
 
-if (!is_file($rfn) && !$fnFile['uri']) {
+if (!is_file($rfn) && !$fnFile['uri'] && $fnFile['data_source'] !== Site::EGA->value) {
 	$resp['msg'] = "Error: Cannot find file '" . basename($fnPath) . "' . Not stored in disk anymore.</br>";
 	print json_encode($resp);
 	die();
 }
 
 $fileData = $GLOBALS['filesCol']->findOne(array('_id' => $fn, 'owner' => $_SESSION['internalUserId']));
-$fileMeta = $GLOBALS['filesMetaCol']->findOne(array('_id' => $file));
+$fileMeta = $GLOBALS['filesMetaCol']->findOne(array('_id' => $fn));
 
 if (empty($fileData)) {
 	$resp['msg'] = "Error: Cannot validate '" . basename($fnPath) . "'. File do not belong to the user currently logged.</br>";

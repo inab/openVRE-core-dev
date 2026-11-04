@@ -43,16 +43,18 @@ if (isset($_SERVER['OIDC_access_token'])) {
             exit('Login error: failed to create local VRE user: ' . $e->getMessage());
         }
 
-        getLoginLogger()->debug("Creating workspace for internal user id: " . $user->getInternalId());
-        $dataDirId =  prepUserWorkSpace($user->getActiveProject(), $user->getInternalId());
-        $user->setDataDir($dataDirId);
-        getLoginLogger()->info("Workspace created for internal user id: " . $user->getInternalId());
-
         try {
+            getLoginLogger()->debug("Creating workspace for internal user id: " . $user->getInternalId());
+            $dataDirId =  prepUserWorkSpace($user->getActiveProject(), $user->getInternalId());
+            $user->setDataDir($dataDirId);
+            getLoginLogger()->info("Workspace created for internal user id: " . $user->getInternalId());
+
             getUsersLogger()->debug("Saving new user into Mongo database");
             saveNewUser($user);
-        } catch (Exception $e) {
-            getUsersLogger()->error("Error saving new user into Mongo database");
+        } catch (Throwable $e) {
+            getUsersLogger()->error("Error setting up new user, clearing session");
+            // createUserFromToken already filled the session; drop it so the user is not left half logged in
+            session_unset();
             throw $e;
         }
 
@@ -124,16 +126,18 @@ if (isset($_SERVER['OIDC_access_token'])) {
             exit('Login error: failed to create local VRE user: ' . $e->getMessage());
         }
 
-        getLoginLogger()->debug("Creating workspace for internal user id: " . $user->getInternalId());
-        $dataDirId =  prepUserWorkSpace($user->getActiveProject(), $user->getInternalId());
-        $user->setDataDir($dataDirId);
-        getLoginLogger()->info("Workspace created for internal user id: " . $user->getInternalId());
-
         try {
+            getLoginLogger()->debug("Creating workspace for internal user id: " . $user->getInternalId());
+            $dataDirId =  prepUserWorkSpace($user->getActiveProject(), $user->getInternalId());
+            $user->setDataDir($dataDirId);
+            getLoginLogger()->info("Workspace created for internal user id: " . $user->getInternalId());
+
             getUsersLogger()->debug("Saving new user into Mongo database");
             saveNewUser($user);
-        } catch (Exception $e) {
-            getUsersLogger()->error("Error saving new user into Mongo database");
+        } catch (Throwable $e) {
+            getUsersLogger()->error("Error setting up new user, clearing session");
+            // createUserFromToken already filled the session; drop it so the user is not left half logged in
+            session_unset();
             throw $e;
         }
 

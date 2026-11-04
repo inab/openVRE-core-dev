@@ -10,9 +10,9 @@ set -euo pipefail
 #
 # Example:
 #   CA_CN="internal-vault-ca" \
-#   SERVER_CN="vault-server" \
+#   SERVER_CN="bao-server" \
 #   SERVER_NAME="vault" \
-#   SANS="DNS:vault-server,DNS:vault-server.internal,DNS:localhost" \
+#   SANS="DNS:bao-server,DNS:bao-server.internal,DNS:localhost" \
 #   OUT_DIR="config/tls" \
 #   ./generate-certs.sh
 # ---------------------------------------------------------------------------

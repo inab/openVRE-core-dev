@@ -14,7 +14,7 @@ class VaultClientFactory
             throw new \UnexpectedValueException('No valid user token in session.');
         }
 
-        $tokenProvider = new VaultTokenProvider($_SESSION['userToken']->getToken(), $GLOBALS['vaultRolename'], $GLOBALS['vaultUrl']);
-        return new VaultClient($userSecretsId, $GLOBALS['secretPath'], $tokenProvider->getToken(), $GLOBALS['vaultUrl']);
+        $tokenProvider = new VaultTokenProvider($_SESSION['userToken']->getToken(), $GLOBALS['baoRolename'], $GLOBALS['baoUrl']);
+        return new VaultClient($userSecretsId, $GLOBALS['baoSecretPath'], $tokenProvider->getToken(), $GLOBALS['baoUrl']);
     }
 }

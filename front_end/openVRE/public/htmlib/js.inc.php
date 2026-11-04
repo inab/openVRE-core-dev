@@ -3,7 +3,9 @@
 
 <!-- BEGIN CORE PLUGINS -->
 <script src="assets/global/plugins/jquery.min.js" type="text/javascript"></script>
+<script src="assets/global/plugins/jquery-migrate.min.js" type="text/javascript"></script>
 <script src="assets/global/plugins/bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
+<script src="assets/global/scripts/bootstrap-sanitizer-whitelist.js" type="text/javascript"></script>
 <script src="assets/global/plugins/js.cookie.min.js" type="text/javascript"></script>
 <script src="assets/global/plugins/jquery-slimscroll/jquery.slimscroll.min.js" type="text/javascript"></script>
 <script src="assets/global/plugins/jquery.blockui.min.js" type="text/javascript"></script>
@@ -235,7 +237,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 	<?php break;
 	case 'editFile': ?>
 		<script src="assets/pages/scripts/form-validatefiles.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
-		<script src="assets/pages/scripts/get-taxon-id.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 	<?php break;
 	case 'editFile_v2': ?>
 		<script src="assets/pages/scripts/editFile_v2.js?v=<?php echo rand(); ?>" type="text/javascript"></script>

@@ -639,22 +639,6 @@ function is_url($url)
     //return filter_var($url, FILTER_VALIDATE_URL);
 }
 
-function fromTaxonID2TaxonName($taxon_id)
-{
-    $taxonomy_ep = "https://www.ebi.ac.uk/ena/data/taxonomy/v1/taxon/tax-id";
-    $url = "$taxonomy_ep/$taxon_id";
-    list($resp, $info) = get($url);
-    if (!$resp) {
-        return "Not found";
-    } else {
-        $resp = json_decode($resp);
-        if ($resp->scientificName) {
-            return $resp->scientificName;
-        } else {
-            return "Unknown";
-        }
-    }
-}
 
 function getFileExtension($filePath)
 {

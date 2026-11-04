@@ -45,7 +45,9 @@ switch ($_REQUEST['uploadType']) {
 		$fileIds = $_REQUEST['fileIds'];
 		$filenames = $_REQUEST['displayNames'];
 		$fileSizes = $_REQUEST['fileSizes'];
-		getData_fromEGA($user, $datasetIds, $fileIds, $filenames, $fileSizes);
+		$uploadedFileIds = getData_fromEGA($user, $datasetIds, $fileIds, $filenames, $fileSizes);
+		header('Content-Type: application/json');
+		echo json_encode(['fileIds' => $uploadedFileIds]);
 		break;
 
 	default:

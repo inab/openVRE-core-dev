@@ -129,16 +129,41 @@ try {
 $logger->debug("Working directory created at: " . $jobMeta->executionDirectories->executionDir);
 
 $dataLocations = [];
-$doSync = $_REQUEST['site'] === Site::MareNostrum->value;
+$doSync = !empty($_REQUEST['sync_files']);
+$siteList = $_REQUEST['sites']['site_list'] ?? [];
+
+
+$logger->debug("SYNC DEBUG - Starting sync check", [
+	'doSync' => $doSync,
+	'sync_files' => $_REQUEST['sync_files'] ?? null,
+	'siteList' => $siteList,
+	'isMareNostrum' => in_array(Site::MareNostrum, $siteList),
+]);
+
+
 if ($doSync) {
-	$dataMeta = new DataTransfer(
-		$files,
-		$tool,
-		$jobMeta->executionDirectories->executionDir,
-		$_REQUEST['arguments_exec']
-	);
-	$dataLocations = $dataMeta->syncFiles($user->getSecretsId());
-	$logger->debug("Data transfer locations: ", ['dataLocations' => $dataLocations]);
+	if (in_array(Site::MareNostrum->value, $siteList)) {
+
+		$logger->debug("SYNC DEBUG - MareNostrum selected", [
+				'mareNostrumValue' => Site::MareNostrum->value,
+			]);
+
+		$dataMeta = new DataTransfer(
+			$files,
+			$tool,
+			$jobMeta->working_dir,
+			$_REQUEST['arguments_exec']
+		);
+		$logger->debug("SYNC DEBUG - DataTransfer object created");
+
+		$dataLocations = $dataMeta->syncFiles();
+		$logger->debug("SYNC DEBUG - syncFiles() completed", [
+                'dataLocations' => $dataLocations,
+                'count' => count($dataLocations),
+            ]);
+	} else {
+		$logger->debug("Skipping DataTransfer — 'MareNostrum' not in site_list.");
+	}
 }
 
 try {

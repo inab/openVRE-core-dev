@@ -99,6 +99,44 @@ function customfromFormat(op, id) {
 	});
 }
 
+function customfromDataType(op, id) {
+	var dataType = op;
+
+	// Reset optional blocks first.
+	$('#taxonG' + id).hide();
+	$('#taxonName' + id).prop("disabled", true).val('');
+	$('#taxonID' + id).prop("disabled", true).val('');
+	$('.paired' + id).prop("disabled", true);
+	$('#pairedTR' + id).hide();
+	$('.sorted' + id).prop("disabled", true);
+	$('#sortedTR' + id).hide();
+	showHideSortInfo(0, id);
+
+	if (!dataType) {
+		return;
+	}
+
+	// Most scientific data types require taxon; keep configuration/id lists exempt.
+	var noTaxonTypes = ['configuration_file', 'id_list'];
+	if (noTaxonTypes.indexOf(dataType) === -1) {
+		$('#taxonG' + id).show();
+		if (typeof changeArgDependency === 'function') {
+			changeArgDependency(String(id), '1', true);
+		} else {
+			$('#taxonName' + id).prop("disabled", false);
+		}
+	}
+
+	// BAM-specific metadata options are controlled by selected file format.
+	var selectedFormat = ($('#format' + id).val() || '').toUpperCase();
+	if (selectedFormat === 'BAM') {
+		$('.paired' + id).prop("disabled", false);
+		$('#pairedTR' + id).show();
+		$('.sorted' + id).prop("disabled", false);
+		$('#sortedTR' + id).show();
+	}
+}
+
 
 function showHideSortInfo(op, id) {
 
