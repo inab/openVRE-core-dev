@@ -3,6 +3,8 @@
 require __DIR__ . "/../../config/bootstrap.php";
 redirectOutside();
 
+use OpenVRE\LinkedAccount;
+use OpenVRE\Site;
 use OpenVRE\UserType;
 
 $user = getUserById($_SESSION['userId']);
@@ -10,6 +12,24 @@ $user = getUserById($_SESSION['userId']);
 $includeEgaFiles = getenv('INCLUDE_EGA_DATASETS') === 'true';
 $includeHpc = getenv('INCLUDE_HPC_DATASETS') === 'true';
 $includeOpenStack = getenv('INCLUDE_OPENSTACK_DATASETS') === 'true';
+
+/**
+ * Linked account credentials are stored in Vault under the user's secrets ID.
+ * Returns null when the account is not linked or cannot be retrieved.
+ */
+function getLinkedAccountCredentials(Site $site, string $userSecretsId): ?array
+{
+    try {
+        $credentials = (new LinkedAccount($site))->getCredentials($userSecretsId);
+        return is_array($credentials) && !empty($credentials) ? $credentials : null;
+    } catch (Throwable $e) {
+        return null;
+    }
+}
+
+$hpcCredentials = $includeHpc ? getLinkedAccountCredentials(Site::MareNostrum, $user->getSecretsId()) : null;
+$sshCredentials = $includeHpc ? getLinkedAccountCredentials(Site::SSH, $user->getSecretsId()) : null;
+$openStackCredentials = $includeOpenStack ? getLinkedAccountCredentials(Site::Swift, $user->getSecretsId()) : null;
 
 ?>
 
@@ -436,7 +456,7 @@ $includeOpenStack = getenv('INCLUDE_OPENSTACK_DATASETS') === 'true';
 
                                                             <div style="padding-left: 15px;border-left: 2px solid lightgray;">
                                                                 <?php
-                                                                if (!isset($_SESSION['User']['linked_accounts']['mn'])) { ?>
+                                                                if ($hpcCredentials === null) { ?>
                                                                     <p>
                                                                         <span style="color: #666;font-weight: bold;">
                                                                             Do you have an account to an HPC facility?
@@ -453,7 +473,7 @@ $includeOpenStack = getenv('INCLUDE_OPENSTACK_DATASETS') === 'true';
                                                                         <label class="control-label">HPC system Username</label>
                                                                         <br />
                                                                         <input type="text"
-                                                                            value="<?php echo $_SESSION['User']['linked_accounts']['mn']['hpc_username'] ?>"
+                                                                            value="<?php echo htmlspecialchars($hpcCredentials['hpc_username'] ?? ''); ?>"
                                                                             class="form-control" readonly
                                                                             style="background:#fff;" />
                                                                     </div>
@@ -462,7 +482,7 @@ $includeOpenStack = getenv('INCLUDE_OPENSTACK_DATASETS') === 'true';
                                                                         <label class="control-label">SSH Public Key</label>
                                                                         <br />
                                                                         <input type="text"
-                                                                            value="<?php echo $_SESSION['User']['linked_accounts']['mn']['hpc_pub_key'] ?>"
+                                                                            value="<?php echo htmlspecialchars($hpcCredentials['hpc_pub_key'] ?? ''); ?>"
                                                                             class="form-control" readonly
                                                                             style="background:#fff;" />
                                                                     </div>
@@ -475,7 +495,7 @@ $includeOpenStack = getenv('INCLUDE_OPENSTACK_DATASETS') === 'true';
                                                                             style="margin:10px; font-size:18px"></i>
                                                                         <br />
                                                                         <div style="height:150px;display:none;" id="ssh_priv_key">
-                                                                            <pre><?php echo $_SESSION['User']['linked_accounts']['SSH']['hpc_priv_key'] ?></pre>
+                                                                            <pre><?php echo htmlspecialchars($sshCredentials['hpc_priv_key'] ?? ''); ?></pre>
                                                                         </div>
                                                                     </div>
 
@@ -483,7 +503,7 @@ $includeOpenStack = getenv('INCLUDE_OPENSTACK_DATASETS') === 'true';
                                                                         <label class="control-label">Creation Time</label>
                                                                         <br />
                                                                         <span class="form-control" readonly
-                                                                            style="background:#fff;"><?php echo $_SESSION['User']['linked_accounts']['SSH']['creation_time']; ?></span>
+                                                                            style="background:#fff;"><?php echo htmlspecialchars($sshCredentials['creation_time'] ?? ''); ?></span>
                                                                     </div>
 
                                                                     <div class="form-group">
@@ -532,7 +552,7 @@ $includeOpenStack = getenv('INCLUDE_OPENSTACK_DATASETS') === 'true';
                                                     <hr>
                                                     <div hidden style="padding-top: 15px; padding-left: 15px;border-left: 2px solid lightgray;">
                                                         <?php
-                                                        if (! isset($_SESSION['User']['linked_accounts']['openstack'])) { ?>
+                                                        if ($openStackCredentials === null) { ?>
                                                             <p>
                                                                 <span style="color: #666;font-weight: bold;">
                                                                     Do you have an OpenStack account?
