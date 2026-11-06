@@ -37,6 +37,8 @@ class Tooljob
 	public $pub_dir_intern;
 
 	public $containerName;
+	public $access_path;
+	public $interactive_tool = array();
 
 	// Paths to files genereted during ToolJob execution
 	public $config_file;
@@ -1483,6 +1485,11 @@ class Tooljob
 		$cpus = $launcherInfo['cpus'] ?? $tool['infrastructure']['cpus'];
 		$queue = $launcherInfo['queue'] ?? $tool['infrastructure']['clouds'][$this->cloudName]['queue'];
 		$this->logger->info("Resolved Parameters: Queue=$queue, CPUs=$cpus, Memory=$memory");
+
+		if ($jobManager === "kubernetes_native" && !empty($tool['infrastructure']['interactive'])) {
+			return $this->enqueueInteractiveK8s($tool, $cpus, $memory);
+		}
+
 		$jobOptions = array();
 		if ($jobManager === "kubernetes_native") {
 			$jobOptions["image"] = $tool['infrastructure']['container_image'] ?? "";
@@ -1504,6 +1511,82 @@ class Tooljob
 
 		$this->pid = $pid;
 		return $pid;
+	}
+
+
+	protected function registerToolVolumeDirs($tool)
+	{
+		if (empty($tool['infrastructure']['volumes']) || !is_array($tool['infrastructure']['volumes'])) {
+			return;
+		}
+
+		$user = getUserById($_SESSION['User']['_id']);
+		$dataDir = $user['id'] . "/" . $user['activeProject'];
+		$dataDirP = $GLOBALS['dataDir'] . "/" . $dataDir;
+
+		foreach ($tool['infrastructure']['volumes'] as $hostDir => $containerDir) {
+			if (!is_string($hostDir) || $hostDir === "") {
+				continue;
+			}
+
+			$upDirId = createGSDirBNS($dataDir . $hostDir, 1);
+			getProjectLogger()->info("Creating directory:" . $dataDir . $hostDir . "($upDirId)");
+			addMetadataToFile($upDirId, array(
+				"expiration" => -1,
+				"description" => "Uploaded personal data"
+			));
+
+			$parentDirId = getGSFileId_fromPath(dirname($dataDir . $hostDir), 1);
+			if ($parentDirId && $upDirId) {
+				$GLOBALS['filesCol']->updateOne(
+					['_id' => $parentDirId],
+					['$addToSet' => ['files' => $upDirId]]
+				);
+			}
+
+			if (!is_dir($dataDirP . $hostDir)) {
+				mkdir($dataDirP . $hostDir, 0775);
+			}
+		}
+	}
+
+
+	protected function enqueueInteractiveK8s($tool, $cpus, $memory)
+	{
+		$this->registerToolVolumeDirs($tool);
+		$process = new ProcessK8s();
+		$userId = $_SESSION['User']['id'] ?? "";
+		if (!$process->createSession($tool, $userId, "", array(
+			"working_dir" => $this->working_dir,
+			"root_dir" => $this->root_dir,
+			"project" => $this->project,
+			"execution" => $this->execution,
+		))) {
+			$err = $process->getErr() ?: "Cannot create interactive session";
+			$this->logger->error("K8s interactive session failed: " . $err);
+			$_SESSION['errorData']['Error'][] = "Internal error. Cannot start interactive session.<br/>" . $err;
+			return 0;
+		}
+
+		$this->job_type = "interactive";
+		$this->launcher = "kubernetes_interactive";
+		$this->pid = $process->getPid();
+		$this->access_path = $process->getAccessUrl();
+		$this->containerName = $this->access_path;
+		if (strpos((string)$this->access_path, "/guacamole/") === false
+			&& preg_match('#/interactive-tool/([^/]+)/?#', (string)$this->access_path, $matches)) {
+			$this->containerName = $matches[1];
+		}
+		$this->interactive_tool = array(
+			"container_name" => $this->containerName,
+			"access_url" => $this->access_path,
+			"k8s_name" => $this->pid,
+		);
+
+		$this->logger->info(
+			"K8s interactive session started tool={$this->toolId} pid={$this->pid} url={$this->access_path}"
+		);
+		return $this->pid;
 	}
 
 

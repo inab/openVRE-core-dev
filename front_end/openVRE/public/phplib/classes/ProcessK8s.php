@@ -5,7 +5,7 @@ namespace OpenVRE;
 use Monolog\Logger;
 
 /**
- * ProcessK8s — Kubernetes Job manager for OpenVRE tool execution.
+ * ProcessK8s — Kubernetes batch Jobs and interactive sessions.
 
  *
  *
@@ -20,9 +20,17 @@ use Monolog\Logger;
  *   OPENVRE_K8S_RUN_AS_GID      — GID / fsGroup for the Job pod
  *   OPENVRE_K8S_JOB_TTL         — seconds to keep a finished Job before auto-deletion
  *   OPENVRE_K8S_JOB_DEADLINE    — max seconds a Job is allowed to run before being killed
+ *   OPENVRE_K8S_JOB_MEMORY_REQUEST — fallback memory request when tool has no infrastructure.memory (e.g. "1Gi")
+ *   OPENVRE_K8S_JOB_MEMORY_LIMIT   — fallback memory limit when tool has no infrastructure.memory (e.g. "2Gi")
+ *   OPENVRE_K8S_NODE_SELECTOR   — optional "key=value,key2=value2" (same as scheduler)
+ *   OPENVRE_K8S_TOLERATIONS     — optional "key=value:Effect,..." (same as scheduler)
+ *   OPENVRE_K8S_EVICTION_TOLERATION_SECONDS — not-ready/unreachable eviction grace (default 60)
  */
 class ProcessK8s
 {
+    /** Prefix for batch Job names in Kubernetes (OpenVRE pid). */
+    public const BATCH_JOB_PREFIX = 'openvre-bj-';
+
     private Logger $logger;
 
     /** Kubernetes Job name, also used as the OpenVRE "pid" */
@@ -76,6 +84,21 @@ class ProcessK8s
     /** Max seconds a Job is allowed to run before being killed */
     private int $jobDeadline;
 
+    /** Optional nodeSelector for batch Job pods (project-pinned clusters) */
+    private array $nodeSelector = [];
+
+    /** Tolerations for batch Job pods (project taints + eviction) */
+    private array $tolerations = [];
+
+    /** Interactive session URL returned by the scheduler */
+    private string $accessUrl = "";
+
+    /** PVC for interactive user data. Falls back to the shared PVC. */
+    private string $userdataPvc = "";
+
+    /** PVC for interactive audit data. Falls back to the shared PVC. */
+    private string $admindataPvc = "";
+
     /** Additional environment variables to inject into the Job pod (from tool Mongo definition) */
     private array $jobEnv = [];
 
@@ -111,8 +134,19 @@ class ProcessK8s
         $this->runAsGid = (int)$this->env("OPENVRE_K8S_RUN_AS_GID");
         $this->jobTtl = (int)$this->env("OPENVRE_K8S_JOB_TTL");
         $this->jobDeadline = (int)$this->env("OPENVRE_K8S_JOB_DEADLINE");
+        $this->nodeSelector = $this->parseNodeSelector($this->optionalEnv("OPENVRE_K8S_NODE_SELECTOR"));
+        $evictionSeconds = (int)$this->optionalEnv("OPENVRE_K8S_EVICTION_TOLERATION_SECONDS", "60");
+        if ($evictionSeconds <= 0) {
+            $evictionSeconds = 60;
+        }
+        $this->tolerations = array_merge(
+            $this->parseTolerations($this->optionalEnv("OPENVRE_K8S_TOLERATIONS")),
+            $this->evictionTolerations($evictionSeconds)
+        );
+        $this->userdataPvc = getenv("OPENVRE_K8S_USERDATA_PVC") ?: "";
+        $this->admindataPvc = getenv("OPENVRE_K8S_ADMINDATA_PVC") ?: "";
 
-        // Allow per-tool overrides: the tool's Mongo document can specify a custom
+        // Allow per-tool overrides:
         // container image and extra environment variables via $jobOptions.
         if (!empty($jobOptions["image"])) {
             $this->jobImage = $jobOptions["image"];
@@ -143,19 +177,34 @@ class ProcessK8s
         return $value;
     }
 
+    private function optionalEnv(string $name, string $default = ""): string
+    {
+        $value = getenv($name);
+        return ($value === false) ? $default : $value;
+    }
+
+    public static function isBatchJobPid(string $pid): bool
+    {
+        return str_starts_with($pid, self::BATCH_JOB_PREFIX);
+    }
+
     private function sanitizeName(string $name): string
     {
+        $prefix = self::BATCH_JOB_PREFIX;
+        $maxSlugLen = 63 - strlen($prefix) - 9; // "-{8-char hash}"
+
         $name = strtolower($name);
         $name = preg_replace('/[^a-z0-9-]+/', '-', $name);
         $name = trim($name, '-');
         if ($name === "") {
-            $name = "openvre-job";
+            $name = "job";
         }
-        if (strlen($name) > 40) {
-            $name = substr($name, 0, 40);
+        if (strlen($name) > $maxSlugLen) {
+            $name = substr($name, 0, $maxSlugLen);
             $name = rtrim($name, '-');
         }
-        return $name . "-" . substr(md5(uniqid("", true)), 0, 8);
+
+        return $prefix . $name . "-" . substr(md5(uniqid("", true)), 0, 8);
     }
 
 
@@ -207,9 +256,19 @@ class ProcessK8s
 
     private function buildJobManifest(string $jobName, int $cpu, int $mem): array
     {
-        $cpuRequest = max(1, $cpu);
-        $cpuLimit = max(1, $cpu);
-        $memLimit = ($mem > 0 ? ($mem . "Gi") : "4Gi");
+        $cpuRequest = $cpu > 0 ? (string)$cpu : "1";
+        $cpuLimit = $cpu > 0 ? (string)$cpu : "1";
+        $memLimit = $mem > 0 ? ($mem . "Gi") : $this->optionalEnv("OPENVRE_K8S_JOB_MEMORY_LIMIT");
+        $memRequest = $mem > 0 ? ($mem . "Gi") : $this->optionalEnv("OPENVRE_K8S_JOB_MEMORY_REQUEST");
+
+        $requests = array("cpu" => $cpuRequest);
+        $limits = array("cpu" => $cpuLimit);
+        if ($memRequest !== "") {
+            $requests["memory"] = $memRequest;
+        }
+        if ($memLimit !== "") {
+            $limits["memory"] = $memLimit;
+        }
 
         $manifest = array(
             "apiVersion" => "batch/v1",
@@ -227,6 +286,14 @@ class ProcessK8s
                 "activeDeadlineSeconds" => $this->jobDeadline,
                 "backoffLimit" => 0,
                 "template" => array(
+                    "metadata" => array(
+                        "labels" => array(
+                            "app.kubernetes.io/managed-by" => "openvre",
+                            "openvre-job-id" => $jobName,
+                            "openvre.colocate" => "true",
+                            "openvre.io/batch" => "true",
+                        ),
+                    ),
                     "spec" => array(
                         "restartPolicy" => "Never",
                         "containers" => array(
@@ -239,8 +306,8 @@ class ProcessK8s
                                     array("name" => "OPENVRE_SUBMIT_SCRIPT", "value" => $this->command),
                                 ),
                                 "resources" => array(
-                                    "requests" => array("cpu" => (string)$cpuRequest),
-                                    "limits" => array("cpu" => (string)$cpuLimit, "memory" => $memLimit)
+                                    "requests" => $requests,
+                                    "limits" => $limits,
                                 ),
                                 "securityContext" => array(
                                     "allowPrivilegeEscalation" => false,
@@ -277,7 +344,80 @@ class ProcessK8s
             }
         }
 
+        $podSpec =& $manifest["spec"]["template"]["spec"];
+        if (!empty($this->nodeSelector)) {
+            $podSpec["nodeSelector"] = $this->nodeSelector;
+        }
+        if (!empty($this->tolerations)) {
+            $podSpec["tolerations"] = $this->tolerations;
+        }
+
         return $manifest;
+    }
+
+    private function parseNodeSelector(string $raw): array
+    {
+        $selector = [];
+        foreach (explode(",", $raw) as $part) {
+            $part = trim($part);
+            if ($part === "" || !str_contains($part, "=")) {
+                continue;
+            }
+            [$key, $value] = array_map("trim", explode("=", $part, 2));
+            if ($key !== "" && $value !== "") {
+                $selector[$key] = $value;
+            }
+        }
+
+        return $selector;
+    }
+
+    private function parseTolerations(string $raw): array
+    {
+        $tolerations = [];
+        foreach (explode(",", $raw) as $part) {
+            $part = trim($part);
+            if ($part === "") {
+                continue;
+            }
+            if (str_contains($part, "=")) {
+                [$kv, $effect] = array_pad(explode(":", $part, 2), 2, "NoSchedule");
+                [$key, $value] = array_map("trim", explode("=", $kv, 2));
+                $tolerations[] = [
+                    "key" => $key,
+                    "operator" => "Equal",
+                    "value" => $value,
+                    "effect" => $effect !== "" ? $effect : "NoSchedule",
+                ];
+            } else {
+                [$key, $effect] = array_pad(explode(":", $part, 2), 2, "NoSchedule");
+                $tolerations[] = [
+                    "key" => trim($key),
+                    "operator" => "Exists",
+                    "effect" => $effect !== "" ? $effect : "NoSchedule",
+                ];
+            }
+        }
+
+        return $tolerations;
+    }
+
+    private function evictionTolerations(int $seconds): array
+    {
+        return [
+            [
+                "key" => "node.kubernetes.io/not-ready",
+                "operator" => "Exists",
+                "effect" => "NoExecute",
+                "tolerationSeconds" => $seconds,
+            ],
+            [
+                "key" => "node.kubernetes.io/unreachable",
+                "operator" => "Exists",
+                "effect" => "NoExecute",
+                "tolerationSeconds" => $seconds,
+            ],
+        ];
     }
 
 
@@ -378,6 +518,9 @@ class ProcessK8s
 
     public function getRunningJobInfo(string $pid): array
     {
+        if ($this->isInteractivePid($pid)) {
+            return $this->interactiveRunningInfo($pid);
+        }
         $job = array();
         if (!$pid) return $job;
 
@@ -476,6 +619,9 @@ class ProcessK8s
 
     public function stop(?string $pid = null): array
     {
+        if ($pid && $this->isInteractivePid($pid)) {
+            return $this->stopInteractive($pid);
+        }
         if (!$pid) {
             return array(false, "No job id '$pid' given");
         }
@@ -487,5 +633,493 @@ class ProcessK8s
             return array(true, $res);
         }
         return array(false, $response["error"] ?: "Failed to delete kubernetes job");
+    }
+
+    private function isInteractivePid(string $pid): bool
+    {
+        return strncmp($pid, "openvre-ix-", 11) === 0;
+    }
+
+    private function sanitizeSegment($value, $fallback = "tool", $maxLen = 24)
+    {
+        $value = strtolower((string)$value);
+        $value = preg_replace('/[^a-z0-9_-]+/', '-', $value);
+        $value = trim($value, '-');
+        if ($value === "") {
+            $value = $fallback;
+        }
+        return substr($value, 0, $maxLen);
+    }
+
+    private function resolveWorkspaceMountPath(array $infra)
+    {
+        if (!empty($infra['workspace_mount_path'])) {
+            return trim((string)$infra['workspace_mount_path']);
+        }
+        if (empty($infra['volumes']) || !is_array($infra['volumes'])) {
+            return "";
+        }
+        foreach ($infra['volumes'] as $hostKey => $containerPath) {
+            $hostKeyNorm = "/" . trim((string)$hostKey, "/");
+            if (preg_match('#(^|/)repository$#', $hostKeyNorm)) {
+                continue;
+            }
+            if (is_array($containerPath)) {
+                $containerPath = isset($containerPath['path'])
+                    ? (string)$containerPath['path']
+                    : (isset($containerPath['container_path']) ? (string)$containerPath['container_path'] : "");
+            }
+            if (is_string($containerPath) && $containerPath !== "") {
+                return $containerPath;
+            }
+        }
+        return "";
+    }
+
+    /** host path = root_dir/project + volume key (project-level mounts). */
+    private function resolveVolumeMounts(array $infra, $rootDir, $project)
+    {
+        $mounts = array();
+        if (empty($infra['volumes']) || !is_array($infra['volumes'])) {
+            return $mounts;
+        }
+        $rootDir = rtrim((string)$rootDir, "/");
+        $project = trim((string)$project, "/");
+        if ($rootDir === "" || $project === "") {
+            return $mounts;
+        }
+        foreach ($infra['volumes'] as $hostKey => $containerPath) {
+            if (!is_string($hostKey) || $hostKey === "") {
+                continue;
+            }
+            $readOnly = false;
+            if (is_array($containerPath)) {
+                $readOnly = !empty($containerPath['readOnly']) || !empty($containerPath['read_only']);
+                $containerPath = isset($containerPath['path'])
+                    ? (string)$containerPath['path']
+                    : (isset($containerPath['container_path']) ? (string)$containerPath['container_path'] : "");
+            }
+            if (!is_string($containerPath) || $containerPath === "") {
+                continue;
+            }
+            $hostKeyNorm = "/" . trim($hostKey, "/");
+            if (!$readOnly && preg_match('#(^|/)repository$#', $hostKeyNorm)) {
+                $readOnly = true;
+            }
+            $hostPath = preg_replace('#/+#', '/', $rootDir . "/" . $project . $hostKeyNorm);
+            $mount = array(
+                "host_path" => $hostPath,
+                "container_path" => $containerPath,
+            );
+            if ($readOnly) {
+                $mount["read_only"] = true;
+            }
+            $mounts[] = $mount;
+        }
+        return $mounts;
+    }
+
+    private function ensureProjectUserDirs($rootDir, $project, $workingDir, array $volumeMounts)
+    {
+        $rootDir = rtrim((string)$rootDir, "/");
+        $project = trim((string)$project, "/");
+        if ($rootDir !== "" && $project !== "") {
+            foreach (array("uploads", "rstudio_data", "repository") as $leaf) {
+                $dir = $rootDir . "/" . $project . "/" . $leaf;
+                if (!is_dir($dir)) {
+                    if (!@mkdir($dir, 0775, true)) {
+                        return "Cannot create project directory: " . $dir;
+                    }
+                    @chmod($dir, 0775);
+                }
+            }
+        }
+        if ($workingDir !== "" && !is_dir($workingDir)) {
+            if (!@mkdir($workingDir, 0775, true)) {
+                return "Cannot create run directory: " . $workingDir;
+            }
+            @chmod($workingDir, 0775);
+        }
+        foreach ($volumeMounts as $vm) {
+            $hostPath = $vm['host_path'] ?? "";
+            if ($hostPath === "" || is_dir($hostPath)) {
+                continue;
+            }
+            if (!@mkdir($hostPath, 0775, true)) {
+                return "Cannot create interactive workspace directory: " . $hostPath;
+            }
+            @chmod($hostPath, 0775);
+        }
+        return "";
+    }
+
+    public function createSession($tool, $userId, $sessionId = "", array $sessionContext = array())
+    {
+        if ($this->schedulerUrl === "") {
+            $this->stderr = "OPENVRE_K8S_SCHEDULER_URL is not set";
+            return false;
+        }
+        if ($this->namespace === "") {
+            $this->stderr = "OPENVRE_K8S_NAMESPACE is not set";
+            return false;
+        }
+        if ($this->sharedPvc === "" && $this->userdataPvc === "") {
+            $this->stderr = "OPENVRE_K8S_SHARED_PVC or OPENVRE_K8S_USERDATA_PVC is not set";
+            return false;
+        }
+        if ($this->userdataPvc === "") {
+            $this->userdataPvc = $this->sharedPvc;
+        }
+        if ($this->admindataPvc === "") {
+            $this->admindataPvc = $this->sharedPvc !== "" ? $this->sharedPvc : $this->userdataPvc;
+        }
+        if ($userId === "") {
+            $this->stderr = "user id is required";
+            return false;
+        }
+
+        $infra = (isset($tool['infrastructure']) && is_array($tool['infrastructure']))
+            ? $tool['infrastructure']
+            : array();
+
+        $image = $infra['container_image'] ?? (getenv("OPENVRE_INTERACTIVE_DEFAULT_IMAGE") ?: "");
+        if ($image === "") {
+            $this->stderr = "Missing infrastructure.container_image for interactive tool";
+            return false;
+        }
+
+        $memoryGb = (int)($infra['memory'] ?? 2);
+        $cpus = (int)($infra['cpus'] ?? 1);
+        $memory = max(1, $memoryGb) . "Gi";
+        $cpu = $cpus >= 2 ? (string)$cpus : (max(1, $cpus) * 500 . "m");
+
+        $interactiveAccess = (isset($infra['interactive_access']) && is_array($infra['interactive_access']))
+            ? $infra['interactive_access']
+            : array();
+        $guacamoleMode = strtolower(trim((string)($interactiveAccess['mode'] ?? ''))) === 'guacamole';
+
+        $containerPort = isset($infra['container_port']) ? (int)$infra['container_port'] : 0;
+        if ($guacamoleMode) {
+            $containerPort = (int)($interactiveAccess['port'] ?? 0);
+            if ($containerPort <= 0) {
+                $this->stderr = "Guacamole interactive tool is missing interactive_access.port";
+                return false;
+            }
+        } elseif ($containerPort <= 0) {
+            $containerPort = (int)(getenv("OPENVRE_INTERACTIVE_DEFAULT_PORT") ?: 0);
+        }
+        if ($containerPort <= 0) {
+            $this->stderr = "Missing infrastructure.container_port (and OPENVRE_INTERACTIVE_DEFAULT_PORT unset)";
+            return false;
+        }
+
+        $executable = isset($infra['executable']) ? trim((string)$infra['executable']) : "";
+        $proxy = (isset($infra['proxy']) && is_array($infra['proxy'])) ? $infra['proxy'] : array();
+
+        $workspaceMountPath = $this->resolveWorkspaceMountPath($infra);
+        if ($workspaceMountPath === "") {
+            $workspaceMountPath = trim((string)(getenv("OPENVRE_INTERACTIVE_DEFAULT_MOUNT") ?: ""));
+        }
+        if ($workspaceMountPath === "") {
+            $this->stderr = "Missing workspace mount path";
+            return false;
+        }
+
+        $workingDir = trim((string)($sessionContext['working_dir'] ?? ""));
+        $rootDir = trim((string)($sessionContext['root_dir'] ?? ""));
+        $project = trim((string)($sessionContext['project'] ?? ""));
+        if ($workingDir === "") {
+            $this->stderr = "Missing working_dir for interactive session";
+            return false;
+        }
+
+        $volumeMounts = $this->resolveVolumeMounts($infra, $rootDir, $project);
+        if (empty($volumeMounts)) {
+            $volumeMounts = array(
+                array(
+                    "host_path" => $workingDir,
+                    "container_path" => $workspaceMountPath,
+                ),
+            );
+        }
+
+        $dirErr = $this->ensureProjectUserDirs($rootDir, $project, $workingDir, $volumeMounts);
+        if ($dirErr !== "") {
+            $this->stderr = $dirErr;
+            return false;
+        }
+
+        $runAsUid = getenv("OPENVRE_K8S_RUN_AS_UID");
+        $runAsGid = getenv("OPENVRE_K8S_RUN_AS_GID");
+        if ($runAsUid === false || $runAsUid === "" || $runAsGid === false || $runAsGid === "") {
+            $this->stderr = "OPENVRE_K8S_RUN_AS_UID and OPENVRE_K8S_RUN_AS_GID must be set";
+            return false;
+        }
+
+        $externalBase = "";
+        if (!empty($_SERVER["HTTP_HOST"])) {
+            $scheme = (!empty($_SERVER["HTTPS"]) && $_SERVER["HTTPS"] !== "off") ? "https" : "http";
+            $externalBase = $scheme . "://" . $_SERVER["HTTP_HOST"];
+        }
+
+        $toolId = $tool['_id'] ?? "";
+        $toolName = $tool['name'] ?? "";
+        $toolPrefix = $this->sanitizeSegment($toolId ?: $toolName, "interactive");
+        $resolvedSessionId = $sessionId !== "" ? $sessionId : ($toolPrefix . "-" . substr(md5(uniqid("", true)), 0, 8));
+        $execution = basename(rtrim($workingDir, "/"));
+        if ($execution === "" || $execution === "." || $execution === "/") {
+            $execution = trim((string)($sessionContext['execution'] ?? "run"));
+        }
+
+        $payload = array(
+            "namespace" => $this->namespace,
+            "user_id" => $userId,
+            "session_id" => $resolvedSessionId,
+            "tool_id" => $toolId,
+            "tool_name" => $toolName,
+            "image" => $image,
+            "userdata_pvc" => $this->userdataPvc,
+            "admindata_pvc" => $this->admindataPvc,
+            "cpu" => $cpu,
+            "memory" => $memory,
+            "run_as_uid" => (int)$runAsUid,
+            "run_as_gid" => (int)$runAsGid,
+            "external_base" => $externalBase,
+            "container_port" => $containerPort,
+            "workspace_mount_path" => $workspaceMountPath,
+            "working_dir" => $workingDir,
+            "project" => $project,
+            "execution" => $execution,
+            "volume_mounts" => $volumeMounts,
+        );
+
+        if ($executable !== "") {
+            $payload["executable"] = $executable;
+        }
+        if (!empty($proxy)) {
+            $payload["proxy"] = $proxy;
+        }
+        if (!empty($interactiveAccess)) {
+            $payload["interactive_access"] = $interactiveAccess;
+        }
+
+        $response = $this->schedulerRequest("POST", "/interactive-sessions", $payload);
+        if ($response["ok"] !== true) {
+            $this->stderr = $response["error"];
+            return false;
+        }
+
+        $data = $response["data"];
+        $this->pid = isset($data["name"]) ? (string)$data["name"] : "";
+        $this->accessUrl = isset($data["access_url"]) ? (string)$data["access_url"] : "";
+        if ($this->pid === "") {
+            $this->stderr = "scheduler returned empty session name";
+            return false;
+        }
+        if ($guacamoleMode) {
+            $protocol = strtolower(trim((string)($interactiveAccess['protocol'] ?? 'vnc')));
+            if ($protocol === "") {
+                $protocol = "vnc";
+            }
+            $link = $this->createGuacamoleLink($this->pid, $containerPort, $protocol);
+            if ($link === "") {
+                $this->stopInteractive($this->pid);
+                return false;
+            }
+            $this->accessUrl = $link;
+        }
+        return true;
+    }
+
+    public function getAccessUrl()
+    {
+        return $this->accessUrl;
+    }
+
+    private function interactiveRunningInfo($pid)
+    {
+        if (!$pid || $this->namespace === "") {
+            return array();
+        }
+
+        $response = $this->schedulerRequest(
+            "GET",
+            "/interactive-sessions/" . rawurlencode($pid) . "?namespace=" . rawurlencode($this->namespace)
+        );
+        if ($response["ok"] !== true || empty($response["data"]["exists"])) {
+            return array();
+        }
+
+        $state = $response["data"]["state"] ?? "Pending";
+        return array(
+            "pid" => $pid,
+            "state" => ($state === "Running") ? "RUNNING" : "PENDING",
+            "job_name" => $pid,
+        );
+    }
+
+    private function stopInteractive($pid)
+    {
+        if (!$pid) {
+            return array(false, "No session id given");
+        }
+        if ($this->namespace === "") {
+            return array(false, "OPENVRE_K8S_NAMESPACE is not set");
+        }
+        try {
+            $this->deleteGuacamoleConnection($pid);
+        } catch (\Exception $e) {
+            $this->stderr = $e->getMessage();
+        }
+        $response = $this->schedulerRequest(
+            "DELETE",
+            "/interactive-sessions/" . rawurlencode($pid) . "?namespace=" . rawurlencode($this->namespace)
+        );
+        if ($response["ok"] === true) {
+            return array(true, trim((string)($response["data"]["stdout"] ?? "")));
+        }
+        return array(false, $response["error"] ?: "Failed to delete interactive session");
+    }
+
+    private function guacamoleUsername(): string
+    {
+        if (!empty($_SESSION['tokenInfo']['preferred_username'])) {
+            return (string)$_SESSION['tokenInfo']['preferred_username'];
+        }
+        if (!empty($_SESSION['User']['id'])) {
+            return (string)$_SESSION['User']['id'];
+        }
+        return "";
+    }
+
+    private function guacamolePdo(): ?\PDO
+    {
+        $host = getenv('GUACAMOLE_DB_HOST');
+        $name = getenv('GUACAMOLE_DB_NAME');
+        $user = getenv('GUACAMOLE_DB_USER');
+        $pass = getenv('GUACAMOLE_DB_PASSWORD');
+        if ($host === false || $host === '' || $name === false || $name === '' || $user === false || $user === '') {
+            return null;
+        }
+        $port = getenv('GUACAMOLE_DB_PORT');
+        if ($port === false || $port === '') {
+            $port = '3306';
+        }
+        return new \PDO(
+            "mysql:host={$host};port={$port};dbname={$name};charset=utf8mb4",
+            $user,
+            ($pass === false) ? '' : (string)$pass,
+            array(
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                \PDO::ATTR_EMULATE_PREPARES => false,
+            )
+        );
+    }
+
+    private function guacamoleClientToken(int $connectionId): string
+    {
+        $raw = $connectionId . "\0" . "c" . "\0" . "mysql";
+        return rtrim(strtr(base64_encode($raw), '+/', '-_'), '=');
+    }
+
+    private function guacamoleEntityId(\PDO $db, string $username): int
+    {
+        $stmt = $db->prepare(
+            "SELECT entity_id FROM guacamole_entity WHERE name = ? AND type = 'USER'"
+        );
+        $stmt->execute(array($username));
+        $row = $stmt->fetch();
+        if ($row) {
+            return (int)$row['entity_id'];
+        }
+
+        $db->beginTransaction();
+        try {
+            $stmt = $db->prepare("INSERT INTO guacamole_entity (name, type) VALUES (?, 'USER')");
+            $stmt->execute(array($username));
+            $entityId = (int)$db->lastInsertId();
+            $stmt = $db->prepare(
+                "INSERT INTO guacamole_user (entity_id, password_hash, password_salt, password_date)
+                 VALUES (?, UNHEX(?), UNHEX(?), NOW())"
+            );
+            $stmt->execute(array(
+                $entityId,
+                bin2hex(random_bytes(32)),
+                bin2hex(random_bytes(32)),
+            ));
+            $db->commit();
+            return $entityId;
+        } catch (\Exception $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            $stmt = $db->prepare(
+                "SELECT entity_id FROM guacamole_entity WHERE name = ? AND type = 'USER'"
+            );
+            $stmt->execute(array($username));
+            $row = $stmt->fetch();
+            if ($row) {
+                return (int)$row['entity_id'];
+            }
+            throw $e;
+        }
+    }
+
+    private function createGuacamoleLink(string $k8sName, int $port, string $protocol): string
+    {
+        $username = $this->guacamoleUsername();
+        if ($username === "") {
+            $this->stderr = "Cannot create Guacamole connection: no username in the session";
+            return "";
+        }
+        try {
+            $db = $this->guacamolePdo();
+            if ($db === null) {
+                $this->stderr = "GUACAMOLE_DB_HOST, GUACAMOLE_DB_NAME, and GUACAMOLE_DB_USER must be set";
+                return "";
+            }
+            $entityId = $this->guacamoleEntityId($db, $username);
+            $hostname = $k8sName . "." . $this->namespace . ".svc.cluster.local";
+            $db->beginTransaction();
+            $stmt = $db->prepare(
+                "INSERT INTO guacamole_connection (connection_name, protocol) VALUES (?, ?)"
+            );
+            $stmt->execute(array($k8sName, $protocol));
+            $connectionId = (int)$db->lastInsertId();
+            $stmt = $db->prepare(
+                "INSERT INTO guacamole_connection_parameter (connection_id, parameter_name, parameter_value)
+                 VALUES (?, 'hostname', ?)"
+            );
+            $stmt->execute(array($connectionId, $hostname));
+            $stmt = $db->prepare(
+                "INSERT INTO guacamole_connection_parameter (connection_id, parameter_name, parameter_value)
+                 VALUES (?, 'port', ?)"
+            );
+            $stmt->execute(array($connectionId, (string)$port));
+            $stmt = $db->prepare(
+                "INSERT INTO guacamole_connection_permission (entity_id, connection_id, permission)
+                 VALUES (?, ?, 'READ')"
+            );
+            $stmt->execute(array($entityId, $connectionId));
+            $db->commit();
+            return "/guacamole/#/client/" . $this->guacamoleClientToken($connectionId);
+        } catch (\Exception $e) {
+            if (isset($db) && $db instanceof \PDO && $db->inTransaction()) {
+                $db->rollBack();
+            }
+            $this->stderr = "Cannot create Guacamole connection: " . $e->getMessage();
+            return "";
+        }
+    }
+
+    private function deleteGuacamoleConnection(string $k8sName): void
+    {
+        $db = $this->guacamolePdo();
+        if ($db === null || $k8sName === "") {
+            return;
+        }
+        $stmt = $db->prepare("DELETE FROM guacamole_connection WHERE connection_name = ?");
+        $stmt->execute(array($k8sName));
     }
 }

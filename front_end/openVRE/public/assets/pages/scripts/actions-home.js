@@ -698,7 +698,16 @@ function closeModalTool() {
 }
 
 
-function goInteractiveTool(id) {
-	window.open('launch-interactive/?pid=' + id, "_blank");
+function goInteractiveTool(id, toolContainerName) {
+	var name = String(toolContainerName || "");
+	if (name.indexOf("/guacamole/") !== -1 || name.indexOf("http://") === 0 || name.indexOf("https://") === 0) {
+		location.href = name;
+		return;
+	}
+	if (String(id).indexOf("openvre-ix-") === 0 && name) {
+		location.href = "interactive-tool/" + name + "/";
+		return;
+	}
+	window.open("launch-interactive/?pid=" + id, "_blank");
 }
 
