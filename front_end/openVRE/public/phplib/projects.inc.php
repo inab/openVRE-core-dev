@@ -22,17 +22,14 @@ function prepUserWorkSpace($homeDir, $projectDir, $sampleData = "", $projectData
 {
 	// set current directory
 	$_SESSION['curDir'] = $homeDir;
-
 	// set sampleData default
 	if (empty($sampleData)) {
 		$sampleData = $GLOBALS['sampleData_default'];
 	}
-
 	if (empty($projectDir)) {
 		getProjectLogger()->error("Cannot create user workspace $homeDir. No project directory name given.");
 		throw new UnexpectedValueException("Cannot create user workspace $homeDir. No project directory name given.");
 	}
-
 	if (empty($projectData)) {
 		$projectData  = array(
 			"name"	 => $GLOBALS['project_default'],
@@ -43,7 +40,6 @@ function prepUserWorkSpace($homeDir, $projectDir, $sampleData = "", $projectData
 
 	// create worskspace data
 	$dataDirId = setUserWorkSpace($homeDir, $projectDir, $projectData, $sampleData, $verbose, $asRoot);
-
 	return $dataDirId;
 }
 
@@ -56,7 +52,6 @@ function setUserWorkSpace($homeDir, $projectDir, $projectData, $sampleData, $ver
 		getProjectLogger()->error("Cannot access VRE data. Make sure data device is accessible and writable.");
 		throw new UnexpectedValueException("Cannot access VRE data. Make sure data device is accessible and writable.");
 	}
-
 	$homeDirP  = $GLOBALS['dataDir'] . "/$homeDir";
 	$homeDirId = getGSFileId_fromPath($homeDir, $asRoot);
 	if (! isGSDirBNS($GLOBALS['filesCol'], $homeDirId) || ! is_dir($homeDirP)) {
@@ -80,12 +75,10 @@ function setUserWorkSpace($homeDir, $projectDir, $projectData, $sampleData, $ver
 			)
 		)
 	);
-
 	// creating user workspace for given project
 	$dataDir   = "$homeDir/$projectDir";
 	$dataDirP  = $GLOBALS['dataDir'] . "/$dataDir";
 	$dataDirId = getGSFileId_fromPath($dataDir, $asRoot);
-
 	if (! isGSDirBNS($GLOBALS['filesCol'], $dataDirId) || ! is_dir($dataDirP)) {
 		//creating project directory
 		$dataDirId = createProjectDir($dataDir, $dataDirP, $projectData, $asRoot);
@@ -129,7 +122,6 @@ function setUserWorkSpace($homeDir, $projectDir, $projectData, $sampleData, $ver
 			)
 		)
 	);
-
 	return $dataDirId;
 }
 
@@ -162,9 +154,7 @@ function setUserWorkSpace_sampleData($sampleName, $dataDir)
 			getDataLogger()->warning("Wrong sample data '" . $sampleData['name'] . "' metadata contains elements without 'path' attribute. Ignoring them.");
 			continue;
 		}
-
 		save_fromSampleDataMetadata($metadata, $dataDir, $sampleName, "folder");
-
 		// TODO: check if it is necessary
 		// looking for files in the folder 
 		$sampleDataPath = $GLOBALS['sampleDataPath'] . "/" . $sampleData['sample_path'] . "/" . $metadata['path'];
@@ -186,7 +176,6 @@ function setUserWorkSpace_sampleData($sampleName, $dataDir)
 				getDataLogger()->warning("Sample data '" . $sampleData['name'] . "' contains elements without 'path' attribute. Ignoring them.");
 				continue;
 			}
-
 			save_fromSampleDataMetadata($meta_file, $dataDir, $sampleName, "file");
 		}
 	}
@@ -350,9 +339,7 @@ function getFilesToDisplay($dirSelection)
 
 function filterFiles_by_dataType($filesAll, $filter_data_types = array())
 {
-
 	// Filter files by data_types
-
 	if (!$filter_data_types || !is_array($filter_data_types) || !count($filter_data_types)) {
 		return $filesAll;
 	}
@@ -624,12 +611,17 @@ function printTable($filesAll = array())
 						$autorefresh = 1;
 						// is file
 					} elseif (isset($r['_id'])) {
-						if ($r['validated']) {
+						if (isFileValidated($r)) {
 							print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_file.htm'));
-						} elseif (!file_exists($r['path'])) {
-							print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_fileDisabledRemote.htm'));
 						} else {
-							print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_fileDisabled.htm'));
+							$diskPath = resolveWorkspaceDiskPath($r['path'] ?? null);
+							if (!empty($diskPath) && file_exists($diskPath)) {
+								$r['path'] = $diskPath;
+								$r['validated'] = true;
+								print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_file.htm'));
+							} else {
+								print parseTemplate(formatData($r), getTemplate('/TreeTblworkspace/TR_fileDisabledRemote.htm'));
+							}
 						}
 					} else {
 						//empty mongo entry;
@@ -2126,6 +2118,54 @@ function resolvePath_toLocalAbsolutePath($path, $job)
 	return $rfn;
 }
 
+function resolveWorkspaceDiskPath($storedPath)
+{
+	if (!isset($storedPath) || $storedPath === '') {
+		return null;
+	}
+
+	$storedPath = (string) $storedPath;
+	if ($storedPath === '') {
+		return null;
+	}
+
+	if (strpos($storedPath, $GLOBALS['dataDir']) === 0 || (strpos($storedPath, '/') === 0 && file_exists($storedPath))) {
+		return $storedPath;
+	}
+
+	$relativePath = ltrim($storedPath, '/');
+	$diskPath = $GLOBALS['dataDir'] . '/' . $relativePath;
+	if (file_exists($diskPath)) {
+		return $diskPath;
+	}
+
+	if (file_exists($GLOBALS['dataDir'] . '/' . $storedPath)) {
+		return $GLOBALS['dataDir'] . '/' . $storedPath;
+	}
+
+	return null;
+}
+
+function isFileValidated($fileRecord)
+{
+	if (!isset($fileRecord['validated'])) {
+		return false;
+	}
+
+	$value = $fileRecord['validated'];
+	if (is_bool($value)) {
+		return $value;
+	}
+	if (is_int($value)) {
+		return $value === 1;
+	}
+	if (is_string($value)) {
+		$value = strtolower(trim($value));
+		return in_array($value, ['1', 'true', 'yes', 'y'], true);
+	}
+
+	return (bool) $value;
+}
 
 function deleteFiles($fileIds, $force = false)
 {
@@ -2188,7 +2228,7 @@ function deleteFiles($fileIds, $force = false)
 			foreach ($file['associated_files'] as $assoc_id) {
 				$deletedFiles = deleteFiles($assoc_id);
 				if ($deletedFiles === false) {
-					getProjectLogger()->warning("File '" . basename($fileLocalPath) . "' successfully deleted, but not its associated file ($assoc_id).");
+					getProjectLogger()->warning("File '" . basename($fileLocalPath) . "' successfully deleted, but not its associated file (" . basename($assoc_id) . ").");
 					$result = false;
 				}
 			}
@@ -2273,8 +2313,7 @@ function moveFiles($fns, $target_fn)
 		*/
 	}
 }
-
-
+#Function to sync project files with the database
 function syncProjectFiles($projects)
 {
 	foreach ($projects as $projectId => $projectAttributes) {
@@ -2288,26 +2327,22 @@ function syncProjectFiles($projects)
 	}
 }
 
-
+#Function to recursively sync a directory and its contents with the database
 function syncDirectoryRecursive($fullFolderPath, $relativeFolderPath, $projectId, $parentDirId)
 {
 	$entries = scandir($fullFolderPath);
-
 	foreach ($entries as $entry) {
 		// skip hidden files/folders (this also covers "." and "..")
 		if ($entry[0] === '.') {
 			continue;
 		}
-
 		$relativePath = $relativeFolderPath . "/" . $entry;
 		$fullPath = $fullFolderPath . "/" . $entry;
-
 		if (is_dir($fullPath)) {
 			// skip folders named "run*" (e.g. "run001")
 			if (fnmatch('run*', $entry)) {
 				continue;
 			}
-
 			// ensure this subdirectory itself is registered, then recurse into it
 			$subDirId = ensureDirRegistered($relativePath, $projectId, $parentDirId);
 			syncDirectoryRecursive($fullPath, $relativePath, $projectId, $subDirId);
@@ -2317,15 +2352,14 @@ function syncDirectoryRecursive($fullFolderPath, $relativeFolderPath, $projectId
 	}
 }
 
+#Function to ensure a directory is registered in the database, creating it if necessary
 function ensureDirRegistered($relativePath, $projectId, $parentDirId)
 {
 	$existingId = getGSFileId_fromPath($relativePath);
 	if ($existingId) {
 		return $existingId;
 	}
-
 	$dirId = createLabel();
-
 	$mongoDirDocument = array(
 		'_id'       => $dirId,
 		'mtime'     => new MongoDB\BSON\UTCDateTime(strtotime("now") * 1000),
@@ -2336,31 +2370,27 @@ function ensureDirRegistered($relativePath, $projectId, $parentDirId)
 		'type'      => "dir",
 		'files'     => []
 	);
-
 	$GLOBALS['filesCol']->updateOne(
 		['_id' => $dirId],
 		['$set' => $mongoDirDocument],
 		['upsert' => true]
 	);
-
 	if ($parentDirId) {
 		$GLOBALS['filesCol']->updateOne(
 			['_id' => $parentDirId],
 			['$addToSet' => ['files' => $dirId]]
 		);
 	}
-
 	return $dirId;
 }
 
+#Function to ensure a file is registered in the database, creating it if necessary
 function ensureFileRegistered($relativePath, $fullPath, $projectId, $parentDirId)
 {
 	if (getGSFileId_fromPath($relativePath)) {
 		return; // already registered
 	}
-
 	$fileId = createLabel();
-
 	$mongoFileDocument = array(
 		'_id'       => $fileId,
 		'mtime'     => new MongoDB\BSON\UTCDateTime(strtotime("now") * 1000),
@@ -2371,7 +2401,6 @@ function ensureFileRegistered($relativePath, $fullPath, $projectId, $parentDirId
 		'parentDir' => $parentDirId,
 		'type'      => "file"
 	);
-
 	$mongoFileMetadataDocument = array(
 		'_id'         => $fileId,
 		'compressed'  => false,
@@ -2380,19 +2409,16 @@ function ensureFileRegistered($relativePath, $fullPath, $projectId, $parentDirId
 		'validated'   => true,
 		'visible'     => true
 	);
-
 	$GLOBALS['filesCol']->updateOne(
 		['_id' => $fileId],
 		['$set' => $mongoFileDocument],
 		['upsert' => true]
 	);
-
 	$GLOBALS['filesMetaCol']->updateOne(
 		['_id' => $fileId],
 		['$set' => $mongoFileMetadataDocument],
 		['upsert' => true]
 	);
-
 	if ($parentDirId) {
 		$GLOBALS['filesCol']->updateOne(
 			['_id' => $parentDirId],

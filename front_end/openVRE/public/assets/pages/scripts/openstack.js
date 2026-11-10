@@ -1,46 +1,38 @@
 $(document).ready(function () {
 	const apiBaseUrl = (window.objStorageConfig && window.objStorageConfig.url) || '/applib/objStorage.php';
-	const loader = $('#loading-datatable');
-	const generalPanel = $('#general');
 	const dropdown = $('#containerDropdown');
+	const loadBucketsBtn = $('#loadBucketsBtn');
+	const tableBody = $('#repository-body');
+	const siteId = window.objectStorageSite || (window.objStorageConfig && window.objStorageConfig.site);
+	const storageState = { currentContainer: null };
+	const storageToolbar = $('#storageToolbar');
+	const storageTableWrap = $('#storageTableWrap');
 
-	$("#errorsTool").hide();
-	generalPanel.hide();
-	dropdown.hide();
-	if (loader.length) {
-		loader.hide();
-	}
-
-	function setLoading(isLoading) {
-		if (loader.length) {
-			if (isLoading) {
-				loader.show();
-			} else {
-				loader.hide();
-			}
+	function setDropdownVisibility(visible) {
+		if (visible) {
+			dropdown.show();
+			storageToolbar.show();
+		} else {
+			dropdown.hide();
+			storageToolbar.hide();
 		}
 	}
 
+	function setTableVisibility(visible) {
+		storageTableWrap.toggle(visible);
+	}
+
 	function showLoading() {
-		setLoading(true);
+		$('#loading-datatable').length && $('#loading-datatable').show();
 	}
 
 	function hideLoading() {
-		setLoading(false);
+		$('#loading-datatable').length && $('#loading-datatable').hide();
 	}
 
 	function showError(message) {
-		const errorsTool = $('#errorsTool');
-		errorsTool
+		$('#errorsTool')
 			.html('<div class="alert alert-danger"><strong>Error:</strong> ' + message + '</div>')
-			.fadeIn();
-		hideLoading();
-	}
-
-	function showSuccess(message) {
-		const errorsTool = $('#errorsTool');
-		errorsTool
-			.html('<div class="alert alert-success"><strong>Success:</strong> ' + message + '</div>')
 			.fadeIn();
 		hideLoading();
 	}
@@ -69,46 +61,20 @@ $(document).ready(function () {
 		return [];
 	}
 
-	function populateBucketDropdown(containers) {
-		const dropdown = $('#containerDropdown');
-		dropdown.empty();
-
-		if (!Array.isArray(containers) || containers.length === 0) {
-			dropdown.append($('<option></option>').text('No buckets available'));
-			dropdown.prop('disabled', true);
-			dropdown.show();
-			$('#general').show();
-			return;
-		}
-
-		dropdown.prop('disabled', false);
-		containers.forEach(function (container) {
-			const option = $('<option></option>').val(container).text(container);
-			dropdown.append(option);
-		});
-
-		dropdown.show();
-		$('#general').show();
+	function buildRequestPayload(action, extraData) {
+		return Object.assign({
+			site: siteId,
+			action: action
+		}, extraData || {});
 	}
 
-	var urlJSON = apiBaseUrl;
-	var credential_data = '';
-	table = [];
-
-	function loadBuckets() {
-		const payload = {
-			site: objectStorageSite,
-			action: 'getS3User'
-		};
-
-		console.log('Loading S3 buckets:', payload);
+	function requestStorage(action, data, onSuccess, onError) {
 		showLoading();
-
 		$.ajax({
 			async: true,
 			type: 'GET',
-			url: urlJSON,
-			data: payload,
+			url: apiBaseUrl,
+			data: buildRequestPayload(action, data),
 			dataType: 'json',
 			cache: false,
 			timeout: 30000,
@@ -117,21 +83,19 @@ $(document).ready(function () {
 				'Pragma': 'no-cache',
 				'Expires': '0'
 			}
-		}).done(function (data) {
-			console.log('S3 response:', data);
-			if (data && data.error) {
-				console.error('Backend error:', data.message);
-				showError(data.message);
+		}).done(function (response) {
+			if (response && response.error) {
+				if (typeof onError === 'function') {
+					onError(response.message || 'Request failed.');
+					return;
+				}
+				showError(response.message || 'Request failed.');
 				return;
 			}
-
-			const containers = normalizeStorageResponse(data);
-			populateBucketDropdown(containers);
-			if ($('#containerDropdown option').length > 0) {
-				$('#containerDropdown').val($('#containerDropdown option:first').val()).trigger('change');
+			if (typeof onSuccess === 'function') {
+				onSuccess(response);
 			}
 		}).fail(function (jqXHR, textStatus, errorThrown) {
-			console.error('AJAX request failed:', textStatus, errorThrown);
 			let message = 'AJAX request failed.';
 			try {
 				const res = JSON.parse(jqXHR.responseText);
@@ -139,294 +103,345 @@ $(document).ready(function () {
 			} catch (e) {
 				console.error('Invalid JSON response:', jqXHR.responseText);
 			}
+			console.error('Storage request failed', {
+				action: action,
+				textStatus: textStatus,
+				errorThrown: errorThrown,
+				message: message,
+				responseText: jqXHR.responseText
+			});
+			if (typeof onError === 'function') {
+				onError(message);
+				return;
+			}
 			showError(message);
 		}).always(function () {
 			hideLoading();
 		});
 	}
 
-	$('#containerDropdown').on('change', function () {
-		const container = $(this).val();
-		if (!container) {
-			return;
+	function clearRepositoryBody(message) {
+		tableBody.empty();
+		setTableVisibility(false);
+		if (message) {
+			console.error(message);
 		}
-		showLoading();
-		$.ajax({
-			type: 'POST',
-			url: urlJSON,
-			async: true,
-			cache: false,
-			data: {
-				'action': 'getContainerFiles',
-				'container': container,
-				'site': objectStorageSite
-			},
-			success: function (response) {
-				try {
-					const json = typeof response === 'string' ? JSON.parse(response) : response;
-					const files = json && json.files ? json.files : (Array.isArray(json) ? json : []);
-					const tableBody = document.getElementById('repository-body');
-					if (!tableBody) {
-						return;
-					}
-					tableBody.innerHTML = '';
-					renderStorageTree(buildStorageTree(files), tableBody, 0, null);
-					attachStorageTreeHandlers();
-				} catch (e) {
-					console.error('Error parsing files JSON:', e);
-					showError('Could not parse files response.');
-				}
-			},
-			error: function (xhr, status, error) {
-				console.error('Error fetching files:', error);
-				showError('Error fetching files for bucket: ' + container);
-			},
-			complete: function () {
-				hideLoading();
-			}
-		});
-	});
-
-	loadBuckets();
-
-	function safeStorageId(path) {
-		return 'storage_' + String(path).replace(/[^A-Za-z0-9_-]/g, '_');
 	}
 
-	function formatStorageBytes(bytes) {
-		if (bytes == null || isNaN(bytes)) return '-';
-		const b = Number(bytes);
-		if (b === 0) return '0 B';
-		const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-		const i = Math.floor(Math.log(b) / Math.log(1024));
-		return parseFloat((b / Math.pow(1024, i)).toFixed(2)) + ' ' + sizes[i];
+	function resetStorageUi() {
+		dropdown.empty();
+		dropdown.prop('disabled', true);
+		setDropdownVisibility(false);
+		clearRepositoryBody();
+	}
+
+	function populateBucketDropdown(containers) {
+		dropdown.empty();
+		if (!Array.isArray(containers) || containers.length === 0) {
+			dropdown.append($('<option></option>').text('No buckets available'));
+			dropdown.prop('disabled', true);
+			setDropdownVisibility(true);
+			setTableVisibility(false);
+			return;
+		}
+
+		dropdown.prop('disabled', false);
+		containers.forEach(function (container) {
+			dropdown.append($('<option></option>').val(container).text(container));
+		});
+		setDropdownVisibility(true);
+		setTableVisibility(false);
 	}
 
 	function buildStorageTree(files) {
-		if (!Array.isArray(files)) {
-			return [];
-		}
+		const root = { name: '/', type: 'dir', path: '', children: [] };
 
-		const root = [];
-		const nodesByPath = new Map();
-
-		function ensureNode(path, isDir, meta) {
-			const normalized = String(path || '').replace(/^\/+/, '').replace(/\/+$/, '');
-			if (!normalized) {
-				return null;
-			}
-
-			if (!nodesByPath.has(normalized)) {
-				const node = {
-					id: safeStorageId(normalized),
-					path: normalized,
-					name: meta && meta.displayName ? meta.displayName : normalized.split('/').filter(Boolean).pop() || normalized,
-					displayName: meta && meta.displayName ? meta.displayName : normalized.split('/').filter(Boolean).pop() || normalized,
-					size: meta && meta.size != null ? Number(meta.size) : 0,
-					children: [],
-					isDir: !!isDir
-				};
-				nodesByPath.set(normalized, node);
-			}
-
-			const node = nodesByPath.get(normalized);
-			node.isDir = node.isDir || !!isDir;
-			if (meta && meta.size != null) {
-				node.size = Number(meta.size) || 0;
-			}
-			if (meta && meta.displayName) {
-				node.displayName = meta.displayName;
-				node.name = meta.displayName;
-			}
-			return node;
-		}
-
-		files.forEach(function (file) {
-			const rawName = file && (file.Name || file.name || file.key || file.path || file.Prefix || '');
-			if (!rawName) {
+		(files || []).forEach(function (item) {
+			const rawName = item && (item.Name || item.name || item.path || '');
+			const normalizedName = String(rawName).replace(/\\/g, '/');
+			if (!normalizedName) {
 				return;
 			}
 
-			const isDir = !!(file.isDir || file.Prefix || String(rawName).endsWith('/') || file.path && String(file.path).endsWith('/'));
-			const normalized = String(rawName).replace(/^\/+/, '').replace(/\/+$/, '');
-			if (!normalized) {
+			const segments = normalizedName.split('/').filter(Boolean);
+			if (!segments.length) {
 				return;
 			}
 
-			const segments = normalized.split('/').filter(Boolean);
+			let current = root;
 			let currentPath = '';
-			let parent = null;
 
 			segments.forEach(function (segment, index) {
+				const isLast = index === segments.length - 1;
 				currentPath = currentPath ? currentPath + '/' + segment : segment;
-				const lastSegment = index === segments.length - 1;
-				const node = ensureNode(currentPath, lastSegment ? isDir : true, {
-					displayName: segment,
-					size: lastSegment ? (file.size || file.Size || file.bytes || 0) : 0
-				});
 
-				if (!node) {
+				if (isLast) {
+					const fileNode = {
+						name: segment,
+						type: 'file',
+						path: currentPath,
+						size: Number(item && item.size !== undefined ? item.size : (item && item.Size || 0)),
+						LastModified: item && item.LastModified ? item.LastModified : null
+					};
+					current.children.push(fileNode);
 					return;
 				}
 
-				if (parent) {
-					if (!parent.children.some(function (child) { return child.path === node.path; })) {
-						parent.children.push(node);
-					}
-				} else if (!root.some(function (item) { return item.path === node.path; })) {
-					root.push(node);
+				let dir = current.children.find(function (child) {
+					return child.type === 'dir' && child.name === segment && child.path === currentPath;
+				});
+
+				if (!dir) {
+					dir = {
+						name: segment,
+						type: 'dir',
+						path: currentPath,
+						children: [],
+						expanded: false,
+						LastModified: null
+					};
+					current.children.push(dir);
 				}
 
-				parent = node;
+				current = dir;
 			});
 		});
-
-		function sortNode(node) {
-			if (node.children && node.children.length) {
-				node.children.sort(function (a, b) {
-					if (a.isDir !== b.isDir) {
-						return a.isDir ? -1 : 1;
-					}
-					return String(a.displayName || a.name).localeCompare(String(b.displayName || b.name));
-				});
-				node.children.forEach(sortNode);
-			}
-		}
-
-		root.sort(function (a, b) {
-			if (a.isDir !== b.isDir) {
-				return a.isDir ? -1 : 1;
-			}
-			return String(a.displayName || a.name).localeCompare(String(b.displayName || b.name));
-		});
-		root.forEach(sortNode);
 
 		return root;
 	}
 
-	function renderStorageTree(items, parentEl, depth, parentId) {
-		items.forEach(function (item) {
-			const row = document.createElement('tr');
-			const indent = depth * 18;
-			const isDirectory = !!(item.isDir || (item.children && item.children.length > 0));
-			const hasChildren = !!(item.children && item.children.length > 0);
-			const uniqueId = safeStorageId(item.path || item.name || item.displayName || 'tree-row');
+	function formatBytes(bytes) {
+		if (!bytes || bytes === 0) {
+			return '0 B';
+		}
 
-			row.dataset.depth = depth;
-			row.dataset.parentId = parentId || '';
-			row.setAttribute('data-id', uniqueId);
-			if (parentId) {
-				row.classList.add('child-of-' + parentId);
-				row.style.display = 'none';
-			}
+		const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+		const exponent = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+		const value = bytes / Math.pow(1024, exponent);
+		const precision = value >= 10 || exponent === 0 ? 0 : 1;
+		return value.toFixed(precision) + ' ' + units[exponent];
+	}
 
-			if (isDirectory) {
-				row.classList.add('dir-row');
-				row.innerHTML = [
-					'<td style="padding-left:' + (indent + 10) + 'px; display:flex; align-items:center; gap:8px;">',
-					'  <button type="button" class="btn btn-xs btn-default folder-toggle" data-target="' + uniqueId + '" aria-label="toggle folder" aria-expanded="false" ' + (isDirectory ? '' : 'disabled') + '>',
-					'    <i class="fa fa-caret-right"></i>',
-					'  </button>',
-					'  <i class="fa fa-folder-open folder-icon"></i>',
-					'  <span class="folder-name">' + (item.displayName || item.name) + '</span>',
-					'</td>',
-					'<td class="storage-size-cell">' + (item.size ? formatStorageBytes(item.size) : '-') + '</td>',
-					'<td class="text-center">',
-					'  <div class="actions-container">',
-					'    <button type="button" class="btn btn-xs btn-default dir-action-btn disabled" title="No actions" disabled><i class="fa fa-list"></i></button>',
-					'  </div>',
-					'</td>'
-				].join('');
-				parentEl.appendChild(row);
-				if (hasChildren) {
-					renderStorageTree(item.children, parentEl, depth + 1, uniqueId);
+	function renderStorageTree(tree, container, depth, parentPath) {
+		tableBody.empty();
+		const nodes = (tree && tree.children) ? tree.children : [];
+
+		if (!nodes.length) {
+			tableBody.append(
+				$('<tr></tr>').append(
+					$('<td></td>').attr('colspan', 4).text('No files found in this bucket.')
+				)
+			);
+			return;
+		}
+
+		function renderNode(node, level) {
+			const nodePath = node.path || (parentPath ? parentPath + '/' + node.name : node.name);
+			const trimmedPath = nodePath.replace(/^\/+/, '');
+			const row = $('<tr></tr>').attr('data-path', trimmedPath);
+			const isExpanded = node.expanded === true;
+
+			if (node.type === 'dir') {
+				const toggle = $('<button type="button" class="folder-toggle ' + (isExpanded ? 'open' : 'closed') + '"></button>')
+					.html('<i class="fa fa-chevron-' + (isExpanded ? 'down' : 'right') + '"></i>')
+					.attr('title', isExpanded ? 'Collapse folder' : 'Expand folder');
+
+				row.addClass('dir-row');
+				row.attr('data-expanded', isExpanded ? 'true' : 'false');
+				row.append(
+					$('<td></td>').css('padding-left', (level * 18 + 12) + 'px').append(
+						toggle,
+						$('<span></span>').addClass('folder-icon').html('<i class="fa fa-folder"></i>'),
+						$('<span></span>').addClass('folder-name').text(node.name)
+					)
+				);
+				row.append($('<td></td>').text(''));
+				row.append($('<td></td>').text(node.LastModified ? new Date(node.LastModified).toLocaleString() : '—'));
+				row.append(
+					$('<td></td>').append(
+						$('<button></button>').addClass('btn btn-xs blue dir-action-btn').html('<i class="fa fa-upload"></i>').attr({
+							title: 'Import directory',
+							'aria-label': 'Import directory'
+						}).on('click', function () {
+							downloadStorageDirectory(trimmedPath, 'existing');
+						}),
+						' ',
+						$('<button></button>').addClass('btn btn-xs green dir-action-btn').html('<i class="fa fa-plus"></i>').attr({
+							title: 'Import in new workspace',
+							'aria-label': 'Import in new workspace'
+						}).on('click', function () {
+							downloadStorageDirectory(trimmedPath, 'new');
+						})
+					)
+				);
+				tableBody.append(row);
+
+				if (node.children && node.children.length) {
+					node.children.forEach(function (child) {
+						const childRow = renderNode(child, level + 1);
+						if (!isExpanded && childRow) {
+							childRow.hide();
+						}
+					});
 				}
-				return;
+				return row;
 			}
 
-			row.classList.add('file-row');
-			row.innerHTML = [
-				'<td style="padding-left:' + (indent + 10) + 'px; display:flex; align-items:center; gap:8px;">',
-				'  <span class="file-indent" aria-hidden="true"></span>',
-				'  <i class="fa fa-file-o file-icon"></i>',
-				'  <span>' + (item.displayName || item.name) + '</span>',
-				'</td>',
-				'<td class="storage-size-cell">' + formatStorageBytes(item.size) + '</td>',
-				'<td class="text-center">',
-				'  <div class="actions-container">',
-				'    <button type="button" class="btn btn-xs btn-default dir-action-btn disabled" title="No actions" disabled><i class="fa fa-download"></i></button>',
-				'  </div>',
-				'</td>'
-			].join('');
-			parentEl.appendChild(row);
+			row.addClass('file-row');
+			row.append(
+				$('<td></td>').css('padding-left', (level * 18 + 12) + 'px').append(
+					$('<span></span>').addClass('file-icon').html('<i class="fa fa-file-o"></i>'),
+					$('<span></span>').text(node.name)
+				)
+			);
+			row.append($('<td></td>').text(formatBytes(node.size || 0)));
+			row.append($('<td></td>').text(node.LastModified ? new Date(node.LastModified).toLocaleString() : '—'));
+			row.append($('<td></td>').text(''));
+			tableBody.append(row);
+			return row;
+		}
+
+		nodes.forEach(function (node) {
+			renderNode(node, 0);
 		});
 	}
 
 	function attachStorageTreeHandlers() {
-		const repoBody = document.getElementById('repository-body');
-		if (!repoBody) {
+		tableBody.find('.folder-toggle').off('click').on('click', function () {
+			const $toggle = $(this);
+			const $row = $toggle.closest('tr');
+			const path = $row.data('path');
+			const $children = tableBody.find('tr[data-path^="' + path + '/"]');
+
+			if ($toggle.hasClass('open')) {
+				$toggle.removeClass('open').addClass('closed').html('<i class="fa fa-chevron-right"></i>');
+				$toggle.attr('title', 'Expand folder');
+				$row.attr('data-expanded', 'false');
+				$children.hide();
+			} else {
+				$toggle.removeClass('closed').addClass('open').html('<i class="fa fa-chevron-down"></i>');
+				$toggle.attr('title', 'Collapse folder');
+				$row.attr('data-expanded', 'true');
+				$children.show();
+			}
+		});
+	}
+
+	function downloadFile(fileName) {
+		if (!storageState.currentContainer || !fileName) {
+			console.error('downloadFile() called without container or fileName');
 			return;
 		}
 
-		function getRowMap() {
-			const map = {};
-			Array.from(repoBody.querySelectorAll('tr[data-id]')).forEach(function (row) {
-				map[row.getAttribute('data-id')] = row;
-			});
-			return map;
-		}
-
-		function rowIsVisible(row, rowMap) {
-			if (!row) {
-				return false;
-			}
-			const parentId = row.dataset.parentId;
-			if (!parentId) {
-				return true;
-			}
-
-			const parentRow = rowMap[parentId];
-			if (!parentRow) {
-				return true;
-			}
-
-			const parentToggle = parentRow.querySelector('.folder-toggle');
-			const parentOpen = !parentToggle || parentToggle.disabled || parentToggle.classList.contains('open');
-			return parentOpen && rowIsVisible(parentRow, rowMap);
-		}
-
-		function syncTreeVisibility() {
-			const rowMap = getRowMap();
-			Array.from(repoBody.querySelectorAll('tr')).forEach(function (row) {
-				row.style.display = rowIsVisible(row, rowMap) ? 'table-row' : 'none';
-			});
-		}
-
-		repoBody.onclick = function (e) {
-			const toggleBtn = e.target.closest('.folder-toggle');
-			if (!toggleBtn) {
+		requestStorage('downloadFile', {
+			container: storageState.currentContainer,
+			fileName: fileName
+		}, function (response) {
+			const status = response && response.status ? response.status : 'success';
+			if (status === 'success') {
+				showError('File queued for download successfully.');
 				return;
 			}
-			e.stopPropagation();
-			if (toggleBtn.disabled) {
-				return;
-			}
-
-			const tr = toggleBtn.closest('tr');
-			if (!tr) {
-				return;
-			}
-
-			const expanded = !toggleBtn.classList.contains('open');
-			toggleBtn.classList.toggle('open', expanded);
-			toggleBtn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
-			const chevron = toggleBtn.querySelector('i');
-			if (chevron) {
-				chevron.classList.toggle('fa-rotate-90', expanded);
-			}
-
-			syncTreeVisibility();
-		};
+			showError((response && response.message) || 'File download failed.');
+		}, function (message) {
+			showError(message);
+		});
 	}
+
+	function downloadStorageDirectory(dirPath, mode) {
+		if (!dirPath) {
+			console.error('downloadStorageDirectory() called without dirPath');
+			return;
+		}
+
+		const payload = {
+			container: storageState.currentContainer,
+			dirPath: dirPath
+		};
+
+		if (mode === 'new') {
+			payload.projectName = storageState.currentContainer || 's3-import';
+			requestStorage('downloadDirectoryNewWorkspace', payload, function (response) {
+				if (response && response.redirect) {
+					window.location.href = response.redirect;
+					return;
+				}
+				if (response && response.message) {
+					showError(response.message);
+				}
+			}, function (message) {
+				showError(message);
+			});
+			return;
+		}
+
+		requestStorage('downloadDirectory', payload, function (response) {
+			if (response && response.redirect) {
+				window.location.href = response.redirect;
+				return;
+			}
+			if (response && response.message) {
+				showError(response.message);
+			}
+		}, function (message) {
+			showError(message);
+		});
+	}
+
+	function loadBuckets() {
+		requestStorage('getS3User', {}, function (data) {
+			const containers = normalizeStorageResponse(data);
+			populateBucketDropdown(containers);
+			const firstOption = dropdown.find('option').first();
+			if (firstOption.length && firstOption.val() !== 'No buckets available') {
+				dropdown.val(firstOption.val());
+				storageState.currentContainer = firstOption.val();
+				setTableVisibility(true);
+				loadBucketFiles(firstOption.val());
+			} else {
+				storageState.currentContainer = null;
+				setTableVisibility(false);
+				clearRepositoryBody('No buckets available');
+			}
+		}, function (message) {
+			console.error('Bucket load failed:', message);
+			setTableVisibility(false);
+			clearRepositoryBody('Unable to load buckets');
+			showError(message);
+		});
+	}
+
+	function loadBucketFiles(container) {
+		if (!container) {
+			console.error('loadBucketFiles() called without container');
+			return;
+		}
+		storageState.currentContainer = container;
+		setTableVisibility(true);
+		requestStorage('getContainerFiles', { container: container }, function (response) {
+			const files = response && response.files ? response.files : (Array.isArray(response) ? response : []);
+			const tree = buildStorageTree(files);
+			renderStorageTree(tree, tableBody[0], 0, null);
+			attachStorageTreeHandlers();
+		}, function (message) {
+			console.error('Bucket file load failed:', message);
+			setTableVisibility(false);
+			showError('Error fetching files for bucket: ' + container + '. ' + message);
+		});
+	}
+
+	dropdown.on('change', function () {
+		const selected = dropdown.val();
+		if (selected && selected !== 'No buckets available') {
+			loadBucketFiles(selected);
+		}
+	});
+
+	loadBucketsBtn.on('click', function () {
+		loadBuckets();
+	});
+
+	resetStorageUi();
+	$('#errorsTool').hide();
 });
 

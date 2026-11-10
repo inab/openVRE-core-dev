@@ -17,6 +17,8 @@ if (!$site) {
     throw new Exception("Data archive site not found.");
 }
 
+$storageType = strtolower((string)($site['storage']['type'] ?? ''));
+$isS3Site = $storageType === 's3';
 ?>
 
 <?php require "../htmlib/header.inc.php"; ?>
@@ -87,42 +89,51 @@ if (!$site) {
         }
         ?>
 
-        <div class="row">
-          <div class="col-md-12">
-            <div class="portlet light portlet-fit bordered">
-              <div class="portlet-title">
-                <div class="caption">
-                  <i class="icon-share font-red-sunglo hide"></i>
-                  <span class="caption-subject font-dark bold uppercase">Browse Storage Containers</span>
+        <?php if ($isS3Site): ?>
+          <div class="row">
+            <div class="col-md-12">
+              <div class="portlet light portlet-fit bordered">
+                <div class="portlet-title" style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                  <div class="caption" style="flex:1; min-width: 220px;">
+                    <i class="icon-share font-red-sunglo hide"></i>
+                    <span class="caption-subject font-dark bold uppercase">Browse Storage Containers</span>
+                  </div>
+                  <div style="flex: 0 0 auto; display:flex; justify-content:center; width:100%; max-width: 260px;">
+                    <button id="loadBucketsBtn" type="button" class="btn blue btn-block" style="min-height: 40px; max-width: 220px; width: 100%; font-family: 'Open Sans', sans-serif; font-size: 14px; font-weight: 600; letter-spacing: 0.02em;">
+                      <i class="fa fa-database"></i> Get S3 Buckets
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              <div class="row storage-toolbar" style="margin: 0 15px 15px 15px;">
-                <div class="col-md-6">
-                  <label class="storage-select-label">Bucket</label>
-                  <select id="containerDropdown" class="form-control storage-select" style="display:none;"></select>
+                <div class="row storage-toolbar" id="storageToolbar" style="margin: 0 15px 15px 15px; align-items: end; display:none;">
+                  <div class="col-md-6">
+                    <label class="storage-select-label">Bucket</label>
+                    <select id="containerDropdown" class="form-control storage-select"></select>
+                  </div>
                 </div>
-              </div>
 
-              <div class="table-responsive storage-table-wrap">
-                <table class="table table-striped table-hover table-bordered storage-tree-table">
-                  <thead>
-                    <tr>
-                      <th class="storage-name-col">Filename</th>
-                      <th class="storage-size-col">Size</th>
-                      <th class="storage-actions-col">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="repository-body">
-                    <tr>
-                      <td colspan="3">Loading...</td>
-                    </tr>
-                  </tbody>
-                </table>
+                <div class="table-responsive storage-table-wrap" id="storageTableWrap" style="display:none;">
+                  <table class="table table-striped table-hover table-bordered storage-tree-table">
+                    <thead>
+                      <tr>
+                        <th class="storage-name-col">Filename</th>
+                        <th class="storage-size-col">Size</th>
+                        <th class="storage-time-col">Last Modified</th>
+                        <th class="storage-actions-col">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody id="repository-body"></tbody>
+                  </table>
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        <?php else: ?>
+          <div class="alert alert-info">
+            This storage browser is available for S3-backed sites only. The current site uses
+            <strong><?php echo htmlspecialchars(ucfirst($storageType ?: 'unknown')); ?></strong> storage.
+          </div>
+        <?php endif; ?>
         <!-- END PAGE CONTENT -->
 
       </div>
@@ -133,21 +144,22 @@ if (!$site) {
   </div>
   <!-- END PAGE WRAPPER -->
 
-  <!-- VIEW JSON PART -->
-  <div class="modal fade bs-modal" id="modalAnalysis" tabindex="-1" role="basic" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
-          <h4 class="modal-title">Execution Summary</h4>
-        </div>
-        <div class="modal-body table-responsive"></div>
-        <div class="modal-footer">
-          <button type="button" class="btn dark btn-outline" data-dismiss="modal">Close</button>
+  <?php if ($isS3Site): ?>
+    <div class="modal fade bs-modal" id="modalAnalysis" tabindex="-1" role="basic" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
+            <h4 class="modal-title">Execution Summary</h4>
+          </div>
+          <div class="modal-body table-responsive"></div>
+          <div class="modal-footer">
+            <button type="button" class="btn dark btn-outline" data-dismiss="modal">Close</button>
+          </div>
         </div>
       </div>
     </div>
-  </div>
+  <?php endif; ?>
 
   <style type="text/css">
     .storage-toolbar {
@@ -200,6 +212,11 @@ if (!$site) {
 
     .storage-size-col {
       width: 18%;
+    }
+
+    .storage-time-col {
+      width: 20%;
+      white-space: nowrap;
     }
 
     .storage-actions-col {
@@ -279,6 +296,7 @@ if (!$site) {
       cursor: default;
     }
 
+    .file-action-btn,
     .dir-action-btn {
       padding: 0 5px;
       font-size: 10px;
@@ -294,16 +312,11 @@ if (!$site) {
       border: 1px solid #e5e7eb;
     }
 
-    .dir-action-btn[disabled] {
-      opacity: 0.55;
-      cursor: default;
-    }
-
-    .actions-container {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 6px;
+    .file-action-btn:hover,
+    .dir-action-btn:hover {
+      background: #eef4ff;
+      border-color: #cfe1ff;
+      color: #2f72d4;
     }
 
     .storage-size-cell {
@@ -317,19 +330,20 @@ if (!$site) {
     }
   </style>
 
-  <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
-  <script>
-  // Inject session variables from PHP into JS
-  window.currentUserId = "<?php echo $_SESSION['User']['id']; ?>";
-</script>
-<script src="/assets/pages/scripts/openstack.js"></script>
-<script>
-window.objStorageConfig = {
-    site: <?php echo json_encode((string)$siteId); ?>,
-    url: '<?php echo $GLOBALS['BASEURL']; ?>applib/objStorage.php'
-};
-window.objectStorageSite = window.objStorageConfig.site;
-</script>
+  <?php if ($isS3Site): ?>
+    <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
+    <script>
+      window.currentUserId = "<?php echo $_SESSION['User']['id']; ?>";
+    </script>
+    <script src="/assets/pages/scripts/openstack.js"></script>
+    <script>
+      window.objStorageConfig = {
+        site: <?php echo json_encode((string)$siteId); ?>,
+        url: '<?php echo $GLOBALS['BASEURL']; ?>applib/objStorage.php'
+      };
+      window.objectStorageSite = window.objStorageConfig.site;
+    </script>
+  <?php endif; ?>
 
   <?php
   require "../htmlib/footer.inc.php";

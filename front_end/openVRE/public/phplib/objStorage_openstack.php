@@ -85,18 +85,14 @@ function initiateFileDownload($swiftClient, $fileUrl, $container)
 		getObjectStorageOpenstackLogger()->error("Failed to create working directory: $wdP.");
 		throw new UnexpectedValueException("Failed to create working directory: $wdP");
 	}
-
 	// Extract file name and relative path
 	$fileName = basename($fileUrl);
-
 	// Full path to save the file
 	$fullPath = $wdP . '/' . $fileName;
-
 	// Adjust fileUrl to remove any leading slashes if necessary
 	$fileUrl = ltrim($fileUrl, '/');
 	$downloadSuccess = $swiftClient->runDownloadFile($wdP . '/', $container, $fileUrl);
 	getObjectStorageOpenstackLogger()->debug("Command output: $downloadSuccess");
-
 	getObjectStorageOpenstackLogger()->debug("basename: $fileName");
 	getObjectStorageOpenstackLogger()->debug("Full path: $fullPath");
 	if ($downloadSuccess) {
@@ -112,10 +108,8 @@ function initiateFileDownload($swiftClient, $fileUrl, $container)
 		$metaData = array(
 			'validated' => false
 		);
-
 		// Save the path with the directory structure in the database
 		$fnId = uploadGSFileBNS("$wd/$fileName", $fullPath, $insertData, $metaData, false);
-
 		if ($fnId == "0") {
 			$errorMsg = "Error occurred while registering the downloaded file";
 			getObjectStorageOpenstackLogger()->error($errorMsg);
