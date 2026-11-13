@@ -3,14 +3,21 @@
         "_id": "admin",
         "name": "admin",
         "permissions": [
-            "DeleteFile", "DownloadFile", "EditFile", "MoveFile", "ReadFile"
+            "DeleteFile", "DownloadFile", "EditFile", "ExportFile", "MoveFile", "ReadFile"
         ]
     },
     {
         "_id": "user",
         "name": "user",
         "permissions": [
-            "DeleteFile", "DownloadFile", "EditFile", "MoveFile", "ReadFile"
+            "DeleteFile", "DownloadFile", "EditFile", "ExportFile", "MoveFile", "ReadFile"
+        ]
+    },
+    {
+        "_id": "restricted",
+        "name": "restricted",
+        "permissions": [
+            "DeleteFile", "EditFile", "ExportFile", "MoveFile", "ReadFile"
         ]
     }
 ]

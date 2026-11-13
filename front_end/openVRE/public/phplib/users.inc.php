@@ -334,3 +334,40 @@ function hasPermissions(string $userId, Permission $requiredPermission)
 
     return in_array($requiredPermission->value, $userPermissions);
 }
+
+/**
+ * Whether the logged user can directly download data. Downloads may be
+ * disabled for the whole instance (DOWNLOAD_ENABLED=false) or per role.
+ */
+function canDownload(): bool
+{
+    static $cache = array();
+
+    $userId = $_SESSION['userId'] ?? null;
+    if (empty($userId) || empty($GLOBALS['downloadEnabled'])) {
+        return false;
+    }
+    if (!isset($cache[$userId])) {
+        $cache[$userId] = hasPermissions($userId, Permission::DownloadFile);
+    }
+
+    return $cache[$userId];
+}
+
+/**
+ * Whether the logged user can request the export of data through the Airlock.
+ */
+function canExport(): bool
+{
+    static $cache = array();
+
+    $userId = $_SESSION['userId'] ?? null;
+    if (empty($userId) || empty($GLOBALS['airlockUrl'])) {
+        return false;
+    }
+    if (!isset($cache[$userId])) {
+        $cache[$userId] = hasPermissions($userId, Permission::ExportFile);
+    }
+
+    return $cache[$userId];
+}

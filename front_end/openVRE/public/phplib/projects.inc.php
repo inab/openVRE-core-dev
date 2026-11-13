@@ -743,6 +743,16 @@ function formatData($data)
 
 	$data['_id_URL'] = urlencode($data['_id']);
 
+	// download or export, depending on the user permissions and the instance
+	$data['downloadLink'] = "";
+	$data['downloadFolderLink'] = "";
+	if (canDownload()) {
+		$data['downloadLink'] = "<li><a href=\"workspace/workspace.php?op=downloadFile&fn=" . $data['_id_URL'] . "\"><i class=\"fa fa-download\"></i> Download file </a></li>";
+		$data['downloadFolderLink'] = "<li><a href=\"workspace/workspace.php?op=downloadtgz&fn=" . $data['_id_URL'] . "\"><i class=\"fa fa-download\"></i> Download Folder</a></li>";
+	} elseif (canExport()) {
+		$data['downloadLink'] = "<li><a href=\"javascript:requestExport('" . $data['_id_URL'] . "');\"><i class=\"fa fa-paper-plane\"></i> Request export </a></li>";
+	}
+
 	//mtime atime
 	if (isset($data['mtime'])) {
 		if (is_object($data['mtime'])) {
@@ -1180,6 +1190,9 @@ function formatData($data)
 	$ext = preg_replace('/_\d+$/', "", $ext);
 	$content_type  = (array_key_exists($ext, mimeTypes()) ? mimeTypes()[$ext] : "application/octet-stream");
 	$data['openFunction'] = ($content_type == "text/plain" || $ext == "pdf" || preg_match('/image/', $content_type) || preg_match('/(e|o)\d+/', $ext) || in_array($data['format'], array("FASTQ", "FASTA")) ? "openPlainFile" : "downloadFile");
+	if ($data['openFunction'] == "downloadFile" && !canDownload()) {
+		$data['openFunction'] = "openPlainFile";
+	}
 	$data['compressionLink'] = "";
 	if (! in_array($data['format'], array("BAM", "PNG", "JPG"))) {
 		switch (strtolower($ext)) {

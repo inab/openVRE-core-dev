@@ -215,6 +215,15 @@ $datasets = [];
 						<span class="title">User Workspace</span>
 					</a>
 				</li>
+				<?php if (canExport()) { ?>
+					<li class="nav-item">
+						<a href="<?php echo htmlspecialchars($GLOBALS['airlockUrl']); ?>" class="nav-link" target="_blank" title="Follow your export requests in the Airlock">
+							<i class="icon-share-alt"></i>
+							<span class="title">Export requests</span>
+							<i class="fa fa-external-link" style="font-size:11px;"></i>
+						</a>
+					</li>
+				<?php } ?>
 				<li class="nav-item  <?php if ($currentSection == 'dt') { ?>active open<?php } ?>">
 					<a href="javascript:;" class="nav-link nav-toggle">
 						<i class="icon-cloud-upload"></i>

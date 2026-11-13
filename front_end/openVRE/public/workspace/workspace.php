@@ -23,11 +23,11 @@ function getWorkspaceLogger()
 if (is_null($_REQUEST['op'])) {
 	header("location:../workspace/");
 }
-if (is_null($_REQUEST['fn']) && is_null($_REQUEST['fnPath']) && !preg_match('/cancelJob/', $_REQUEST['op'])) {
+if (is_null($_REQUEST['fn']) && is_null($_REQUEST['fnPath']) && !preg_match('/cancelJob|exportStatus|exportSubmit/', $_REQUEST['op'])) {
 	$_SESSION['errorData']['Error'][] = "Selected operation ('" . $_REQUEST['op'] . "') requires at least one file. Any file name received.";
 	header("location:../workspace/");
 }
-if (is_array($_REQUEST['fn']) && $_REQUEST['op'] != 'moveFiles')
+if (is_array($_REQUEST['fn']) && !in_array($_REQUEST['op'], array('moveFiles', 'exportFile')))
 	$_REQUEST['fn'] = $_REQUEST['fn'][0];
 
 $user = getUserById($_SESSION['userId']);
@@ -52,7 +52,7 @@ if (isset($_REQUEST['op'])) {
 			break;
 
 		case 'downloadFile':
-			if (hasPermissions($_SESSION['userId'], Permission::DownloadFile)) {
+			if (canDownload()) {
 				set_time_limit(0);
 				ini_set('memory_limit', '512M');
 
@@ -69,7 +69,7 @@ if (isset($_REQUEST['op'])) {
 
 			break;
 		case 'downloadAll':
-			if (hasPermissions($_SESSION['userId'], Permission::DownloadFile)) {
+			if (canDownload()) {
 				$newName = "files.tar.gz";
 				$tmpZip = $GLOBALS['userDataDir'] . "/" . $userPath . "/" . $GLOBALS['tmpUser_dir'] . "/" . basename($newName);
 
@@ -105,7 +105,7 @@ if (isset($_REQUEST['op'])) {
 			break;
 
 		case 'downloadtgz':
-			if (hasPermissions($_SESSION['userId'], Permission::DownloadFile)) {
+			if (canDownload()) {
 				if (filetype($rfn) != 'dir') {
 					$_SESSION['errorData']['Error'][] = "Cannot tar " . $_REQUEST['fn'] . " File is not a directory";
 					break;
@@ -166,6 +166,10 @@ if (isset($_REQUEST['op'])) {
 
 				if (!$fileData && !preg_match('/\.log/', $rfn)) {
 					break;
+				}
+				// without download rights, only contents the browser renders inline are served
+				if (!canDownload() && !preg_match('/^(text\/|image\/|application\/pdf$)/', $contentType)) {
+					throw new UnexpectedValueException("This file cannot be displayed and direct downloads are not allowed." . (canExport() ? " Request its export instead." : ""));
 				}
 				if (!is_file($rfn) || !filesize($rfn)) {
 					$_SESSION['errorData']['error'][] = "'" . basename($rfn) . "' does not exist anymore or is empty. <a href=\"javascript:deleteMesg('" . urlencode($_REQUEST['fn']) . "')\">[ Delete ]</a> <a href=\"workspace/workspace.php\">[ OK ]</a>";
@@ -452,6 +456,39 @@ if (isset($_REQUEST['op'])) {
 		case 'tar':
 			break;
 
+
+		case 'exportFile':
+			header('Content-Type: application/json');
+			try {
+				$export = requestLandingMove((array) $_REQUEST['fn']);
+				print(json_encode(array('error' => false, 'msg' => "Export requested. Airlock is transferring and verifying the files.", 'export' => $export)));
+			} catch (Throwable $e) {
+				getWorkspaceLogger()->error("Export request failed: " . $e->getMessage());
+				print(json_encode(array('error' => true, 'msg' => $e->getMessage())));
+			}
+			die();
+
+		case 'exportStatus':
+			header('Content-Type: application/json');
+			try {
+				$export = refreshExportStatus((string) $_REQUEST['id']);
+				print(json_encode(array('error' => false, 'export' => $export)));
+			} catch (Throwable $e) {
+				getWorkspaceLogger()->error("Export status check failed: " . $e->getMessage());
+				print(json_encode(array('error' => true, 'msg' => $e->getMessage())));
+			}
+			die();
+
+		case 'exportSubmit':
+			header('Content-Type: application/json');
+			try {
+				$export = createAirlockSubmission((string) $_REQUEST['id'], $_POST);
+				print(json_encode(array('error' => false, 'msg' => "Submission created in the Airlock.", 'export' => $export)));
+			} catch (Throwable $e) {
+				getWorkspaceLogger()->error("Export submission failed: " . $e->getMessage());
+				print(json_encode(array('error' => true, 'msg' => $e->getMessage())));
+			}
+			die();
 
 		case 'moveFiles':
 		case 'moveFile':

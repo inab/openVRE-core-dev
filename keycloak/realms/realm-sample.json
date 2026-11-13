@@ -88,6 +88,15 @@
         "attributes": {}
       },
       {
+        "id": "5b0d7f3e-2c41-4a8e-9b6d-7e1f0a3c9d24",
+        "name": "restricted",
+        "description": "Restricted user role: cannot download data, can request its export through the Airlock",
+        "composite": false,
+        "clientRole": false,
+        "containerId": "e141c277-b6e5-46e3-ad03-9a7284157caf",
+        "attributes": {}
+      },
+      {
         "id": "0fd1d967-5985-4f36-b4d3-79cc78c365eb",
         "name": "uma_authorization",
         "description": "${role_uma_authorization}",

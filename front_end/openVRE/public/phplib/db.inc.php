@@ -25,3 +25,4 @@ $GLOBALS['sampleDataCol']   = $databaseConnection->sampleData;
 $GLOBALS['actionLogs']      = $databaseConnection->action_logs;
 $GLOBALS['rolePermissions']      = $databaseConnection->role_permissions;
 $GLOBALS['sitesCol']   = $databaseConnection->sites;
+$GLOBALS['airlockExportsCol'] = $databaseConnection->airlockExports;
