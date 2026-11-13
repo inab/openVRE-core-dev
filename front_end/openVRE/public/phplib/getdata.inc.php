@@ -588,36 +588,58 @@ function getData_fromSampleData(User $user, $params = [])
 }
 
 
-function getData_fromEGA(User $user, $datasetIds, $fileIds, $filenames, $fileSizes)
+/**
+ * Register files from a remote data source in the user workspace. The files are
+ * not downloaded: only a reference to them is stored, and they are staged by
+ * the source-specific launcher at job execution time.
+ *
+ * @param array $files list of ['remote_path' => string, 'name' => ?string,
+ *                     'size' => ?int, 'meta' => ?array]. 'remote_path' is the
+ *                     path the launcher uses to locate the file, 'name' the
+ *                     workspace file name (defaults to the remote path
+ *                     basename) and 'meta' any source-specific metadata.
+ * @return array ids of the registered files
+ */
+function getData_fromRemote(User $user, Site $source, array $files): array
 {
-    getDataLogger()->info("Uploading file from EGA");
-    $datasetIdsArray = explode(',', $datasetIds);
-    $fileIdsArray = explode(',', $fileIds);
-    $filenamesArray = explode(',', $filenames);
-    $fileSizesArray = explode(',', $fileSizes);
+    if (!$source->isRemote()) {
+        throw new InvalidArgumentException("'{$source->value}' is not a remote data source");
+    }
+
+    getDataLogger()->info("Importing " . count($files) . " file(s) from {$source->value}");
     $dataDirPath = getAttr_fromGSFileId($user->getDataDir(), "path");
     $localWorkingDir = $dataDirPath . "/uploads";
     $uploadedFileIds = [];
-    for ($i = 0; $i < count($fileIdsArray); $i++) {
-        $filePath = "{$datasetIdsArray[$i]}/{$filenamesArray[$i]}";
+    foreach ($files as $file) {
+        $remotePath = $file['remote_path'] ?? null;
+        if (!is_string($remotePath) || trim($remotePath, '/') === '') {
+            throw new InvalidArgumentException("Missing remote path for a {$source->value} file");
+        }
+
+        $fileName = basename($file['name'] ?? $remotePath);
+        if ($fileName === '' || $fileName === '.' || $fileName === '..') {
+            throw new InvalidArgumentException("Invalid file name for remote file '$remotePath'");
+        }
 
         $insertData = [
             'owner' => $_SESSION['internalUserId'],
-            'size' => $fileSizesArray[$i],
-            'mtime' => new MongoDB\BSON\UTCDateTime(strtotime("now") * 1000)
+            'size' => (int) ($file['size'] ?? 0),
+            'mtime' => new MongoDB\BSON\UTCDateTime(time() * 1000)
         ];
 
         // format and data_type are set by the user in the metadata form (uploadForm2)
         $metaData = [
-            'data_source' => Site::EGA->value,
-            'ega_path' => $filePath,
+            'data_source' => $source->value,
+            'remote_path' => $remotePath,
             'validated' => false,
             'visible' => true
         ];
+        if (!empty($file['meta']) && is_array($file['meta'])) {
+            $metaData['remote_meta'] = $file['meta'];
+        }
 
-        $fileBasename = basename($filePath);
-        $uploadedFileIds[] = uploadGSFileBNS($user->getActiveProject(), "$localWorkingDir/$fileBasename", $filePath, $insertData, $metaData);
-        getDataLogger()->info("File $fileBasename uploaded");
+        $uploadedFileIds[] = uploadGSFileBNS($user->getActiveProject(), "$localWorkingDir/$fileName", $remotePath, $insertData, $metaData);
+        getDataLogger()->info("File $fileName imported from {$source->value}");
     }
 
     return $uploadedFileIds;

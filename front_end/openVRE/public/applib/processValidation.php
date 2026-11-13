@@ -47,7 +47,7 @@ $rfn    = $GLOBALS['userDataDir'] . "/" . $fnPath;
 $resp['fileId']   = $fn;
 $resp['filename'] = basename($fnPath);
 
-if (!is_file($rfn) && !$fnFile['uri'] && $fnFile['data_source'] !== Site::EGA->value) {
+if (!is_file($rfn) && !$fnFile['uri'] && !Site::isRemoteSource($fnFile['data_source'] ?? null)) {
 	$resp['msg'] = "Error: Cannot find file '" . basename($fnPath) . "' . Not stored in disk anymore.</br>";
 	print json_encode($resp);
 	die();

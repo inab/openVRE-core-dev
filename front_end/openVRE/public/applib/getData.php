@@ -2,6 +2,8 @@
 
 require __DIR__ . "/../../config/bootstrap.php";
 
+use OpenVRE\Site;
+
 redirectOutside();
 
 if (! $_REQUEST['uploadType']) {
@@ -40,13 +42,24 @@ switch ($_REQUEST['uploadType']) {
 		getData_fromSampleData($user, $_REQUEST);
 		break;
 
-	case 'EGA':
-		$datasetIds = $_REQUEST['datasetIds'];
-		$fileIds = $_REQUEST['fileIds'];
-		$filenames = $_REQUEST['displayNames'];
-		$fileSizes = $_REQUEST['fileSizes'];
-		$uploadedFileIds = getData_fromEGA($user, $datasetIds, $fileIds, $filenames, $fileSizes);
+	case 'remote':
 		header('Content-Type: application/json');
+		$source = Site::tryFrom($_POST['source'] ?? '');
+		$files = json_decode($_POST['files'] ?? '', true);
+		if (!$source?->isRemote() || !is_array($files)) {
+			http_response_code(400);
+			echo json_encode(['error' => 'Invalid remote source or file list']);
+			break;
+		}
+
+		try {
+			$uploadedFileIds = getData_fromRemote($user, $source, $files);
+		} catch (InvalidArgumentException $e) {
+			http_response_code(400);
+			echo json_encode(['error' => $e->getMessage()]);
+			break;
+		}
+
 		echo json_encode(['fileIds' => $uploadedFileIds]);
 		break;
 

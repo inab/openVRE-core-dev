@@ -482,7 +482,8 @@ class Tooljob
             }
 
             if ($fileMuG['data_source'] == Site::EGA->value) {
-                $fileMuG['file_path'] = "/clean_files/" . $file['ega_path']; // hardcoded ega path
+                // hardcoded ega path ('ega_path' kept for files imported before 'remote_path')
+                $fileMuG['file_path'] = "/clean_files/" . ($file['remote_path'] ?? $file['ega_path']);
             }
 
             if ($fileMuG['parentDir']) {

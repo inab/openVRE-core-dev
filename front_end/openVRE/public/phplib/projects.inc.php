@@ -2103,7 +2103,7 @@ function deleteFiles($fileIds, $force = false)
 		// check file exists
 		$fileLocalPath = $file['path'];
 		$filePath = $GLOBALS['userDataDir'] . "/$fileLocalPath";
-		if (!file_exists($filePath) && !$force && $file['data_source'] != Site::EGA->value) {
+		if (!file_exists($filePath) && !$force && !Site::isRemoteSource($file['data_source'] ?? null)) {
 			getProjectLogger()->error("Cannot delete file with id '" . basename($fileLocalPath) . "'. File not found.");
 			$result = false;
 			continue;

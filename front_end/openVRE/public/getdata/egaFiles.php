@@ -147,6 +147,9 @@
                 data.filter(file => file.locations.some(location => egaLocations.includes(location))).forEach(file => {
                     const row = document.createElement('tr');
                     row.dataset.datasetId = accessionId;
+                    row.dataset.fileId = file.accession_id;
+                    row.dataset.displayName = file.display_name;
+                    row.dataset.fileSize = file.filesize;
 
                     // Convert filesize from bytes to MB or GB
                     const filesize = file.filesize;
@@ -190,42 +193,40 @@
     }
 
     document.getElementById('add-to-workspace').addEventListener('click', function () {
-        const selectedDatasetIds = [];
-        const selectedFileIds = [];
-        const selectedFileNames = [];
-        const selectedFileSizes = [];
+        const selectedFiles = [];
         document.querySelectorAll('.file-select:checked').forEach(checkbox => {
             const row = checkbox.closest('tr');
-            const datasetId = row.dataset.datasetId;
-            const fileId = row.cells[1].innerText;
-            const displayName = row.cells[2].innerText;
-            const fileSize = toBytes(row.cells[3].innerText);
-            const file = `${datasetId}/${displayName}`;
+            const { datasetId, fileId, displayName, fileSize } = row.dataset;
 
-            selectedDatasetIds.push(datasetId);
-            selectedFileIds.push(fileId);
-            selectedFileNames.push(displayName);
-            selectedFileSizes.push(fileSize);
+            selectedFiles.push({
+                remote_path: `${datasetId}/${displayName}`,
+                name: displayName,
+                size: Number(fileSize) || 0,
+                meta: { dataset_id: datasetId, file_id: fileId }
+            });
         });
 
-        if (selectedDatasetIds.length === 0) {
+        if (selectedFiles.length === 0) {
             alert('No files selected');
             return;
         }
 
-        // Perform the desired operation with selectedFiles
-        console.log('Selected files:', selectedDatasetIds);
-        // You can add your desired operation here
-        addFilesToWorkspace(selectedDatasetIds, selectedFileIds, selectedFileNames, selectedFileSizes);
+        addFilesToWorkspace(selectedFiles);
     });
 
-    function addFilesToWorkspace(datasetIds, fileIds, displayNames, fileSizes) {
-        fetch(`applib/getData.php?uploadType=EGA&datasetIds=${datasetIds}&fileIds=${fileIds}&displayNames=${displayNames}&fileSizes=${fileSizes}`).then(response => {
+    function addFilesToWorkspace(files) {
+        const body = new FormData();
+        body.append('uploadType', 'remote');
+        body.append('source', 'EGA');
+        body.append('files', JSON.stringify(files));
+
+        fetch('applib/getData.php', { method: 'POST', body }).then(async response => {
+            const data = await response.json().catch(() => null);
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error((data && data.error) || 'Network response was not ok');
             }
 
-            return response.json();
+            return data;
         }).then(data => {
             const uploadedIds = (data && data.fileIds) || [];
             if (uploadedIds.length === 0) {
@@ -239,21 +240,6 @@
             console.error('Error:', error);
             alert('Error adding files to the workspace: ' + error.message);
         });
-    }
-
-    function toBytes(displaySize) {
-        const size = parseFloat(displaySize); // Extract the numeric value
-
-        // Check for unit and convert accordingly
-        if (displaySize.includes('GB')) {
-            return size * 1e9; // Convert GB to bytes
-        } else if (displaySize.includes('MB')) {
-            return size * 1e6; // Convert MB to bytes
-        } else if (displaySize.includes('KB')) {
-            return size * 1e3; // Convert KB to bytes
-        }
-
-        return null; // Return null if unit is unknown
     }
 
 </script>
