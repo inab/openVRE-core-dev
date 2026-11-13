@@ -2,6 +2,8 @@
 
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
+use OpenVRE\Site;
+use OpenVRE\User;
 use OpenVRE\UserType;
 
 
@@ -17,12 +19,12 @@ function getDataLogger()
 }
 
 
-function getData_fromLocal()
+function getData_fromLocal(User $user)
 {
     getDataLogger()->info("Uploading local file");
-    $dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+    $dataDirPath = getAttr_fromGSFileId($user->getDataDir(), "path");
     $localWorkingDir = "$dataDirPath/uploads";
-    $workingDir = $GLOBALS['dataDir'] . "/" . $localWorkingDir;
+    $workingDir = $GLOBALS['userDataDir'] . "/" . $localWorkingDir;
     if (!is_dir($workingDir)) {
         getDataLogger()->error("Target server directory '" . basename($localWorkingDir) . "' does not exist");
         throw new UnexpectedValueException("Target server directory '" . basename($localWorkingDir) . "' does not exist.");
@@ -68,8 +70,8 @@ function getData_fromLocal()
         throw new OverflowException("File size $size larger than UPLOAD_MAX_FILESIZE (" . ini_get('upload_max_filesize') . ") 0");
     }
 
-    $usedDisk = (int) getUsedDiskSpace();
-    $diskLimit = (int) $_SESSION['User']['diskQuota'];
+    $usedDisk = (int) getUsedDiskSpace($_SESSION['internalUserId']);
+    $diskLimit = (int) $user->getDiskQuota();
     if ($size > ($diskLimit - $usedDisk)) {
         getDataLogger()->error("Cannot upload file. Not enough space left in the workspace");
         throw new OverflowException("Cannot upload file. Not enough space left in the workspace");
@@ -89,7 +91,7 @@ function getData_fromLocal()
     $permissions = 0666;
     chmod($filePath, $permissions);
     $insertData = [
-        'owner' => $_SESSION['User']['id'],
+        'owner' => $_SESSION['internalUserId'],
         'size'  => filesize($filePath),
         'mtime' => new MongoDB\BSON\UTCDateTime(filemtime($filePath) * 1000)
     ];
@@ -99,7 +101,7 @@ function getData_fromLocal()
     ];
 
     $fileBasename = basename($filePath);
-    $fileId = uploadGSFileBNS("$localWorkingDir/$fileBasename", $filePath, $insertData, $metaData);
+    $fileId = uploadGSFileBNS($user->getActiveProject(), "$localWorkingDir/$fileBasename", $filePath, $insertData, $metaData);
     getDataLogger()->info("File $fileBasename uploaded");
 
     print $fileId;
@@ -112,25 +114,25 @@ function getData_fromLocal()
 
 
 // upload file from URL via CURL
-function getData_fromUrl($url, $meta = null)
+function getData_fromUrl(User $user, $url, $meta = null)
 {
     getDataLogger()->info("Uploading file from URL $url");
-    [$toolArgs, $toolOuts, $output_dir] = prepare_getData_fromURL($url, "uploads", $GLOBALS['BASEURL'] . "/getdata/uploadForm.php#load_from_url", $meta);
-    getData_wget_asyncron($toolArgs, $toolOuts, $output_dir);
+    [$toolArgs, $toolOuts, $outputDir] = prepare_getData_fromURL($user, $url, "uploads", $GLOBALS['BASEURL'] . "/getdata/uploadForm.php#load_from_url", $meta);
+    getData_wget_asyncron($toolArgs, $toolOuts, $outputDir, $user->getActiveProject());
 }
 
 // prepare target directory and file metadata
 
-function prepare_getData_fromURL($url, $outdir, $referer, $meta = [])
+function prepare_getData_fromURL(User $user, $url, $outdir, $referer, $meta = [])
 {
     //parse out username and password from URL, if any
-    $user = 0;
+    $username = 0;
     $pass = 0;
     $url_withCredentials = 0;
     if (preg_match('/(.*\/\/)(.*):(.*)@(.*)/', $url, $matches)) {
-        $user = $matches[2];
+        $username = $matches[2];
         $pass = $matches[3];
-        $url_withCredentials = $matches[1] . urlencode($user) . ":" . urlencode($pass) . "@" . $matches[4];
+        $url_withCredentials = $matches[1] . urlencode($username) . ":" . urlencode($pass) . "@" . $matches[4];
         $url  = $matches[1] . $matches[4];
     }
 
@@ -141,8 +143,8 @@ function prepare_getData_fromURL($url, $outdir, $referer, $meta = [])
     curl_setopt($ch, CURLOPT_HEADER, true);
     curl_setopt($ch, CURLOPT_VERBOSE, true);
     curl_setopt($ch, CURLOPT_NOBODY, true);
-    if ($user && $pass) {
-        curl_setopt($ch, CURLOPT_USERPWD, "$user:$pass");
+    if ($username && $pass) {
+        curl_setopt($ch, CURLOPT_USERPWD, "$username:$pass");
     }
 
     $curl_data = curl_exec($ch);
@@ -172,8 +174,8 @@ function prepare_getData_fromURL($url, $outdir, $referer, $meta = [])
     }
 
     $size = curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
-    $usedDisk = (int) getUsedDiskSpace();
-    $diskLimit = (int) $_SESSION['User']['diskQuota'];
+    $usedDisk = (int) getUsedDiskSpace($_SESSION['internalUserId']);
+    $diskLimit = (int) $user->getdiskQuota();
     if ($size == 0) {
         $msg = "Resource URL ('$url') is pointing to an empty resource (size = 0)";
         if ($referer == "die") {
@@ -195,14 +197,14 @@ function prepare_getData_fromURL($url, $outdir, $referer, $meta = [])
         redirect($referer);
     }
 
-    $dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+    $dataDirPath = getAttr_fromGSFileId($user->getdatadir(), "path");
     $localWorkingDir = "{$dataDirPath}/{$outdir}";
-    $workingDir = $GLOBALS['dataDir'] . "/" . $localWorkingDir;
+    $workingDir = $GLOBALS['userDataDir'] . "/" . $localWorkingDir;
     $workingDirId = getGSFileId_fromPath($localWorkingDir);
 
     if (is_null($workingDirId)) {
         try {
-            $workingDirId  = createGSDirBNS($localWorkingDir, 1);
+            $workingDirId  = createGSDirBNS($user->getActiveProject(), $localWorkingDir, 1);
         } catch (UnexpectedValueException $e) {
             getDataLogger()->error("Cannot create repository directory '$localWorkingDir' in '$dataDirPath'");
             throw $e;
@@ -220,7 +222,7 @@ function prepare_getData_fromURL($url, $outdir, $referer, $meta = [])
     }
 
     if (!is_dir($workingDir)) {
-        getDataLogger()->error("Target server directory '$localWorkingDir' is not a directory. User account of user '{$_SESSION['User']['username']}' is corrupted");
+        getDataLogger()->error("Target server directory '$localWorkingDir' is not a directory. User account of user '" . $user->getEmail() . "' is corrupted");
         throw new UnexpectedValueException("Target server directory '$localWorkingDir' is not a directory. Your user account is corrupted.");
     }
 
@@ -234,7 +236,7 @@ function prepare_getData_fromURL($url, $outdir, $referer, $meta = [])
 
     // working_dir will be set in user temporal dir. Checking it
     // TODO Or NO! maybe we decide to run directly on uploads/
-    $dirTmp = $GLOBALS['dataDir'] . "/" . $dataDirPath . "/" . $GLOBALS['tmpUser_dir'];
+    $dirTmp = $GLOBALS['userDataDir'] . "/" . $dataDirPath . "/" . $GLOBALS['tmpUser_dir'];
     if (!is_dir($dirTmp) && !mkdir($dirTmp, 0775, true)) {
         getDataLogger()->error("Cannot create temporal file '$dirTmp'.Please, try it later.");
     }
@@ -267,15 +269,15 @@ function prepare_getData_fromURL($url, $outdir, $referer, $meta = [])
 }
 
 
-function  getData_wget_asyncron($toolArgs, $toolOuts, $output_dir)
+function  getData_wget_asyncron($toolArgs, $toolOuts, $outputDir, $projectDir)
 {
     $toolId = "wget";
     $filePath = $toolOuts['output_files'][0]["path"];
     $logName = basename($filePath) . ".log";
 
     //TODO: FIXME START - This is a temporal fix. In future, files should not be downloaded, only registered
-    launchToolInternal($toolId, $toolArgs, $toolOuts, $output_dir, $logName);
-    $outdir = basename($output_dir);
+    launchToolInternal($toolId, $projectDir, $toolArgs, $toolOuts, $outputDir, $logName);
+    $outdir = basename($outputDir);
 
     getDataLogger()->info("File from URL '" . basename($filePath) . "' is being imported into the '$outdir' folder below. Please, edit its metadata once the import has finished");
     redirect($GLOBALS['BASEURL'] . "workspace/");
@@ -284,16 +286,16 @@ function  getData_wget_asyncron($toolArgs, $toolOuts, $output_dir)
 /////////////////////////////////
 /////// BUILD FILE TEXT
 /////////////////////////////////
-function getData_fromTXT()
+function getData_fromTXT(User $user)
 {
     getDataLogger()->info("Uploading text file");
     $filename = $_REQUEST['filename'];
     $data = $_REQUEST['txtdata'];
 
-    $dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+    $dataDirPath = getAttr_fromGSFileId($user->getDataDir(), "path");
     $localWorkingDir = $dataDirPath . "/uploads";
 
-    $workingDir  = $GLOBALS['dataDir'] . "/" . $localWorkingDir;
+    $workingDir  = $GLOBALS['userDataDir'] . "/" . $localWorkingDir;
     $workingDirId = getGSFileId_fromPath($localWorkingDir);
 
     if (is_null($workingDirId) || !is_dir($workingDir)) {
@@ -309,8 +311,8 @@ function getData_fromTXT()
         throw new UnexpectedValueException("File size is zero");
     }
 
-    $usedDisk = (int) getUsedDiskSpace();
-    $diskLimit = (int) $_SESSION['User']['diskQuota'];
+    $usedDisk = (int) getUsedDiskSpace($_SESSION['internalUserId']);
+    $diskLimit = $user->getDiskQuota();
     if ($size > ($diskLimit - $usedDisk)) {
         getDataLogger()->error("Not enough space left in the workspace");
         throw new UnexpectedValueException("Not enough space left in the workspace");
@@ -345,7 +347,7 @@ function getData_fromTXT()
     chmod($filePath, 0666);
     $fileBasename = basename($filePath);
     $insertData = [
-        'owner' => $_SESSION['User']['id'],
+        'owner' => $_SESSION['internalUserId'],
         'size'  => filesize($filePath),
         'mtime' => new MongoDB\BSON\UTCDateTime(filemtime($filePath) * 1000)
     ];
@@ -354,7 +356,7 @@ function getData_fromTXT()
         'validated' => false
     ];
 
-    $fileId = uploadGSFileBNS("$localWorkingDir/$fileBasename", $filePath, $insertData, $metaData);
+    $fileId = uploadGSFileBNS($user->getActiveProject(), "$localWorkingDir/$fileBasename", $filePath, $insertData, $metaData);
     getDataLogger()->info("File '" . $fileBasename . "' uploaded");
 
     return $fileId;
@@ -406,7 +408,7 @@ function process_URL($url)
 
 
 // import from Repository (URL) to user workspace
-function getData_fromRepository($url, $datatype, $filetype, $description)
+function getData_fromRepository(User $user, $url, $datatype, $filetype, $description)
 {
     getDataLogger()->info("Uploading file from Repository");
     $url_data = process_URL($url);
@@ -417,8 +419,8 @@ function getData_fromRepository($url, $datatype, $filetype, $description)
     }
 
     $size = (int) $url_data['size'];
-    $usedDisk = (int) getUsedDiskSpace();
-    $diskLimit = (int) $_SESSION['User']['diskQuota'];
+    $usedDisk = (int) getUsedDiskSpace($_SESSION['internalUserId']);
+    $diskLimit = $user->getDiskQuota();
     if ($size == 0) {
         getDataLogger()->error("Resource URL ('$url') is pointing to an empty resource (size = 0)");
         throw new UnexpectedValueException("Resource URL ('$url') is pointing to an empty resource (size = 0)");
@@ -430,14 +432,14 @@ function getData_fromRepository($url, $datatype, $filetype, $description)
     }
 
     // setting repository directory
-    $dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+    $dataDirPath = getAttr_fromGSFileId($user->getDataDir(), "path");
     $localWorkingDir = "$dataDirPath/repository";
-    $workingDir = $GLOBALS['dataDir'] . "/" . $localWorkingDir;
+    $workingDir = $GLOBALS['userDataDir'] . "/" . $localWorkingDir;
     $workingDirId = getGSFileId_fromPath($localWorkingDir);
 
     if (is_null($workingDirId)) {
         try {
-            $workingDirId  = createGSDirBNS($localWorkingDir, 1);
+            $workingDirId  = createGSDirBNS($user->getActiveProject(), $localWorkingDir, 1);
         } catch (UnexpectedValueException $e) {
             getDataLogger()->error("Cannot create repository directory '$localWorkingDir' in '$dataDirPath'");
             throw $e;
@@ -455,8 +457,8 @@ function getData_fromRepository($url, $datatype, $filetype, $description)
     }
 
     if (!is_dir($workingDir)) {
-        getDataLogger()->error("Target server directory '$localWorkingDir' is not a directory. User account of user '{$_SESSION['User']['username']}' is corrupted");
-        throw new UnexpectedValueException("Target server directory '$localWorkingDir' is not a directory. Your user account is corrupted.");
+        getDataLogger()->error("Target server directory '$localWorkingDir' is not a directory.");
+        throw new UnexpectedValueException("Target server directory '$localWorkingDir' is not a directory.");
     }
 
     $filePath  = "$workingDir/$filename";
@@ -469,7 +471,7 @@ function getData_fromRepository($url, $datatype, $filetype, $description)
 
     // working_dir will be set in user temporal dir. Checking it
     // TODO Or NO! maybe we decide to run directly on uploads/
-    $dirTmp = $GLOBALS['dataDir'] . "/" . $dataDirPath . "/" . $GLOBALS['tmpUser_dir'];
+    $dirTmp = $GLOBALS['userDataDir'] . "/" . $dataDirPath . "/" . $GLOBALS['tmpUser_dir'];
     if (!is_dir($dirTmp) && !mkdir($dirTmp, 0775, true)) {
         getDataLogger()->error("Cannot create temporal file '$dirTmp'.Please, try it later.");
     }
@@ -510,7 +512,7 @@ function getData_fromRepository($url, $datatype, $filetype, $description)
 
     $toolOuts = ["output_files" => [$fileOut]];
     $logName = basename($filePath) . ".log";
-    launchToolInternal($toolId, $toolArgs, $toolOuts, $workingDir, $logName);
+    launchToolInternal($toolId, $toolArgs, $toolOuts, $workingDir, $logName, $user->getActiveProject());
 
     $_SESSION['errorData']['Info'][] = "Remote file '" . basename($filePath) . "' imported into the 'repository' folder below. Please, edit its metadata once the job has finished";
     redirect($GLOBALS['BASEURL'] . "workspace/");
@@ -526,41 +528,37 @@ function getData_fromRepository($url, $datatype, $filetype, $description)
 
 // list sampleData
 
-function getSampleDataList($status = 1, $filter_tool_status = true)
+function getSampleDataList(User $user)
 {
-    if ($filter_tool_status) {
-        $fa = indexArray($GLOBALS['toolsCol']->find(array('status' => 1), array('_id' => 1)));
-        $fu = indexArray($GLOBALS['visualizersCol']->find(array('status' => 1), array('_id' => 1)));
-        $tools_active = array_keys(array_merge($fa, $fu));
+    $fa = indexArray($GLOBALS['toolsCol']->find(array('status' => 1), array('_id' => 1)));
+    $fu = indexArray($GLOBALS['visualizersCol']->find(array('status' => 1), array('_id' => 1)));
+    $tools_active = array_keys(array_merge($fa, $fu));
 
-        // if common/anon user, list sampledata for active tools
-        if ($_SESSION['User']['Type'] == UserType::Guest->value || $_SESSION['User']['Type'] == UserType::Registered->value) {
-            $ft = $GLOBALS['sampleDataCol']->find(array(
-                '$or' => array(
-                    array("status" => $status, "tool" => array('$not' => array('$exists' => 1))),
-                    array("status" => $status, "tool" => array('$in'  => $tools_active))
-                )
-            ), array('_id' => 1));
+    // if common/anon user, list sampledata for active tools
+    if ($_SESSION['userType'] == UserType::Guest->value || $_SESSION['userType'] == UserType::Registered->value) {
+        $ft = $GLOBALS['sampleDataCol']->find(array(
+            '$or' => array(
+                array("status" => 1, "tool" => array('$not' => array('$exists' => 1))),
+                array("status" => 1, "tool" => array('$in'  => $tools_active))
+            )
+        ), array('_id' => 1));
 
-            // if admin user, list sampledata regardless tool status    
-        } elseif ($_SESSION['User']['Type'] == UserType::Admin->value) {
-            $ft = $GLOBALS['sampleDataCol']->find(array('status' => $status), array('_id' => 1));
+        // if admin user, list sampledata regardless tool status
+    } elseif ($_SESSION['userType'] == UserType::Admin->value) {
+        $ft = $GLOBALS['sampleDataCol']->find(array('status' => 1), array('_id' => 1));
 
-            // if tool dev user, list sampledata for active tools + its own tools
-        } elseif ($_SESSION['User']['Type'] == UserType::ToolDev->value) {
-            $fr = $GLOBALS['toolsCol']->find(array('status' => 3, '_id' => array('$in' => $_SESSION['User']['ToolsDev'])), array('_id' => 1));
-            $tools_owned = array_keys(iterator_to_array($fr));
-            $ft = $GLOBALS['sampleDataCol']->find(array(
-                '$or' => array(
-                    array("status" => $status, "tool" => array('$not' => array('$exists' => 1))),
-                    array("status" => $status, "tool" => array('$in'  => array_merge($tools_active, $tools_owned)))
-                )
-            ), array('_id' => 1));
-        }
-    } else {
-        // list active sample data sets, regardless tool status
-        $ft = $GLOBALS['sampleDataCol']->find(array('status' => $status), array('_id' => 1));
+        // if tool dev user, list sampledata for active tools + its own tools
+    } elseif ($_SESSION['userType'] == UserType::ToolDev->value) {
+        $fr = $GLOBALS['toolsCol']->find(array('status' => 3, '_id' => array('$in' => $user->getDevelopedTools())), array('_id' => 1));
+        $tools_owned = array_keys(iterator_to_array($fr));
+        $ft = $GLOBALS['sampleDataCol']->find(array(
+            '$or' => array(
+                array("status" => 1, "tool" => array('$not' => array('$exists' => 1))),
+                array("status" => 1, "tool" => array('$in'  => array_merge($tools_active, $tools_owned)))
+            )
+        ), array('_id' => 1));
     }
+    
     return iterator_to_array($ft);
 }
 
@@ -573,7 +571,7 @@ function getSampleData($sampleDataId)
 
 
 // import sampleData into into current WS user
-function getData_fromSampleData($params = [])
+function getData_fromSampleData(User $user, $params = [])
 {
     if (!is_array($params['sampleData'])) {
         $params['sampleData'] = [$params['sampleData']];
@@ -581,8 +579,8 @@ function getData_fromSampleData($params = [])
 
     foreach ($params['sampleData'] as $sampleName) {
         $_SESSION['errorData']['Info'][] = "Importing exemple dataset for '$sampleName'";
-        $dataDir = $_SESSION['User']['id'] . "/" . $_SESSION['User']['activeProject'];
-        setUserWorkSpace_sampleData($sampleName, $dataDir);
+        $dataDir = $_SESSION['internalUserId'] . "/" . $user->getActiveProject();
+        setUserWorkSpace_sampleData($user->getActiveProject(), $sampleName, $dataDir);
 
         $_SESSION['errorData']['Info'][] = "Example data successfuly imported.";
         header("Location:" . $GLOBALS['URL'] . "/workspace/");
@@ -590,35 +588,59 @@ function getData_fromSampleData($params = [])
 }
 
 
-function getData_fromEGA($datasetIds, $fileIds, $filenames, $fileSizes)
+/**
+ * Register files from a remote data source in the user workspace. The files are
+ * not downloaded: only a reference to them is stored, and they are staged by
+ * the source-specific launcher at job execution time.
+ *
+ * @param array $files list of ['remote_path' => string, 'name' => ?string,
+ *                     'size' => ?int, 'meta' => ?array]. 'remote_path' is the
+ *                     path the launcher uses to locate the file, 'name' the
+ *                     workspace file name (defaults to the remote path
+ *                     basename) and 'meta' any source-specific metadata.
+ * @return array ids of the registered files
+ */
+function getData_fromRemote(User $user, Site $source, array $files): array
 {
-    getDataLogger()->info("Uploading file from EGA");
-    $datasetIdsArray = explode(',', $datasetIds);
-    $fileIdsArray = explode(',', $fileIds);
-    $filenamesArray = explode(',', $filenames);
-    $fileSizesArray = explode(',', $fileSizes);
-    $dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+    if (!$source->isRemote()) {
+        throw new InvalidArgumentException("'{$source->value}' is not a remote data source");
+    }
+
+    getDataLogger()->info("Importing " . count($files) . " file(s) from {$source->value}");
+    $dataDirPath = getAttr_fromGSFileId($user->getDataDir(), "path");
     $localWorkingDir = $dataDirPath . "/uploads";
-    for ($i = 0; $i < count($fileIdsArray); $i++) {
-        $filePath = "{$datasetIdsArray[$i]}/{$filenamesArray[$i]}";
+    $uploadedFileIds = [];
+    foreach ($files as $file) {
+        $remotePath = $file['remote_path'] ?? null;
+        if (!is_string($remotePath) || trim($remotePath, '/') === '') {
+            throw new InvalidArgumentException("Missing remote path for a {$source->value} file");
+        }
+
+        $fileName = basename($file['name'] ?? $remotePath);
+        if ($fileName === '' || $fileName === '.' || $fileName === '..') {
+            throw new InvalidArgumentException("Invalid file name for remote file '$remotePath'");
+        }
 
         $insertData = [
-            'owner' => $_SESSION['User']['id'],
-            'size' => $fileSizesArray[$i],
-            'mtime' => new MongoDB\BSON\UTCDateTime(strtotime("now") * 1000)
+            'owner' => $_SESSION['internalUserId'],
+            'size' => (int) ($file['size'] ?? 0),
+            'mtime' => new MongoDB\BSON\UTCDateTime(time() * 1000)
         ];
 
+        // format and data_type are set by the user in the metadata form (uploadForm2)
         $metaData = [
-            'data_type' => "variants",
-            'data_source' => "EGA",
-            'ega_path' => $filePath,
-            'format' => "VCF",
-            'validated' => true,
+            'data_source' => $source->value,
+            'remote_path' => $remotePath,
+            'validated' => false,
             'visible' => true
         ];
+        if (!empty($file['meta']) && is_array($file['meta'])) {
+            $metaData['remote_meta'] = $file['meta'];
+        }
 
-        $fileBasename = basename($filePath);
-        uploadGSFileBNS("$localWorkingDir/$fileBasename", $filePath, $insertData, $metaData);
-        getDataLogger()->info("File $fileBasename uploaded");
+        $uploadedFileIds[] = uploadGSFileBNS($user->getActiveProject(), "$localWorkingDir/$fileName", $remotePath, $insertData, $metaData);
+        getDataLogger()->info("File $fileName imported from {$source->value}");
     }
+
+    return $uploadedFileIds;
 }

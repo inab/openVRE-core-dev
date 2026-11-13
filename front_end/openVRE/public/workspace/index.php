@@ -4,39 +4,33 @@ require __DIR__ . "/../../config/bootstrap.php";
 
 use OpenVRE\UserType;
 
-
 redirectOutside();
 
 // Print header
-
 require "../htmlib/header.inc.php";
 
-// Merge pending files and retrieved data compute data disk space
+$user = getUserById($_SESSION['userId']);
 
-$usedDisk = getUsedDiskSpace();
-$diskLimit = $_SESSION['User']['diskQuota'];
+// Retrieve data disk space
+$usedDisk = getUsedDiskSpace($_SESSION['internalUserId']);
+$diskLimit = $user->getDiskQuota();
 $usedDiskPerc = sprintf('%f', ($usedDisk / $diskLimit) * 100);
 $usedDiskPerc = number_format($usedDiskPerc, 1, '.', '');
 
-if ($usedDisk < $diskLimit) {
-	$_SESSION['accionsAllowed'] = "enabled";
-} else {
-	$_SESSION['accionsAllowed'] = "disabled";
-	$usedDiskPerc = 100;
-}
-
 // Tools list
-$dtlist = ((isset($_REQUEST["tool"]) && $_REQUEST["tool"] != "") ? getAvailableDTbyTool($_REQUEST["tool"]) : array());
+$tools = empty($_REQUEST["tool"])
+	? array()
+	: getAvailableDTbyTool($_REQUEST["tool"]);
 
 // project list
 $projects = getProjects_byOwner();
 syncProjectFiles($projects);
 
 //update files workspace content (job and files)
-$allFiles = getFilesToDisplay(array('_id' => $_SESSION['User']['dataDir']));
+$userFiles = getFilesToDisplay($user->getActiveProject(), array('_id' => $user->getDataDir()), $user->getLastJobs());
 
-$files = (isset($dtlist['list']) ? filterFiles_by_dataType($allFiles, $dtlist["list"]) : $allFiles);
-$files = sortFilesForTable(addTreeTableNodesToFiles($files));
+$files = (isset($tools['list']) ? filterFiles_by_dataType($userFiles, $tools["list"]) : $userFiles);
+$files = sortFilesForTable(addTreeTableNodesToFiles($files, $user->getDataDir()));
 
 ?>
 
@@ -63,13 +57,13 @@ $files = sortFilesForTable(addTreeTableNodesToFiles($files));
 							<i class="fa fa-circle"></i>
 						</li>
 						<li>
-							<span><?php echo getProject($_SESSION['User']['dataDir'])["name"]; ?> Workspace</span>
+							<span><?php echo getProject($user->getDataDir())["name"]; ?> Workspace</span>
 						</li>
 					</ul>
 				</div>
 				<!-- END PAGE BAR -->
 				<!-- BEGIN PAGE TITLE-->
-				<h1 class="page-title"> <?php echo getProject($_SESSION['User']['dataDir'])["name"]; ?> Workspace
+				<h1 class="page-title"> <?php echo getProject($user->getDataDir())["name"]; ?> Workspace
 
 					<div class="btn-group" style="float:right;">
 						<a class="btn green" href="javascript:;" data-toggle="dropdown">
@@ -78,13 +72,13 @@ $files = sortFilesForTable(addTreeTableNodesToFiles($files));
 						</a>
 						<ul class="dropdown-menu pull-right">
 							<li>
-								<a href="workspace/editProject.php?id=<?php echo $_SESSION['User']['dataDir']; ?>">
+								<a href="workspace/editProject.php?id=<?php echo $user->getDataDir(); ?>">
 									<i class="fa fa-pencil-square-o"></i> Edit current project
 								</a>
 							</li>
 							<li>
 								<a
-									href="javascript:deleteProject('<?php echo $_SESSION['User']['dataDir']; ?>', '<?php echo getProject($_SESSION['User']['dataDir'])["name"]; ?>')">
+									href="javascript:deleteProject('<?php echo $user->getDataDir(); ?>', '<?php echo getProject($user->getDataDir())["name"]; ?>')">
 									<i class="fa fa-trash-o"></i> Delete current project
 								</a>
 							</li>
@@ -107,7 +101,7 @@ $files = sortFilesForTable(addTreeTableNodesToFiles($files));
 								class="fa fa-sitemap font-white"></i></span>
 						<select class="form-control" id="select_project" onchange="loadProjectWS(this);">
 							<?php foreach ($projects as $p_id => $p) {
-								$selected = (($_SESSION['User']['dataDir'] == $p_id) ? "selected" : ""); ?>
+								$selected = (($user->getDataDir() == $p_id) ? "selected" : ""); ?>
 								<option value="<?php echo $p_id; ?>" <?php echo $selected; ?>><?php echo $p['name']; ?>
 								</option>
 							<?php } ?>
@@ -131,14 +125,14 @@ $files = sortFilesForTable(addTreeTableNodesToFiles($files));
 					<div class="col-md-12">
 						<?php
 						// TODO: check what is a premium user (code 100)
-						if ($_SESSION['User']['Type'] == 100) { ?>
+						if ($_SESSION['userType'] == 100) { ?>
 							<div class="alert alert-warning">
 								Your request for a premium user account is being processed. In the meantime, you can use the
 								platform as a common user.
 							</div>
 						<?php }
 
-						if ($_SESSION['User']['Type'] == UserType::Guest->value) {
+						if ($_SESSION['userType'] == UserType::Guest->value) {
 
 						?>
 
@@ -167,7 +161,7 @@ $files = sortFilesForTable(addTreeTableNodesToFiles($files));
 													<div class="tab-pane active" id="tab_1_1">
 														<div class="input-group">
 															<input id="mt-target-1" type="text" class="form-control"
-																value="<?php echo $GLOBALS['URL'] . "?id=" . $_SESSION['User']['_id']; ?>"
+																value="<?php echo $GLOBALS['URL'] . "?id=" . $_SESSION['userId']; ?>"
 																readonly style="background:#fff;">
 															<span class="input-group-btn">
 																<button class="btn green mt-clipboard"
@@ -195,7 +189,7 @@ $files = sortFilesForTable(addTreeTableNodesToFiles($files));
 						print printErrorDivision();
 
 						// fetch tool of lists
-						$toolsList = getTools_List();
+						$toolsList = getTools_List($user);
 						sort($toolsList);
 						?>
 
@@ -245,7 +239,7 @@ $files = sortFilesForTable(addTreeTableNodesToFiles($files));
 												value="<?php echo $GLOBALS['BASEURL']; ?>" />
 											<?php
 											if (isset($_REQUEST["userId"])) {
-												print "input type=\"hidden\" id=\"userId\" value=\"" . $_SESSION['userId'] . "\"";
+												print "input type=\"hidden\" id=\"userId\" value=\"" . $_SESSION['internalUserId'] . "\"";
 											}
 											if (isset($_REQUEST["tool"])) {
 												print "input type=\"hidden\" id=\"toolSelected\" value=\"" . $_REQUEST['tool'] . "\"";
@@ -347,7 +341,7 @@ $files = sortFilesForTable(addTreeTableNodesToFiles($files));
 
 				<?php
 				$toolsHelp = getTools_Help();
-				$toolsList = getTools_List();
+				$toolsList = getTools_List($user);
 				sort($toolsList);
 				?>
 
@@ -569,7 +563,7 @@ $files = sortFilesForTable(addTreeTableNodesToFiles($files));
 								<div class="scroller" style="height: 204px;" data-always-visible="1"
 									data-rail-visible="0">
 									<?php
-									print printLastJobs($allFiles);
+									print printLastJobs($userFiles);
 									?>
 								</div>
 							</div>
@@ -602,7 +596,7 @@ $files = sortFilesForTable(addTreeTableNodesToFiles($files));
 									</div>
 
 									<div id="extra-space-home">
-										<?php if (in_array($_SESSION['User']['Type'], $GLOBALS['NO_GUEST'])) { ?>
+										<?php if (in_array($_SESSION['userType'], $GLOBALS['NO_GUEST'])) { ?>
 											Do you need extra disk space? Click the button below to contact us!
 											<br><br>
 											<a href="<?php echo $GLOBALS['BASEURL']; ?>helpdesk/?sel=space"
@@ -731,7 +725,7 @@ If you want to <strong>re-use your session</strong>, make sure you save the <str
 						<h4 class="modal-title">Warning!</h4>
 					</div>
 					<div class="modal-body">Are you sure you want to delete the project
-						<strong><?php echo getProject($_SESSION['User']['dataDir'])["name"]; ?></strong>
+						<strong><?php echo getProject($user->getDataDir())["name"]; ?></strong>
 						and <strong>ALL</strong> its executions and files? This action cannot be undone.
 					</div>
 					<div class="modal-footer">

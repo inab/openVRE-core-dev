@@ -8,13 +8,13 @@ use OpenVRE\VaultTokenProvider;
 
 class VaultClientFactory
 {
-    public static function create(): VaultClient
+    public static function create($userSecretsId): VaultClient
     {
         if (empty($_SESSION['userToken']) || !is_object($_SESSION['userToken'])) {
             throw new \UnexpectedValueException('No valid user token in session.');
         }
 
         $tokenProvider = new VaultTokenProvider($_SESSION['userToken']->getToken(), $GLOBALS['baoRolename'], $GLOBALS['baoUrl']);
-        return new VaultClient($_SESSION['User']['secretsId'], $GLOBALS['secretPath'], $tokenProvider->getToken(), $GLOBALS['baoUrl']);
+        return new VaultClient($userSecretsId, $GLOBALS['baoSecretPath'], $tokenProvider->getToken(), $GLOBALS['baoUrl']);
     }
 }

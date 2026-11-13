@@ -1,7 +1,7 @@
 <?php
 
-// UTILITIES
-//
+use OpenVRE\User;
+
 
 // get files from $fileList matching with given file type
 function matchFormat_File($type, $fileList)
@@ -126,12 +126,12 @@ function InputTool_getPathsAndRerun($request)
 
 function InputTool_getDefExName()
 {
-
 	// default execution name
 	$dirNum = "000";
-	$dataDirPath = getAttr_fromGSFileId($_SESSION['User']['dataDir'], "path");
+	$user = getUserById($_SESSION['userId']);
+	$dataDirPath = getAttr_fromGSFileId($user->getDataDir(), "path");
 	$reObj = new \MongoDB\BSON\Regex("^" . $dataDirPath . "\\/run\d\d\d$");
-	$prevs  = $GLOBALS['filesCol']->find(array('path' => $reObj, 'owner' => $_SESSION['User']['id']), array('sort' => array('path' => -1)))->toArray();
+	$prevs  = $GLOBALS['filesCol']->find(array('path' => $reObj, 'owner' => $_SESSION['internalUserId']), array('sort' => array('path' => -1)))->toArray();
 	if ($prevs) {
 		foreach ($prevs as $p) {
 			$previous = $p;
@@ -142,7 +142,7 @@ function InputTool_getDefExName()
 		}
 	}
 	$dirName = "run" . $dirNum;
-	$prevs  = $GLOBALS['filesCol']->find(array('path' => $dataDirPath . "/$dirName", 'owner' => $_SESSION['User']['id']))->toArray();
+	$prevs  = $GLOBALS['filesCol']->find(array('path' => $dataDirPath . "/$dirName", 'owner' => $_SESSION['internalUserId']))->toArray();
 	if ($prevs) {
 		$dirName = "run" . rand(100, 999);
 	}
@@ -153,17 +153,17 @@ function InputTool_getDefExName()
 //
 
 // get list of projects
-function InputTool_getSelectProjects()
+function InputTool_getSelectProjects(User $user)
 {
-
 	$projects = getProjects_byOwner();
-
 	$output = '<select class="form-control" id="select_project" name="project">';
-	foreach ($projects as $project_id => $project) {
+	foreach ($projects as $project) {
 		$selected = "";
 		$project_code = basename($project['path']);
-		if ($project_code == $_SESSION['User']['activeProject'])
+		if ($project_code == $user->getActiveProject()) {
 			$selected = " selected ";
+		}
+
 		$output .= "<option value=\"$project_code\" $selected >" . $project['name'] . "</option>";
 	}
 	$output .= '</select>';
@@ -458,25 +458,23 @@ function InputTool_printSettings($arguments, $rerun)
 }
 
 
-
-function InputTool_generateLocationOptions($sites)
+function inputToolGenerateLocationOptions(array $sites)
 {
 	$options = '';
 	foreach ($sites as $site) {
 		$op = ($site['status'] == '1') ? 'selected' : '';
-		$options .= "<option {$op} value=\"{$site['site_id']}\"> {$site['name']} </option>\n";
+		$options .= "<option {$op} value=\"{$site['_id']}\"> {$site['name']} </option>\n";
 	}
 	return $options;
 }
 
 
-
-function InputTool_generateLauncherOptions($sites)
+function inputToolGenerateLauncherOptions(array $sites)
 {
 	$options = '';
 	foreach ($sites as $site) {
 		$op = ($site['status'] == '1') ? 'selected' : '';
-		$options .= "<option {$op} value=\"{$site['site_id']}_{$site['launcher']['job_manager']}\"> {$site['launcher']['job_manager']} </option>\n";
+		$options .= "<option {$op} value=\"{$site['_id']}_{$site['launcher']['job_manager']}\"> {$site['launcher']['job_manager']} </option>\n";
 	}
 	return $options;
 }

@@ -39,8 +39,8 @@ class VaultClient
 		curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
 		curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
 		curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
-		if (getenv('VAULT_CERT_CAFILE') !== false) {
-			curl_setopt($curl, CURLOPT_CAINFO, getenv('VAULT_CERT_CAFILE'));
+		if (getenv('BAO_CERT_CAFILE') !== false) {
+			curl_setopt($curl, CURLOPT_CAINFO, getenv('BAO_CERT_CAFILE'));
 			curl_setopt($curl, CURLOPT_SSL_VERIFYPEER, true);
 			curl_setopt($curl, CURLOPT_SSL_VERIFYHOST, 2);
 			curl_setopt($curl, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);
@@ -80,8 +80,8 @@ class VaultClient
 			'X-Vault-Token: ' . $this->token,
 		]);
 
-		if (getenv('VAULT_CERT_CAFILE') !== false) {
-			curl_setopt($ch, CURLOPT_CAINFO, getenv('VAULT_CERT_CAFILE'));
+		if (getenv('BAO_CERT_CAFILE') !== false) {
+			curl_setopt($ch, CURLOPT_CAINFO, getenv('BAO_CERT_CAFILE'));
 			curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
 			curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
 			curl_setopt($ch, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);
@@ -134,8 +134,8 @@ class VaultClient
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
 
-        if (getenv('VAULT_CERT_CAFILE') !== false) {
-            curl_setopt($ch, CURLOPT_CAINFO, getenv('VAULT_CERT_CAFILE'));
+        if (getenv('BAO_CERT_CAFILE') !== false) {
+            curl_setopt($ch, CURLOPT_CAINFO, getenv('BAO_CERT_CAFILE'));
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
             curl_setopt($ch, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);

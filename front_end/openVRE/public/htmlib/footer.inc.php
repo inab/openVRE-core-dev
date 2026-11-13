@@ -22,11 +22,11 @@ use OpenVRE\UserType;
                 </div>
             </div>
             <div class="modal-footer">
-                <?php if ($_SESSION["User"]["Type"] != UserType::Guest->value) { ?>
+                <?php if ($_SESSION["userType"] != UserType::Guest->value) { ?>
                     <a class="btn green" href="<?php echo $GLOBALS['URL_login']; ?>">Log in</a>
                     <a class="btn green" href="<?php echo $GLOBALS['URL']; ?>">Non-registered</a>
                 <?php } else { ?>
-                    <a class="btn green" href="<?php echo $GLOBALS['URL'] . "?id=" . $_SESSION['User']['_id']; ?>">Continue</a>
+                    <a class="btn green" href="<?php echo $GLOBALS['URL'] . "?id=" . $_SESSION['userId']; ?>">Continue</a>
                     <a class="btn green" href="<?php echo $GLOBALS['URL']; ?>">Start again</a>
                 <?php }  ?>
 
@@ -52,7 +52,7 @@ use OpenVRE\UserType;
     </div>
 </div>
 
-<input type="hidden" id="type-of-user" value="<?php echo $_SESSION['User']['Type']; ?>" />
+<input type="hidden" id="type-of-user" value="<?php echo $_SESSION['userType']; ?>" />
 
 <div class="modal fade bs-modal" id="modalLogoutGuest" tabindex="-1" role="basic" aria-hidden="true">
     <div class="modal-dialog modal-lg">

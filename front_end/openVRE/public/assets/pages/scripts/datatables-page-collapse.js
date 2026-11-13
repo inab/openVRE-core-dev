@@ -37,7 +37,6 @@ $(document).ready(function() {
 	},
 	select: true,
 	columnDefs: [
-	  // columnes d'informació
 	  // Checkboxes
 	  { targets: [0], orderable: false },
 	  // File column
@@ -52,8 +51,6 @@ $(document).ready(function() {
 	  { targets: [5], orderData: [ 4, 9, 5 ], orderable: false },
 	  // Date column 
 	  { targets: [6], orderData: [4, 9, 10], orderable: false },
-	  //{ targets: [5], orderData: [ 4, 8, 9 ], orderable: false }, - before location
-	  //{ type: 'file-size', targets: 6, orderData: [ 4, 8, 6 ], orderable: false }, - before location
 	  // Size column
 	  { type: 'file-size', targets: [7], orderData: [ 4, 9, 7 ], orderable: false },
 	  // Action column

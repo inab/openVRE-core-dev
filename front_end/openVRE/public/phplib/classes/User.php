@@ -2,31 +2,37 @@
 
 namespace OpenVRE;
 
+use MongoDB\BSON\Persistable;
 use Monolog\Logger;
 use UnexpectedValueException;
 
 
-class User
+class User implements Persistable
 {
-    public $_id;
-    public $Email;
-    public $secretsId;
-    public $Surname;
-    public $Name;
-    public $Inst;
-    public $lastLogin;
-    public $registrationDate;
-    public $Type;
-    public $Status;
-    public $diskQuota;
-    public $dataDir;
-    public $AuthProvider;
-    public $id; // TODO: diff with _id?
-    public $activeProject;
-    public Logger $logger;
-    private array $roles = [];
+    use BsonHydration;
 
-    public function __construct(string $email, string $secretsId, string $surname, string $name, string $inst, int $type, string $diskQuota, string $dataDir, ?string $authProvider, string $activeProject, array $roles)
+    private string $_id;
+    private string $email;
+    private string $secretsId;
+    private string $surname;
+    private string $name;
+    private string $institution;
+    private string $lastLogin;
+    private string $registrationDate;
+    private int $type;
+    private int $status;
+    private int $diskQuota;
+    private string $dataDir;
+    private ?string $authProvider;
+    private string $internalId;
+    private string $activeProject;
+    private bool $termsAccepted = false;
+    private array $developedTools = [];
+    private array $lastJobs = [];
+    private array $roles = [];
+    private Logger $logger;
+
+    public function __construct(string $email, string $secretsId, string $surname, string $name, string $inst, int $type, int $diskQuota, string $dataDir, ?string $authProvider, string $internalId, string $activeProject, array $roles, array $developedTools)
     {
         $this->logger = LoggerFactory::getLogger('User');
         if ($type != UserType::Guest->value && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -39,30 +45,25 @@ class User
             throw new UnexpectedValueException("User not logged in");
         }
 
-        $this->Type = $type ?? UserType::Registered->value; // TODO: check if this is ok
-        $this->Email = sanitizeString($email);
+        $this->type = $type;
+        $this->email = sanitizeString($email);
         $this->secretsId = sanitizeString($secretsId);
         $this->_id = sanitizeString($email);
-        $this->Surname = ucfirst(sanitizeString($surname));
-        $this->Name = ucfirst(sanitizeString($name));
-        $this->Inst = sanitizeString($inst);
-        $this->diskQuota = sanitizeString($diskQuota);
+        $this->surname = ucfirst(sanitizeString($surname));
+        $this->name = ucfirst(sanitizeString($name));
+        $this->institution = sanitizeString($inst);
         $this->dataDir = sanitizeString($dataDir);
-        $this->AuthProvider = sanitizeString($authProvider);
-        $this->activeProject = sanitizeString($activeProject);
-        $this->id = $this->Type == UserType::Guest->value
-            ? uniqid($GLOBALS['AppPrefix'] . "ANON")
-            : uniqid($GLOBALS['AppPrefix'] . "USER");
-        $this->activeProject = $this->activeProject ?: createLabel_proj();
-        $this->Status = UserStatus::Active->value;
+        $this->authProvider = sanitizeString($authProvider);
+        $this->internalId = $internalId;
+        $this->activeProject = sanitizeString($activeProject) ?: createLabel_proj();
+        $this->status = UserStatus::Active->value;
         $this->lastLogin = moment();
-        $this->registrationDate = $this->registrationDate ?: moment();
-        $this->diskQuota  = $this->diskQuota || $this->Type == UserType::Guest->value // TODO: check if this is ok
-            ? $GLOBALS['DISKLIMIT_ANON']
-            : $GLOBALS['DISKLIMIT'];
+        $this->registrationDate = moment();
+        $this->diskQuota  = $diskQuota;
 
-        $this->Surname = ucfirst($this->Surname);
-        $this->Name    = ucfirst($this->Name);
+        $this->surname = ucfirst($this->surname);
+        $this->name    = ucfirst($this->name);
+        $this->developedTools = $developedTools;
         $this->roles = $roles;
 
         $_SESSION['userVaultInfo'] = array(
@@ -73,22 +74,22 @@ class User
 
     public function getType(): int
     {
-        return $this->Type;
+        return $this->type;
     }
 
     public function setType(int $type): void
     {
-        $this->Type = $type;
+        $this->type = $type;
     }
 
     public function getEmail(): string
     {
-        return $this->Email;
+        return $this->email;
     }
 
     public function setEmail(string $email): void
     {
-        $this->Email = $email;
+        $this->email = $email;
     }
 
     public function getSecretsId(): string
@@ -111,37 +112,47 @@ class User
         $this->_id = $id;
     }
 
+    public function getInternalId(): string
+    {
+        return $this->internalId;
+    }
+
+    public function setInternalId(string $internalId): void
+    {
+        $this->internalId = $internalId;
+    }
+
     public function getSurname(): string
     {
-        return $this->Surname;
+        return $this->surname;
     }
 
     public function setSurname(string $surname): void
     {
-        $this->Surname = $surname;
+        $this->surname = $surname;
     }
 
     public function getName(): string
     {
-        return $this->Name;
+        return $this->name;
     }
 
     public function setName(string $name): void
     {
-        $this->Name = $name;
+        $this->name = $name;
     }
 
-    public function getInst(): string
+    public function getInstitution(): string
     {
-        return $this->Inst;
+        return $this->institution;
     }
 
-    public function setInst(string $inst): void
+    public function setInstitution(string $inst): void
     {
-        $this->Inst = $inst;
+        $this->institution = $inst;
     }
 
-    public function getDiskQuota(): string
+    public function getDiskQuota(): int
     {
         return $this->diskQuota;
     }
@@ -161,14 +172,14 @@ class User
         $this->dataDir = $dataDir;
     }
 
-    public function getAuthProvider(): string
+    public function getauthProvider(): string
     {
-        return $this->AuthProvider;
+        return $this->authProvider;
     }
 
-    public function setAuthProvider(string $authProvider): void
+    public function setauthProvider(string $authProvider): void
     {
-        $this->AuthProvider = $authProvider;
+        $this->authProvider = $authProvider;
     }
 
     public function getActiveProject(): string
@@ -181,24 +192,14 @@ class User
         $this->activeProject = $activeProject;
     }
 
-    public function getId(): string
-    {
-        return $this->id;
-    }
-
-    public function setId(string $id): void
-    {
-        $this->id = $id;
-    }
-
     public function getStatus(): int
     {
-        return $this->Status;
+        return $this->status;
     }
 
     public function setStatus(int $status): void
     {
-        $this->Status = $status;
+        $this->status = $status;
     }
 
     public function getLastLogin(): string
@@ -221,6 +222,36 @@ class User
         $this->registrationDate = $registrationDate;
     }
 
+    public function getTermsAccepted()
+    {
+        return $this->termsAccepted;
+    }
+
+    public function setTermsAccepted($termsAccepted)
+    {
+        $this->termsAccepted = $termsAccepted;
+    }
+
+    public function getDevelopedTools(): array
+    {
+        return $this->developedTools;
+    }
+
+    public function setDevelopedTools(array $developedTools): void
+    {
+        $this->developedTools = $developedTools;
+    }
+
+    public function getLastJobs(): array
+    {
+        return $this->lastJobs;
+    }
+
+    public function setLastJobs(array $lastJobs): void
+    {
+        $this->lastJobs = $lastJobs;
+    }
+
     public function getRoles(): array
     {
         return $this->roles;
@@ -231,10 +262,17 @@ class User
         $this->roles = $roles;
     }
 
-    public function toDocument(): array
+    public function bsonSerialize(): array
     {
         $data = get_object_vars($this);
         unset($data['logger']);
         return $data;
+    }
+
+    public function bsonUnserialize(array $data): void
+    {
+        // The constructor is not called when hydrating from MongoDB
+        $this->logger = LoggerFactory::getLogger('User');
+        $this->hydrateFromBson($data, ['logger']);
     }
 }

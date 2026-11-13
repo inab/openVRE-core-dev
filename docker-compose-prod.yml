@@ -132,11 +132,11 @@ services:
       SERVER_DOMAIN: ${SERVER_DOMAIN}
       SERVER_DOMAIN_PROTOCOL: ${SERVER_DOMAIN_PROTOCOL}
       SERVER_PORT: ${FRONTEND_PORT}
-      VAULT_ADDR: ${VAULT_ADDR}
-      VAULT_API_VERSION: ${VAULT_API_VERSION}
-      VAULT_CERT_CAFILE: ${VAULT_CERT_CAFILE}
-      VAULT_ROLENAME: ${VAULT_ROLENAME}
-      VAULT_SECRET_PATH: ${VAULT_SECRET_PATH}
+      BAO_CERT_CAFILE: ${BAO_CERT_CAFILE}
+      BAO_ADDR: ${BAO_ADDR}
+      BAO_API_VERSION: ${BAO_API_VERSION}
+      BAO_ROLENAME: ${BAO_ROLENAME}
+      BAO_SECRET_PATH: ${BAO_SECRET_PATH}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./front_end/openVRE/public/:/var/www/html/openVRE/public
@@ -150,7 +150,7 @@ services:
       - ${FRONTEND_SSL_KEY}:${FRONTEND_CERT_KEY}:ro
       # - ${MONGO_SSL_CAFILE}:${MONGO_CA_FILE}:ro
       # - ${MONGO_SSL_KEYFILE}:${MONGO_CERT_KEYFILE}:ro
-      - ${VAULT_SSL_CAFILE}:${VAULT_CERT_CAFILE}:ro
+      - ${BAO_SSL_CAFILE}:${BAO_CERT_CAFILE}:ro
     ports:
       - "${FRONTEND_PORT}:443"
     networks:

@@ -1,4 +1,7 @@
 <?php
+
+use OpenVRE\UserType;
+
 header("Content-Type: application/javascript");
 require __DIR__ . "/../../config/bootstrap.php";
 
@@ -10,9 +13,9 @@ require __DIR__ . "/../../config/bootstrap.php";
 echo '
 
 var rolesList = \'<ul class="dropdown-menu" role="menu">';
-foreach ($GLOBALS['ROLES'] as $k => $v):
+foreach (UserType::cases() as $k => $v):
 	echo '<li>';
-	echo '<a class="role-usr role' . $k . '" href="javascript:;">' . $v . '</a>';
+	echo '<a class="role-usr role' . $k . '" href="javascript:;">' . $v->name . '</a>';
 	echo '</li>';
 endforeach;
 echo '</ul>\';';
@@ -21,8 +24,8 @@ echo '</ul>\';';
 echo '
 
 var rolesSelect = \'<select style="width: 100%!important;" class="selector form-control input-sm input-xsmall input-inline" id="select-type-user"><option value="">Role</option>';
-foreach ($GLOBALS['ROLES'] as $k => $v):
-	echo '<option value="' . $k . '">' . $v . '</option>';
+foreach (UserType::cases() as $k => $v):
+	echo '<option value="' . $k . '">' . $v->name . '</option>';
 endforeach;
 echo '</select>\';';
 
@@ -89,8 +92,8 @@ $count_tou = 0;
 echo '
 
 var labelsUsersPieChart = {';
-foreach ($GLOBALS['ROLES'] as $k => $v):
-	echo $count_tou . ':\'' . $v . '\',';
+foreach (UserType::cases() as $k => $v):
+	echo $count_tou . ':\'' . $v->name . '\',';
 	$count_tou++;
 endforeach;
 echo '};';

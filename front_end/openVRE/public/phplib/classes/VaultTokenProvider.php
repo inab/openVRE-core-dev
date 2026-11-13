@@ -43,8 +43,8 @@ class VaultTokenProvider
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        if (getenv('VAULT_CERT_CAFILE') !== false) {
-            curl_setopt($ch, CURLOPT_CAINFO, getenv('VAULT_CERT_CAFILE'));
+        if (getenv('BAO_CERT_CAFILE') !== false) {
+            curl_setopt($ch, CURLOPT_CAINFO, getenv('BAO_CERT_CAFILE'));
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
             curl_setopt($ch, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);
@@ -65,12 +65,11 @@ class VaultTokenProvider
                 $this->logger->error($error);
             }
 
-            $profileUrl = 'http://localhost:8088/user/usrProfile.php';
-            $keysTabUrl = 'http://localhost:8088/#tab_1_4';
-            $this->logger->error("Vault login failed; user must re-login at $profileUrl (Keys tab: $keysTabUrl)");
+            $keysTabUrl = $GLOBALS['BASEURL'] . 'user/usrProfile.php#tab_1_4';
+            $this->logger->error("Vault login failed; user must re-login at $keysTabUrl");
 
             // create an HTML link so the UI can render a clickable "re-login" link
-            $link = htmlspecialchars($profileUrl . '#tab_1_4', ENT_QUOTES, 'UTF-8');
+            $link = htmlspecialchars($keysTabUrl, ENT_QUOTES, 'UTF-8');
             $msg = "Failed to fetch the Vault token. Please <a href=\"$link\">re-login to your profile (Keys tab)</a>.";
             throw new UnexpectedValueException($msg);
         }

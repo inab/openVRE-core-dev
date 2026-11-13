@@ -99,7 +99,7 @@ function launchTool($toolId, $userEmail, $projectName, $inputFilepaths)
         return 0;
     }
 
-    $workDirId = $jobMeta->createWorking_dir();
+    $workDirId = $jobMeta->createWorkingDir();
     if (!$workDirId) {
         $_SESSION['errorData']['Error'][] = "Error creating working dir.";
         return 0;
@@ -117,7 +117,7 @@ function launchTool($toolId, $userEmail, $projectName, $inputFilepaths)
         return 0;
     }
 
-    addUserJob($_SESSION['User']['_id'], (array)$jobMeta, $jobMeta->pid);
+    addUserJob($_SESSION['userId'], (array)$jobMeta, $jobMeta->pid);
 
     return ["jobTitle" => $jobMeta->title, "project" => $projectName, "execution" => $jobMeta->execution];
 }

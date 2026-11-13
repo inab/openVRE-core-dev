@@ -219,7 +219,7 @@ function printFilePath_fromPath($path, $asRoot = 0)
 
 
 // build text description for running jobs in datatables
-function getJobDescription($descrip0, $jobSGE, $lastjobs)
+function getJobDescription($descrip0, $jobSGE, $lastJobs)
 {
 
     $descrip = ($descrip0 ? $descrip0 . "<br/>" : "");
@@ -228,13 +228,13 @@ function getJobDescription($descrip0, $jobSGE, $lastjobs)
     } elseif ($jobSGE['state'] == "HOLD") {
         $descrip .= "<br><strong>Job waiting</strong>";
 
-        # get info for dependent jobs from lastjobs
+        # get info for dependent jobs from lastJobs
         if (isset($jobSGE['jid_predecessor_list'])) {
             $depText = "";
             $depPids = explode(",", $jobSGE['jid_predecessor_list']);
             foreach ($depPids as $depPid) {
-                if (isset($lastjobs[$depPid])) {
-                    $depText .= basename($lastjobs[$depPid]['out'][0]) . " ";
+                if (isset($lastJobs[$depPid])) {
+                    $depText .= basename($lastJobs[$depPid]['out'][0]) . " ";
                 }
             }
             if ($depText)
@@ -339,7 +339,7 @@ function getVREfile_fromFile($mugfile)
         $file['owner'] = $mugfile['user_id'];
         unset($mugfile['user_id']);
     } else {
-        $file['owner'] = $_SESSION['User']['id'];
+        $file['owner'] = $_SESSION['internalUserId'];
     }
 
     if (isset($mugfile['meta_data']['expiration'])) {
@@ -409,24 +409,21 @@ function prepMetadataResult($meta, $fnPath = 0, $lastjob = array())
     }
 
     if (is_null($meta['submission_file']) && isset($lastjob['submission_file'])) {
-        $meta['submission_file'] = $lastjob['submission_file'];
+        $meta['submission_file'] = $lastjob['executionDirectories']['executionSubmissionFile'];
     }
 
     if (is_null($meta['submission_file']) && isset($lastjob['shPath'])) {
         $meta['submission_file'] = $lastjob['shPath'];
     }
 
-    if (is_null($meta['log_file']) && isset($lastjob['log_file'])) {
-        $meta['log_file'] = $lastjob['log_file'];
-    }
-
-    if (is_null($meta['log_file']) && isset($lastjob['log_file'])) {
-        $meta['log_file'] = $lastjob['log_file'];
+    if (is_null($meta['log_file']) && isset($lastjob['executionDirectories']['executionLogFile'])) {
+        $meta['log_file'] = $lastjob['executionDirectories']['executionLogFile'];
     }
 
     if (is_null($meta['tool']) && isset($lastjob['tool'])) {
         $meta['tool'] = $lastjob['tool'];
     }
+
     if (is_null($meta['tool']) && isset($lastjob['toolId'])) {
         $meta['tool'] = $lastjob['toolId'];
     }
@@ -455,7 +452,7 @@ function prepMetadataResult($meta, $fnPath = 0, $lastjob = array())
                 $fnCore = preg_replace("/.$ext/i", "", basename($fnPath));
                 $fnCore = preg_replace("/^.*_/", "", $fnCore);
             }
-            $reObj = new MongoDB\BSON\Regex("/" . $_SESSION['User']['id'] . ".*" . $fnCore . "/i");
+            $reObj = new MongoDB\BSON\Regex("/" . $_SESSION['internalUserId'] . ".*" . $fnCore . "/i");
             $relatedBAMS = $GLOBALS['filesMetaCol']->find(array('path'  => $reObj))->toArray();
             if (!empty($relatedBAMS)) {
                 foreach ($relatedBAMS as $BAM) {
@@ -642,22 +639,6 @@ function is_url($url)
     //return filter_var($url, FILTER_VALIDATE_URL);
 }
 
-function fromTaxonID2TaxonName($taxon_id)
-{
-    $taxonomy_ep = "https://www.ebi.ac.uk/ena/data/taxonomy/v1/taxon/tax-id";
-    $url = "$taxonomy_ep/$taxon_id";
-    list($resp, $info) = get($url);
-    if (!$resp) {
-        return "Not found";
-    } else {
-        $resp = json_decode($resp);
-        if ($resp->scientificName) {
-            return $resp->scientificName;
-        } else {
-            return "Unknown";
-        }
-    }
-}
 
 function getFileExtension($filePath)
 {
@@ -822,46 +803,4 @@ function indexArray($multiArray)
         }
     }
     return $assocArray;
-}
-
-
-function validateOpenSSHPrivateKey($key)
-{
-    // Check for OpenSSH Private Key headers
-
-    if (
-        strpos($key, '-----BEGIN OPENSSH PRIVATE KEY-----') === false ||
-        strpos($key, '-----END OPENSSH PRIVATE KEY-----') === false
-    ) {
-        getUtilitiesLogger()->error("Invalid OpenSSH private key headers.");
-
-        return false;
-    }
-
-    $keyBody = str_replace(
-        ["-----BEGIN OPENSSH PRIVATE KEY-----", "-----END OPENSSH PRIVATE KEY-----", "\r", "\n"],
-        "",
-        $key
-    );
-
-    // Decode the Base64 body
-
-    $decodedKey = base64_decode($keyBody, true);
-
-    if ($decodedKey === false) {
-        getUtilitiesLogger()->error("Base64 decoding failed. The key body might be corrupted.");
-
-        return false;
-    }
-
-    // Check if the decoded key starts with the OpenSSH magic header
-    if (substr($decodedKey, 0, 15) !== "openssh-key-v1\0") {
-        getUtilitiesLogger()->error("Invalid OpenSSH key format.");
-        
-        return false;
-    }
-
-    getUtilitiesLogger()->info("The key is a valid OpenSSH private key.");
-    
-    return true;
 }

@@ -4,7 +4,6 @@ namespace OpenVRE;
 
 use Exception;
 use Monolog\Logger;
-use OpenVRE\VaultClientFactory;
 
 const SRUN_STATUS = "srun -p %s -n %s --mem=%s -q %s --pty bash";
 const SRUN = "srun";
@@ -43,7 +42,7 @@ class ProcessSlurm
     ];
     private Logger $logger;
 
-    public function __construct($shFile = "", $workDir = "", $logFile = "job_output.log", $errFile = "job_error.log", $remote_system = "MareNostrum")
+    public function __construct($shFile, $workDir, $userSecretsId, $remote_system = "MareNostrum", $logFile = "job_output.log", $errFile = "job_error.log")
     {
         $this->logger = LoggerFactory::getLogger("Tool job");
 
@@ -53,9 +52,8 @@ class ProcessSlurm
         $this->logFile = $logFile;
         $this->errFile = $errFile;
 
-        // Create Vault client
-        $vaultClient = VaultClientFactory::create();
-        $sshCredentials = $vaultClient->retrieveDatafromVault(Site::SSH);
+        $sshAccount = new SshLinkedAccount();
+        $sshCredentials = $sshAccount->getCredentials($userSecretsId);
         if (empty($sshCredentials) || empty($sshCredentials['private_key']) || empty($sshCredentials['username'])) {
             $this->logger->error("Incomplete SSH credentials retrieved.");
             throw new UnexpectedValueException("Empty SSH credentials from Vault.");

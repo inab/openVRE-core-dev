@@ -7,7 +7,7 @@ function checkStatus($pid)
 {
     $interactiveToolprefix = "/interactive-tool/";
 
-    $login = $_SESSION['User']['_id'];
+    $login = $_SESSION['userId'];
     $jobs  = getUserJobPid($login, $pid);
 
     if (!isset($jobs[$pid])) {
@@ -64,7 +64,7 @@ function checkStatus($pid)
 
     /*
     if (preg_match('/ExposedPort: (\d+)/', $stdout, $matches)) {
-        $_SESSION['User']['lastjobs'][$pid]['interactive_tool']['port'] = $matches[1];
+        $_SESSION['User']['lastjobs'][$pid]['interactive_tool']['port'] = $matches[1]; $_SESSION['User'] won't work. Use User class to create a User object.
     }
 
     if (preg_match('/ContainerID: (\w+)/', $stdout, $matches)) {

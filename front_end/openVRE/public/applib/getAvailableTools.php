@@ -9,6 +9,8 @@ if(!$_REQUEST){
 	echo "Network error, please reload the Workspace";
 }
 
+$user = getUserById($_SESSION['userId']);
+
 // getting data types of all the selected files
 $fdt = getFiles_DataTypes($_REQUEST["fn"]);
 
@@ -19,7 +21,7 @@ $dt = getTools_DataTypes();
 $toolsList = getTools_ByDT($dt, $fdt);
 
 // getting id / name pairs for all tools
-$tools = getTools_ListByID($toolsList, 1);
+$tools = getTools_ListByID($user, $toolsList);
 
 sort($tools);
 

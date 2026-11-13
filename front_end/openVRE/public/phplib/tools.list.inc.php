@@ -3,6 +3,7 @@
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
 use OpenVRE\Tooljob;
+use OpenVRE\User;
 use OpenVRE\UserType;
 
 
@@ -18,20 +19,20 @@ function getToolsLogger()
 }
 
 
-function getTools_List($status = 1)
+function getTools_List(User $user, $status = 1)
 {
-	if ($_SESSION['User']['Type'] == UserType::Guest->value) {
+	if ($_SESSION['userType'] == UserType::Guest->value) {
 		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => $status, 'owner.license' => array('$ne' => "free_for_academics")), array('name' => 1, 'title' => 1, 'short_description' => 1, 'keywords' => 1), array('title' => 1));
-	} elseif ($_SESSION['User']['Type'] == UserType::Admin->value || $_SESSION['User']['Type'] == UserType::ToolDev->value) {
+	} elseif ($_SESSION['userType'] == UserType::Admin->value || $_SESSION['userType'] == UserType::ToolDev->value) {
 		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => $status), array('name' => 1, 'title' => 1, 'short_description' => 1, 'keywords' => 1, 'status' => 1), array('title' => 1));
 	} else {
 		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => $status), array('name' => 1, 'title' => 1, 'short_description' => 1, 'keywords' => 1), array('title' => 1));
 	}
 
-	if ($_SESSION['User']['Type'] == UserType::ToolDev->value) {
+	if ($_SESSION['userType'] == UserType::ToolDev->value) {
 		$tools_list = iterator_to_array($tools);
 		foreach ($tools_list as $key => $tool) {
-			if ($tool["status"] == 3 && !in_array($tool["_id"], $_SESSION['User']["ToolsDev"])) {
+			if ($tool["status"] == 3 && !in_array($tool["_id"], $user->getDevelopedTools())) {
 				unset($tools_list[$key]);
 			}
 		}
@@ -44,22 +45,23 @@ function getTools_List($status = 1)
 
 // list tools
 
-function getTools_ListComplete($status = 1)
+function getTools_ListComplete(User $user)
 {
 	getToolsLogger()->debug("Get list of tools");
+	getToolsLogger()->debug("User type: " . $user->getType());
 
-	if ($_SESSION['User']['Type'] == UserType::Guest->value) {
-		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => $status, 'owner.license' => array('$ne' => "free_for_academics")), array(), array('title' => 1));
-	} elseif ($_SESSION['User']['Type'] == UserType::Admin->value || $_SESSION['User']['Type'] == UserType::ToolDev->value) {
+	if ($user->getType() === UserType::Guest->value) {
+		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => 1, 'owner.license' => array('$ne' => "free_for_academics")), array(), array('title' => 1));
+	} elseif ($user->getType() === UserType::Admin->value || $user->getType() === UserType::ToolDev->value) {
 		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => array('$ne' => 2)), array(), array('title' => 1));
 	} else {
-		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => $status), array(), array('title' => 1));
+		$tools = $GLOBALS['toolsCol']->find(array('external' => true, 'status' => 1), array(), array('title' => 1));
 	}
 
-	if ($_SESSION['User']['Type'] == UserType::ToolDev->value) {
+	if ($user->getType() == UserType::ToolDev->value) {
 		$tools_list = iterator_to_array($tools);
 		foreach ($tools_list as $key => $tool) {
-			if ($tool["status"] == 3 && !in_array($tool["_id"], $_SESSION['User']["ToolsDev"])) {
+			if ($tool["status"] == 3 && !in_array($tool["_id"], $user->getDevelopedTools())) {
 				unset($tools_list[$key]);
 			}
 		}
@@ -72,7 +74,7 @@ function getTools_ListComplete($status = 1)
 
 
 // list tools
-function getTool_fromId($toolId, $indexByName = false)
+function getTool_fromId(string $toolId, $indexByName = false)
 {
 	$tool = $GLOBALS['toolsCol']->findOne(['_id' => $toolId]);
 	if (is_null($tool)) {
@@ -106,11 +108,10 @@ function getTool_fromId($toolId, $indexByName = false)
 }
 
 
-// launch tool - used for internal tools
-function launchToolInternal($toolId, $args = [], $outs = [], $output_dir = "", $logName = "")
+function launchToolInternal($toolId, $projectDir, $args = [], $outs = [], $outputDir = "", $logName = "")
 {
-	getToolsLogger()->debug("launchToolInternal(" . $toolId . ", " . json_encode($args) . ", " . json_encode($outs) . ", " . $output_dir . ", " . $logName . ")");
-	
+	getToolsLogger()->debug("launchToolInternal(" . $toolId . ", " . json_encode($args) . ", " . json_encode($outs) . ", " . $outputDir . ", " . $logName . ")");
+
 	$tool = getTool_fromId($toolId, true);
 	if (is_null($tool)) {
 		getToolsLogger()->error("Tool '$toolId' not registered");
@@ -122,16 +123,14 @@ function launchToolInternal($toolId, $args = [], $outs = [], $output_dir = "", $
 		throw new UnexpectedValueException("Tool is not internal");
 	}
 
-	$descrip = "Internal job execution of " . $tool['name'];
-	$jobMeta = new Tooljob($tool, descrip: $descrip, arguments_exec: $args, output_dir:  $output_dir);
+	$description = "Internal job execution of " . $tool['name'];
+	$site = getSite($args['site_list']);
+	$execution = $tool['_id'] . "_" . rand(10000, 99999);
+	$jobMeta = new Tooljob($tool, description: $description, project: $projectDir, site: $site, execution: $execution, outputDir: $outputDir, logFilename: $logName, isInternal: true);
 
-	if (strlen($logName)) {
-		$jobMeta->setLog($logName);
-	}
-
-	$args['working_dir'] = $jobMeta->working_dir;
+	$args['working_dir'] = $jobMeta->executionDirectories->executionDir; // hardcoded at wget tool JSON
 	$jobMeta->setArguments($args, $tool);
-	$jobMeta->createWorking_dir();
+	$jobMeta->createWorkingDir($projectDir);
 
 	// Set outfiles metadata -- for register latter
 	$jobMeta->setStageout_data($outs);
@@ -139,7 +138,7 @@ function launchToolInternal($toolId, $args = [], $outs = [], $output_dir = "", $
 	// Setting Command line. Adding parameters
 	$jobMeta->prepareExecution($tool, []);
 	$jobMeta->submit($tool);
-	addUserJob($_SESSION['User']['_id'], $jobMeta->toDocument(), $jobMeta->pid);
+	addUserJob($_SESSION['userId'], $jobMeta->toDocument(), $jobMeta->pid);
 
 	return $jobMeta->pid;
 }
@@ -179,32 +178,25 @@ function getInputFilesCombinations($tool)
 }
 
 
-function getSites_Info($toolId)
+function getSitesInfo(string $toolId)
 {
-	// Retrieve tool document from the tools collection
 	$toolDocument = $GLOBALS['toolsCol']->findOne(['_id' => $toolId]);
 	if (is_null($toolDocument)) {
 		return null;
 	}
 
+	$filterFields = ["_id" => 1, "name" => 1, "launcher" => 1];
 	$executionSitesData = $toolDocument['sites'];
 	$executionSites = [];
 
 	foreach ($executionSitesData as $siteData) {
 		if ($siteData['status'] === 1) {
 			$siteId = $siteData['site_id'];
-			$filterfields = array();
-			$siteDocument = $GLOBALS['sitesCol']->findOne(array('_id' => $siteId), $filterfields);
-			if (is_null($siteDocument)) {
+			$siteDetails = $GLOBALS['sitesCol']->findOne(array('_id' => $siteId), $filterFields);
+			if (is_null($siteDetails)) {
 				throw new NotFoundException("Site document not found for site ID: {$siteId}");
 			}
 
-			$siteDetails = [
-				'site_id' => $siteDocument['_id'],  // Assuming _id is site_id
-				'name' => $siteDocument['name'],
-				'launcher' => $siteDocument['launcher'],
-				'status' => $siteData['status'],
-			];
 			$executionSites[] = $siteDetails;
 		}
 	}

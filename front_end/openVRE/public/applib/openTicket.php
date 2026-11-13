@@ -27,7 +27,7 @@ $ticketnumber = 'VRE-'.rand(1000, 9999);
 
 $message = '
 	Ticket ID: '.$ticketnumber.'<br>
-	User name: '.$_REQUEST["Name"].'<br>
+	User name: '.$_REQUEST["name"].'<br>
 	User email: '.$_REQUEST["Email"].'<br>
 	Request type: '.$req.$tool_name.'<br>
 	Request subject: '.$_REQUEST["Subject"].'<br>
@@ -36,7 +36,7 @@ $message = '
 $messageUser = '
 	Copy of the message sent to our technical team:<br><br>
 	Ticket ID: '.$ticketnumber.'<br>
-	User name: '.$_REQUEST["Name"].'<br>
+	User name: '.$_REQUEST["name"].'<br>
 	User email: '.$_REQUEST["Email"].'<br>
 	Request type: '.$req.$tool_name.'<br>
 	Request subject: '.$_REQUEST["Subject"].'<br>

@@ -25,6 +25,7 @@ if (is_object($project['atime']))
        $project['atime'] =$project['atime']->toDateTime()->format('U');
 $project['atime'] = datefmt_format(getDateTimeFormat(), $project['atime']);
 
+$user = getUserById($_SESSION['userId']);
 
 ?>
 
@@ -55,13 +56,13 @@ $project['atime'] = datefmt_format(getDateTimeFormat(), $project['atime']);
 				  <i class="fa fa-circle"></i>
 			      </li>
 			      <li>
-				  <span>Edit project <?php echo getProject($_SESSION['User']['dataDir'])["name"]; ?></span>
+				  <span>Edit project <?php echo getProject($user->getDataDir())["name"]; ?></span>
 			      </li>
 			    </ul>
 			</div>
 			<!-- END PAGE BAR -->
 			<!-- BEGIN PAGE TITLE-->
-			<h1 class="page-title"> Edit project <?php echo getProject($_SESSION['User']['dataDir'])["name"]; ?>
+			<h1 class="page-title"> Edit project <?php echo getProject($user->getDataDir())["name"]; ?>
 			    
 			</h1>
 			<!-- END PAGE TITLE-->
