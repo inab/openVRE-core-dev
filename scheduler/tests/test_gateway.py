@@ -138,12 +138,48 @@ class EndpointTests(unittest.TestCase):
 
 
 class ConfigTests(unittest.TestCase):
-    def test_gateway_token_required(self):
+    def test_gateway_token_checked_when_set(self):
         from openvre_scheduler import config
-        with self.assertRaisesRegex(config.ConfigError, "OPENVRE_GATEWAY_TOKEN"):
-            settings(OPENVRE_GATEWAY_TOKEN="")
+        with self.assertRaisesRegex(config.ConfigError, "at least 16"):
+            settings(OPENVRE_GATEWAY_TOKEN="short")
         with self.assertRaisesRegex(config.ConfigError, "must differ"):
             settings(OPENVRE_GATEWAY_TOKEN=TOKEN)
+
+    def test_no_gateway_is_allowed(self):
+        self.assertEqual(settings(OPENVRE_GATEWAY_TOKEN="").gateway_token, "")
+
+
+class NoGatewayTests(unittest.TestCase):
+    """A site without the gateway (OPENVRE_GATEWAY_TOKEN empty): desktops and Jobs only."""
+
+    def setUp(self):
+        self.s = settings(OPENVRE_GATEWAY_TOKEN="")
+        self.kube = FakeKube()
+
+    def test_web_session_refused(self):
+        with self.assertRaises(sessions.v.ValidationError) as cm:
+            sessions.parse_request(session_body(), self.s, TPLS)
+        self.assertEqual(cm.exception.status, 409)
+        self.assertIn("web tools are not enabled", cm.exception.message)
+        self.assertEqual(self.kube.created, [])
+
+    def test_desktop_session_works(self):
+        spec = start(self.kube, self.s, desktop_body())
+        kinds = sorted(o["kind"] for o in self.kube.objects.values() if o["metadata"]["name"] == spec.name)
+        self.assertEqual(kinds, ["Deployment", "Service"])
+
+    def test_routes_endpoint_off(self):
+        self.s.listen_host, self.s.listen_port = "127.0.0.1", 0
+        srv = server.make_server(self.s, self.kube, TPLS)
+        threading.Thread(target=srv.serve_forever, daemon=True).start()
+        try:
+            conn = http.client.HTTPConnection("127.0.0.1", srv.server_address[1], timeout=10)
+            conn.request("GET", "/gateway/routes", headers={"X-OpenVRE-Gateway-Token": GATEWAY_TOKEN})
+            self.assertEqual(conn.getresponse().status, 404)
+            conn.close()
+        finally:
+            srv.shutdown()
+            srv.server_close()
 
 
 if __name__ == "__main__":

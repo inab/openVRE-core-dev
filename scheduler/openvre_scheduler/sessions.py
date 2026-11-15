@@ -42,6 +42,10 @@ def parse_request(body, settings, templates):
     tpl = templates.get(tname)
     v.require(tpl is not None, f"unknown template {tname!r}", 404)
     v.require(isinstance(tpl, SessionTemplate), f"template {tname!r} is not an InteractiveSession template")
+    # Web sessions are reached only through the gateway. Without one, nothing would
+    # route to them, so refuse instead of starting a session nobody can open.
+    v.require(tpl.access["type"] != "web" or settings.gateway_token,
+              "web tools are not enabled on this site (no gateway); desktop tools work", 409)
 
     ctx = body.get("context") or {}
     v.require(isinstance(ctx, dict), "context must be a JSON object")

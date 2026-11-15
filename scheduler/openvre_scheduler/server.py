@@ -12,7 +12,8 @@ Routes (each also available under /v1/...):
   GET    /interactive-sessions/<name>  session status
   DELETE /interactive-sessions/<name>  delete a session
   GET    /gateway/routes               Traefik dynamic configuration of the session routes;
-                                       only with X-OpenVRE-Gateway-Token (the gateway's token)
+                                       only with X-OpenVRE-Gateway-Token (the gateway's token).
+                                       404 when OPENVRE_GATEWAY_TOKEN is empty (no gateway)
 """
 
 import hmac
@@ -206,6 +207,8 @@ class Handler(BaseHTTPRequestHandler):
     # Endpoints -----------------------------------------------------------
 
     def _gateway_routes(self):
+        if not self.settings.gateway_token:
+            raise ApiError(404, "no gateway on this site")
         token = (self.headers.get("X-OpenVRE-Gateway-Token") or "").strip().encode("utf-8")
         if not token or not hmac.compare_digest(token, self.settings.gateway_token.encode("utf-8")):
             raise ApiError(401, "gateway token missing or invalid")

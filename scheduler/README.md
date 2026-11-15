@@ -72,7 +72,7 @@ Every route also works under `/v1/...`. Every response is JSON with `"ok": true|
 | POST | `/interactive-sessions` | yes | Create a session: `{"namespace", "template", "context": {...}, "params": {...}}`. Returns `name`, `access`, `access_url`, `path_prefix`, `expires_at`. |
 | GET | `/interactive-sessions/<name>?namespace=` | yes | `{"exists", "state": "Running|Pending|Failed", "reason"}` |
 | DELETE | `/interactive-sessions/<name>?namespace=` | yes | Delete a session. Already gone is still `ok`. |
-| GET | `/gateway/routes` | gateway token | Traefik dynamic configuration for every web session (see [Gateway routes](#gateway-routes)). Header `X-OpenVRE-Gateway-Token`; the frontend's token is not accepted. |
+| GET | `/gateway/routes` | gateway token | Traefik dynamic configuration for every web session (see [Gateway routes](#gateway-routes)). Header `X-OpenVRE-Gateway-Token`; the frontend's token is not accepted. 404 without a gateway. |
 
 Status codes:
 
@@ -439,6 +439,16 @@ Web sessions are not given an Ingress. The OpenVRE gateway (Traefik, deployed by
 
 Nothing is kept in memory (the answer is cached about 2 s, and cleared when a session is created or deleted), so a restart of the scheduler or of Traefik loses no route. A deleted session's route disappears at the next poll.
 
+### Sites without the gateway
+
+A site may run without the gateway, e.g. one that only offers desktop tools: leave `OPENVRE_GATEWAY_TOKEN` empty (Helm chart: `gateway.enabled: false`). Then:
+
+- Desktop sessions (Guacamole) and batch Jobs work as usual; they never use the gateway.
+- A request for a web session (`access.type: web`) is refused with 409 "web tools are not enabled on this site (no gateway); desktop tools work", before anything is created.
+- `GET /gateway/routes` answers 404.
+
+The code is the same on both kinds of site; only this setting differs.
+
 ### Audit record
 
 With the audit sidecar on, every session has a folder `<OPENVRE_INTERACTIVE_AUDIT_BASE>/<tool>/<user>/<session>/` that stays after the session is gone. It answers "who ran what, and why did it fail".
@@ -495,7 +505,7 @@ Read once at startup. The scheduler refuses to start (exit code 2, a `CRITICAL` 
 | `OPENVRE_IMAGE_ALLOWLIST` | | Comma list of single images: `repo` (any tag), `repo:tag`, `repo@sha256:...`. For images outside the allowed registries. |
 | `OPENVRE_IMAGE_PULL_SECRETS` | | Secrets added to every Job and session pod |
 | `OPENVRE_ALLOWED_PULL_SECRETS` | | Further secrets a tool may ask for (`infrastructure.image_pull_secrets`) |
-| `OPENVRE_GATEWAY_TOKEN` | | **Required**, at least 16 characters, different from `SCHEDULER_AUTH_TOKEN`. The gateway sends it to `GET /gateway/routes`. |
+| `OPENVRE_GATEWAY_TOKEN` | | At least 16 characters, different from `SCHEDULER_AUTH_TOKEN`. The gateway sends it to `GET /gateway/routes`. Empty: no gateway on this site (see [Sites without the gateway](#sites-without-the-gateway)). |
 | `OPENVRE_EXTERNAL_BASE` | | Public URL (`https://host`); its scheme sets `X-Forwarded-Proto` for sessions |
 | `OPENVRE_INTERACTIVE_AUTH_URL` | | Login check in front of web sessions (Traefik `forwardAuth`): every request is first sent there; 2xx lets it through, anything else (e.g. a redirect to login) goes back to the browser |
 | `OPENVRE_INTERACTIVE_DEFAULT_IMAGE` / `_PORT` / `_MOUNT` | | Defaults for session requests |

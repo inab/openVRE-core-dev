@@ -48,6 +48,7 @@ class Settings:
     listen_port: int = 8080
     auth_tokens: list = field(default_factory=list)
     # Read-only token the gateway (Traefik) sends to GET /gateway/routes.
+    # Empty: no gateway on this site; web sessions are refused, desktops and Jobs work.
     gateway_token: str = ""
     # User check: "off", "optional" (verify when sent) or "required".
     user_token: str = "off"
@@ -227,9 +228,9 @@ def check(s):
         if len(t) < 16:
             problems.append("SCHEDULER_AUTH_TOKEN values must be at least 16 characters")
             break
-    if len(s.gateway_token) < 16:
-        problems.append("OPENVRE_GATEWAY_TOKEN must be set (at least 16 characters): the gateway reads session routes with it")
-    elif s.gateway_token in s.auth_tokens:
+    if s.gateway_token and len(s.gateway_token) < 16:
+        problems.append("OPENVRE_GATEWAY_TOKEN must be at least 16 characters (or empty: no gateway, no web sessions)")
+    elif s.gateway_token and s.gateway_token in s.auth_tokens:
         problems.append("OPENVRE_GATEWAY_TOKEN must differ from SCHEDULER_AUTH_TOKEN")
     if s.default_namespace not in s.allowed_namespaces:
         problems.append("DEFAULT_NAMESPACE must be listed in OPENVRE_ALLOWED_NAMESPACES")
