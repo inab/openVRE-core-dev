@@ -462,6 +462,10 @@ if (isset($_REQUEST['op'])) {
 			try {
 				$export = requestLandingMove((array) $_REQUEST['fn']);
 				print(json_encode(array('error' => false, 'msg' => "Export requested. Airlock is transferring and verifying the files.", 'export' => $export)));
+			} catch (UnexpectedValueException $e) {
+				// validation or permission problem of the request
+				getWorkspaceLogger()->warning("Export request failed: " . $e->getMessage());
+				print(json_encode(array('error' => true, 'msg' => $e->getMessage())));
 			} catch (Throwable $e) {
 				getWorkspaceLogger()->error("Export request failed: " . $e->getMessage());
 				print(json_encode(array('error' => true, 'msg' => $e->getMessage())));
@@ -473,6 +477,10 @@ if (isset($_REQUEST['op'])) {
 			try {
 				$export = refreshExportStatus((string) $_REQUEST['id']);
 				print(json_encode(array('error' => false, 'export' => $export)));
+			} catch (UnexpectedValueException $e) {
+				// validation or permission problem of the request
+				getWorkspaceLogger()->warning("Export status check failed: " . $e->getMessage());
+				print(json_encode(array('error' => true, 'msg' => $e->getMessage())));
 			} catch (Throwable $e) {
 				getWorkspaceLogger()->error("Export status check failed: " . $e->getMessage());
 				print(json_encode(array('error' => true, 'msg' => $e->getMessage())));
@@ -484,6 +492,10 @@ if (isset($_REQUEST['op'])) {
 			try {
 				$export = createAirlockSubmission((string) $_REQUEST['id'], $_POST);
 				print(json_encode(array('error' => false, 'msg' => "Submission created in the Airlock.", 'export' => $export)));
+			} catch (UnexpectedValueException $e) {
+				// validation or permission problem of the request
+				getWorkspaceLogger()->warning("Export submission failed: " . $e->getMessage());
+				print(json_encode(array('error' => true, 'msg' => $e->getMessage())));
 			} catch (Throwable $e) {
 				getWorkspaceLogger()->error("Export submission failed: " . $e->getMessage());
 				print(json_encode(array('error' => true, 'msg' => $e->getMessage())));

@@ -209,6 +209,9 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 			<script src="assets/pages/scripts/run-tools.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 			<script src="https://cdnjs.cloudflare.com/ajax/libs/webcomponentsjs/0.7.24/webcomponents-lite.min.js"></script>
 			<script src="assets/pages/scripts/actions-home.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
+			<?php if (canExport()) { ?>
+				<script src="assets/pages/scripts/airlock-export.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
+			<?php } ?>
 			<script src="assets/pages/scripts/restore-link.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 		<?php } elseif (basename(dirname($_SERVER['PHP_SELF'])) == 'launch') { ?>
 			<script src="assets/pages/scripts/launch-tool.js" type="text/javascript"></script>
