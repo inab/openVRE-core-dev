@@ -12,7 +12,7 @@ The scheduler holds the Kubernetes credentials, so the frontend never needs any.
 Python 3.11, standard library plus PyYAML (templates) and PyJWT with cryptography (user token signatures).
 
 ```
-browser → frontend (PHP, ProcessK8s.php) ──HTTP + JSON, Bearer token──▶ scheduler :8080 ──▶ Kubernetes API
+browser → frontend (PHP, ProcessK8s.php / K8sSession.php) ──HTTP + JSON, Bearer token──▶ scheduler :8080 ──▶ Kubernetes API
 ```
 
 ## Layout
@@ -94,7 +94,7 @@ Names are always checked: Jobs must start with `openvre-bj-`, sessions with `ope
 
 ### Session request body
 
-Sent by `ProcessK8s::createSession()`:
+Sent by `K8sSession::create()` (body built by `K8sSessionRequest::build()`):
 
 ```json
 {

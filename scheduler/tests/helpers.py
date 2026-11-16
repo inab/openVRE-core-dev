@@ -147,7 +147,7 @@ def load_templates():
 
 
 def session_body(template="openvre-web-session", context=None, params=None, **ctx_overrides):
-    """A POST /interactive-sessions body as ProcessK8s.php sends it."""
+    """A POST /interactive-sessions body as K8sSession.php sends it."""
     ctx = {
         "user_id": "alice",
         "session_id": "rstudio-abc12345",
