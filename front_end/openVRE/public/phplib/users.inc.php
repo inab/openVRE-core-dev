@@ -294,7 +294,12 @@ function loadUserWithToken($user, $userInfo, $token)
 
     $auxlastlog = $user['lastLogin'];
     $user['lastLogin'] = moment();
-    $user['secretsId'] = $userInfo['sub'] ?? ($user['secretsId'] ?? '');
+    // OIDC requires "sub"; without it the token is not a valid login.
+    if (empty($userInfo['sub'])) {
+        getUsersLogger()->error("OIDC user info has no 'sub' claim. Cannot load user.");
+        throw new UnexpectedValueException("OIDC user info has no 'sub' claim. Cannot load user.");
+    }
+    $user['secretsId'] = $userInfo['sub'];
     if (isset($userInfo['roles'])) {
         $user['roles'] = is_array($userInfo['roles'])
             ? $userInfo['roles']
