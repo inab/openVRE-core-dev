@@ -8,6 +8,7 @@ tools/*
 openbao/config/
 openbao/data/*
 openbao/bootstrap/*
+openbao/secrets/*
 vendor/
 guacamole/
 

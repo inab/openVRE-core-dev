@@ -96,6 +96,9 @@ services:
       BAO_API_VERSION: ${BAO_API_VERSION}
       BAO_ROLENAME: ${BAO_ROLENAME}
       BAO_SECRET_PATH: ${BAO_SECRET_PATH}
+      BAO_ROLE_ID_FILE: /run/secrets/bao_role_id
+      BAO_SECRET_ID_FILE: /run/secrets/bao_secret_id
+
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./front_end/openVRE/public/:/var/www/html/openVRE/public
@@ -107,6 +110,9 @@ services:
       - ./shared_data:/shared_data
     ports:
       - "${FRONTEND_PORT}:80"
+    secrets:
+      - bao_role_id
+      - bao_secret_id
     networks:
       net_vre:
         ipv4_address: 172.21.0.14
@@ -150,6 +156,12 @@ volumes:
   mongo_data:
     name: ${MONGO_VOLUME}
 
+secrets:
+  bao_role_id:
+    file: ./openbao/secrets/role_id
+  bao_secret_id:
+    file: ./openbao/secrets/secret_id
+    
 networks:
   net_vre:
     name: ${NETWORK_NAME}

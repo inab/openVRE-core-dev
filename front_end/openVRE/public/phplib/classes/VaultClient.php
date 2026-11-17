@@ -37,7 +37,7 @@ class VaultClient
 		$curl = curl_init($url);
 		curl_setopt($curl, CURLOPT_RETURNTRANSFER, true);
 		curl_setopt($curl, CURLOPT_CUSTOMREQUEST, 'POST');
-		curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode($data));
+		curl_setopt($curl, CURLOPT_POSTFIELDS, json_encode(['data' => $data]));
 		curl_setopt($curl, CURLOPT_HTTPHEADER, $headers);
 		if (getenv('VAULT_CERT_CAFILE') !== false) {
 			curl_setopt($curl, CURLOPT_CAINFO, getenv('VAULT_CERT_CAFILE'));

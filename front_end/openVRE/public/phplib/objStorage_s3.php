@@ -33,7 +33,7 @@ function getS3Client(array $site)
     getObjectStorageS3Logger()->debug('Endpoint: ' . $endpoint);
     getObjectStorageS3Logger()->debug('Bucket: ' . $bucket);
 
-    $credentials = getS3Credentials($site);
+    $credentials = getS3Credentials($site['admin']);
     getObjectStorageS3Logger()->debug('S3 credentials obtained: ' . json_encode($credentials));
 
     getObjectStorageS3Logger()->debug(
@@ -81,18 +81,28 @@ function getS3Client(array $site)
     }
 }
 
-function getS3Credentials(array $site)
+
+function getS3Credentials(array $storageConfig): array
 {
-    $credentialRef = $site['credential_ref'] ?? null;
-    
-    getObjectStorageS3Logger()->debug('Credential ref: ' . $credentialRef);
-    
-    // TODO: replace with actual credential_ref/OpenBao lookup
-    // For now, using placeholder credentials
-    return [
-        'key' => 'admin',
-        'secret' => 'secret'
-    ];
+    $credentialRef = $storageConfig['credential_ref'] ?? null;
+
+    if (empty($credentialRef)) {
+        throw new \UnexpectedValueException(
+            'Storage credential reference is missing.'
+        );
+    }
+
+    if (str_starts_with($credentialRef, 'system/')) {
+        return (new \OpenVRE\SystemVaultClient())
+            ->getSeaweedCredentials($credentialRef);
+    }
+
+    // Future: retrieve the user's own credentials using JWT.
+    $vaultClient = \OpenVRE\VaultClientFactory::create();
+    // Implement the credentialRef-to-Site mapping here.
+    throw new \LogicException(
+        'User-specific SeaweedFS credentials are not implemented yet.'
+    );
 }
 
 function getS3Containers($s3Client)
