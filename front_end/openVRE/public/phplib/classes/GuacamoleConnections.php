@@ -12,51 +12,42 @@ namespace OpenVRE;
  * the session's Service) and gives the user READ permission on it.
  *
  * Environment variables: GUACAMOLE_DB_HOST, GUACAMOLE_DB_PORT (default 3306),
- * GUACAMOLE_DB_NAME, GUACAMOLE_DB_USER, GUACAMOLE_DB_PASSWORD.
+ * GUACAMOLE_DB_NAME (or GUACAMOLE_DB, as in docker-compose), GUACAMOLE_DB_USER,
+ * GUACAMOLE_DB_PASSWORD.
  */
 class GuacamoleConnections
 {
+    /** MySQL "duplicate key": another request created the same row first. */
+    private const DUPLICATE_KEY = '23000';
+
     private ?\PDO $db = null;
 
     /** Whether the database settings are present. */
     public static function configured(): bool
     {
-        foreach (array('GUACAMOLE_DB_HOST', 'GUACAMOLE_DB_NAME', 'GUACAMOLE_DB_USER') as $name) {
-            if ((string)getenv($name) === '') {
-                return false;
-            }
-        }
-        return true;
+        return (string)getenv('GUACAMOLE_DB_HOST') !== ''
+            && self::databaseName() !== ''
+            && (string)getenv('GUACAMOLE_DB_USER') !== '';
     }
 
     /**
-     * Creates the connection and returns its link (/guacamole/#/client/...).
-     * Throws on database errors.
+     * Creates the connection, gives the user READ permission on it, and
+     * returns its link (/guacamole/#/client/...). Throws on database errors.
      */
     public function create(string $username, string $name, string $host, int $port, string $protocol): string
     {
         if ($username === "") {
             throw new \RuntimeException("no username in the session");
         }
-        $db = $this->db();
-        $entityId = $this->entityId($username);
-        $db->beginTransaction();
         try {
-            $db->prepare("INSERT INTO guacamole_connection (connection_name, protocol) VALUES (?, ?)")
-                ->execute(array($name, $protocol));
-            $connectionId = (int)$db->lastInsertId();
-            $param = $db->prepare(
-                "INSERT INTO guacamole_connection_parameter (connection_id, parameter_name, parameter_value) VALUES (?, ?, ?)"
-            );
-            $param->execute(array($connectionId, 'hostname', $host));
-            $param->execute(array($connectionId, 'port', (string)$port));
-            $db->prepare(
-                "INSERT INTO guacamole_connection_permission (entity_id, connection_id, permission) VALUES (?, ?, 'READ')"
-            )->execute(array($entityId, $connectionId));
-            $db->commit();
-        } catch (\Throwable $e) {
-            $db->rollBack();
-            throw $e;
+            $connectionId = $this->createInTransaction($username, $name, $host, $port, $protocol);
+        } catch (\PDOException $e) {
+            // The user was created at the same moment by another request (or
+            // by Guacamole's own login): its row now exists, so one retry finds it.
+            if ((string)$e->getCode() !== self::DUPLICATE_KEY) {
+                throw $e;
+            }
+            $connectionId = $this->createInTransaction($username, $name, $host, $port, $protocol);
         }
         return "/guacamole/#/client/" . self::clientToken($connectionId);
     }
@@ -69,10 +60,82 @@ class GuacamoleConnections
         }
     }
 
+    /** User, connection and permission in one transaction; returns the connection id. */
+    private function createInTransaction(string $username, string $name, string $host, int $port, string $protocol): int
+    {
+        $db = $this->db();
+        $db->beginTransaction();
+        try {
+            $entityId = $this->lockOrCreateUser($username);
+
+            $db->prepare("INSERT INTO guacamole_connection (connection_name, protocol) VALUES (?, ?)")
+                ->execute(array($name, $protocol));
+            $connectionId = (int)$db->lastInsertId();
+            $db->prepare(
+                "INSERT INTO guacamole_connection_parameter (connection_id, parameter_name, parameter_value)
+                 VALUES (?, 'hostname', ?), (?, 'port', ?)"
+            )->execute(array($connectionId, $host, $connectionId, (string)$port));
+            $db->prepare(
+                "INSERT INTO guacamole_connection_permission (entity_id, connection_id, permission) VALUES (?, ?, 'READ')"
+            )->execute(array($entityId, $connectionId));
+
+            $db->commit();
+            return $connectionId;
+        } catch (\Throwable $e) {
+            if ($db->inTransaction()) {
+                $db->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    /**
+     * The user's entity id, locked for this transaction. Creates the entity
+     * and/or its user record when missing (Guacamole only lists connections
+     * for users that have both).
+     */
+    private function lockOrCreateUser(string $username): int
+    {
+        $db = $this->db();
+        $stmt = $db->prepare(
+            "SELECT e.entity_id, u.user_id
+             FROM guacamole_entity e
+             LEFT JOIN guacamole_user u ON u.entity_id = e.entity_id
+             WHERE e.name = ? AND e.type = 'USER'
+             FOR UPDATE"
+        );
+        $stmt->execute(array($username));
+        $row = $stmt->fetch();
+
+        if ($row) {
+            $entityId = (int)$row['entity_id'];
+        } else {
+            $db->prepare("INSERT INTO guacamole_entity (name, type) VALUES (?, 'USER')")->execute(array($username));
+            $entityId = (int)$db->lastInsertId();
+        }
+        if (!$row || $row['user_id'] === null) {
+            // A valid Guacamole password record for a password nobody knows:
+            // the login is always through Keycloak.
+            // Guacamole JDBC hash: SHA-256(password + uppercase hex of the salt).
+            $salt = random_bytes(32);
+            $hash = hash('sha256', bin2hex(random_bytes(32)) . strtoupper(bin2hex($salt)), true);
+            $db->prepare(
+                "INSERT INTO guacamole_user (entity_id, password_hash, password_salt, password_date)
+                 VALUES (?, ?, ?, CURRENT_TIMESTAMP)"
+            )->execute(array($entityId, $hash, $salt));
+        }
+        return $entityId;
+    }
+
     /** Guacamole's client id: base64url("<id>\0c\0mysql"). */
     private static function clientToken(int $connectionId): string
     {
         return rtrim(strtr(base64_encode($connectionId . "\0c\0mysql"), '+/', '-_'), '=');
+    }
+
+    private static function databaseName(): string
+    {
+        return (string)getenv('GUACAMOLE_DB_NAME') ?: (string)getenv('GUACAMOLE_DB');
     }
 
     private function db(): \PDO
@@ -83,7 +146,7 @@ class GuacamoleConnections
             }
             $port = (string)getenv('GUACAMOLE_DB_PORT') ?: '3306';
             $this->db = new \PDO(
-                "mysql:host=" . getenv('GUACAMOLE_DB_HOST') . ";port={$port};dbname=" . getenv('GUACAMOLE_DB_NAME') . ";charset=utf8mb4",
+                "mysql:host=" . getenv('GUACAMOLE_DB_HOST') . ";port={$port};dbname=" . self::databaseName() . ";charset=utf8mb4",
                 (string)getenv('GUACAMOLE_DB_USER'),
                 (string)getenv('GUACAMOLE_DB_PASSWORD'),
                 array(
@@ -94,44 +157,5 @@ class GuacamoleConnections
             );
         }
         return $this->db;
-    }
-
-    /**
-     * The user's Guacamole entity id, creating the user when it is missing (it
-     * gets a random password: the login is always through Keycloak).
-     */
-    private function entityId(string $username): int
-    {
-        $existing = $this->findEntityId($username);
-        if ($existing !== null) {
-            return $existing;
-        }
-        $db = $this->db();
-        $db->beginTransaction();
-        try {
-            $db->prepare("INSERT INTO guacamole_entity (name, type) VALUES (?, 'USER')")->execute(array($username));
-            $entityId = (int)$db->lastInsertId();
-            $db->prepare(
-                "INSERT INTO guacamole_user (entity_id, password_hash, password_salt, password_date) VALUES (?, UNHEX(?), UNHEX(?), NOW())"
-            )->execute(array($entityId, bin2hex(random_bytes(32)), bin2hex(random_bytes(32))));
-            $db->commit();
-            return $entityId;
-        } catch (\Throwable $e) {
-            $db->rollBack();
-            // Created at the same moment by another request (or by Guacamole itself).
-            $existing = $this->findEntityId($username);
-            if ($existing !== null) {
-                return $existing;
-            }
-            throw $e;
-        }
-    }
-
-    private function findEntityId(string $username): ?int
-    {
-        $stmt = $this->db()->prepare("SELECT entity_id FROM guacamole_entity WHERE name = ? AND type = 'USER'");
-        $stmt->execute(array($username));
-        $row = $stmt->fetch();
-        return $row ? (int)$row['entity_id'] : null;
     }
 }
