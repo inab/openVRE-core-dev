@@ -13,14 +13,12 @@ enum Site: string
 
     /**
      * Whether files from this site are registered in the workspace without
-     * being stored on local disk (they are only staged at job execution time)
+     * being stored on local disk (they are only staged at job execution time).
+     * Only local site files live on local disk.
      */
     public function isRemote(): bool
     {
-        return match ($this) {
-            self::EGA => true,
-            default => false,
-        };
+        return $this !== self::Local;
     }
 
     public static function isRemoteSource(?string $value): bool
