@@ -69,7 +69,7 @@ Every route also works under `/v1/...`. Every response is JSON with `"ok": true|
 | POST | `/jobs` | yes | Create a batch Job: `{"namespace": "...", "template": "openvre-batch-job", "params": {...}}`. Returns `name`, `template`. |
 | GET | `/jobs/<name>?namespace=` | yes | `{"exists", "status": {"state", "reason"}, "job": "<raw Job JSON string>"}` |
 | DELETE | `/jobs/<name>?namespace=` | yes | Delete a Job. Already gone is still `ok`. |
-| POST | `/interactive-sessions` | yes | Create a session: `{"namespace", "template", "context": {...}, "params": {...}}`. Returns `name`, `access`, `access_url`, `path_prefix`, `expires_at`. |
+| POST | `/interactive-sessions` | yes | Create a session: `{"namespace", "template", "context": {...}, "params": {...}}`. Returns `name`, `access`, `path_prefix`, `expires_at`. |
 | GET | `/interactive-sessions/<name>?namespace=` | yes | `{"exists", "state": "Running|Pending|Failed", "reason"}` |
 | DELETE | `/interactive-sessions/<name>?namespace=` | yes | Delete a session. Already gone is still `ok`. |
 | GET | `/gateway/routes` | gateway token | Traefik dynamic configuration for every web session (see [Gateway routes](#gateway-routes)). Header `X-OpenVRE-Gateway-Token`; the frontend's token is not accepted. 404 without a gateway. |
@@ -352,7 +352,7 @@ Most new tools need **no code change and no new template**: only a tool definiti
 
 Write a **new template** only when a tool needs a different *structure*: an extra container, an init container, a GPU node, another volume type, a different access method. Name it after the pattern (`gpu-web-session`), not the tool, so the next tool like it can reuse it. Put it in the template folder; the scheduler checks it at startup. A new Kubernetes object kind or access type needs a code change (policy and frontend).
 
-Tools without `infrastructure.k8s` keep working: the frontend maps their older fields (`container_image`, `container_port`, `interactive_access`, `proxy`, `executable`, ...) to `openvre-web-session` or, with `interactive_access.mode: guacamole`, to `openvre-desktop-session`.
+Tools without `infrastructure.k8s` use their usual fields (`container_image`, `container_port`, `interactive_access`, `proxy`, `executable`, ...): the frontend maps them to `openvre-web-session` or, with `interactive_access.mode: guacamole`, to `openvre-desktop-session`.
 
 ## Allowed images
 
@@ -395,7 +395,7 @@ Session templates can grow over time, so every filled-in session is checked befo
 
 ## Batch Job policy
 
-Every Job, whether filled in from a template or (only if `OPENVRE_ALLOW_RAW_JOB_MANIFESTS=1`) sent as a raw manifest, passes this policy before it is created. A mistake in a template therefore cannot produce a privileged or Secret-reading pod. The scheduler accepts the Job only if:
+Every Job filled in from a template passes this policy before it is created. A mistake in a template therefore cannot produce a privileged or Secret-reading pod. The scheduler accepts the Job only if:
 
 - it is `batch/v1` `Job`, named `openvre-bj-...`, in the request namespace
 - volumes are only `persistentVolumeClaim` (on the allowed PVC list) or `emptyDir`; no `secret`, `projected`, `configMap`, `hostPath`, ...
@@ -515,7 +515,6 @@ Read once at startup. The scheduler refuses to start (exit code 2, a `CRITICAL` 
 | `OPENVRE_MAX_SESSIONS_PER_USER` | `0` (off) | Concurrent sessions per user |
 | `OPENVRE_MAX_JOB_DEADLINE_SEC` | `604800` | Upper limit for a Job's `activeDeadlineSeconds` |
 | `OPENVRE_TEMPLATE_DIR` | `/app/templates` | Folder of workload templates (`*.yaml`, `*.yml`, `*.json`) |
-| `OPENVRE_ALLOW_RAW_JOB_MANIFESTS` | off | `1`: `POST /jobs` also accepts `{"manifest": {...}}` (still policy checked). Only for moving off old frontends. |
 | `OPENVRE_JOB_RUN_AS_UID` / `_GID` | `1000` | User and group batch Jobs and the audit sidecar run as; GID is also the session `fsGroup` (`{{ config.run_as_uid/gid }}`). Must not be 0 |
 | `OPENVRE_NODE_SELECTOR` | | `key=value,...` for session pods and batch Jobs |
 | `OPENVRE_TOLERATIONS` | | `key[=value]:Effect,...` for session pods and batch Jobs |
@@ -553,17 +552,3 @@ readinessProbe:
 ```
 
 The scheduler is stateless, so it can run with more than one replica. The per-user session limit is checked per replica, so two simultaneous requests on two replicas can exceed it by one.
-
-## Upgrading from the single-file scheduler (v1)
-
-- **Upgrade the scheduler and the frontend together.** The frontend now sends `{"template": "openvre-batch-job", "params": {...}}` to `/v1/jobs`; v1 expected a YAML manifest at `/jobs`. A v1 frontend gets 400 from this scheduler, and this frontend gets 404 from a v1 scheduler. If you cannot upgrade both at once, set `OPENVRE_ALLOW_RAW_JOB_MANIFESTS=1` for the transition; the old YAML still is not accepted, only JSON manifests.
-- Batch Job user/group now comes from the scheduler (`OPENVRE_JOB_RUN_AS_UID/GID`, default 1000), and node selector and tolerations from the scheduler's `OPENVRE_NODE_SELECTOR` / `OPENVRE_TOLERATIONS`. The frontend's `OPENVRE_K8S_NODE_SELECTOR`, `OPENVRE_K8S_TOLERATIONS` and `OPENVRE_K8S_TOOLS_PVC` are no longer read.
-- Interactive sessions are now created from `openvre-web-session` / `openvre-desktop-session`. The frontend sends `{"template", "context", "params"}` to `/v1/interactive-sessions`; tools without `infrastructure.k8s` are mapped automatically, so no tool definition has to change. The frontend no longer sends `run_as_uid/gid`, `userdata_pvc` or `admindata_pvc`, and no longer reads `OPENVRE_K8S_RUN_AS_UID/GID`, `OPENVRE_K8S_USERDATA_PVC` or `OPENVRE_K8S_ADMINDATA_PVC`: the scheduler's `OPENVRE_JOB_RUN_AS_GID`, `DEFAULT_USERDATA_PVC` and `DEFAULT_ADMINDATA_PVC` apply.
-- Sessions created before templates keep working for status and delete.
-- Tool memory above the template's `max` (16Gi) is rejected; raise `max` in `templates/openvre-batch-job.yaml` if a tool needs more.
-- Sessions and Jobs created by v1 keep working: status and delete accept their names and labels.
-- `OPENVRE_STRICT`, `OPENVRE_ALLOWED_REGISTRIES` and `OPENVRE_IMAGE_ALLOWLIST` now take effect (v1 did not check images). They apply to **batch Jobs and sessions**. With strict on, check that every batch tool image (and `OPENVRE_K8S_JOB_IMAGE` on the frontend) is covered before upgrading. With strict off, nothing is blocked; other images are only logged.
-- Batch Jobs no longer list the unused `tools` PVC volume, so `DEFAULT_TOOLS_PVC` is not needed.
-- If the audit sidecar is on, `OPENVRE_INTERACTIVE_AUDIT_IMAGE` must be set or the scheduler will not start.
-- New, all optional: `OPENVRE_ALLOWED_NAMESPACES`, `OPENVRE_IMAGE_PULL_SECRETS`, `OPENVRE_ALLOWED_PULL_SECRETS`, `OPENVRE_SESSION_TTL_HOURS`, `OPENVRE_MAX_SESSIONS_PER_USER`, `OPENVRE_MAX_SESSION_CPU/MEMORY`.
-- Add the liveness and readiness probes above to the scheduler Deployment.

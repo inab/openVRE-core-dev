@@ -147,7 +147,7 @@ function checkStatusK8s($pid, $job)
             "message" => $messages[$reason] ?? "The session is starting. This page refreshes on its own."];
     }
 
-    $url = (string)($job['access_path'] ?? ($job['interactive_tool']['access_url'] ?? ""));
+    $url = (string)($job['access_path'] ?? "");
     if ($url === "") {
         return ["ready" => false, "reload" => false, "title" => "Session URL missing",
             "message" => "The session is running, but its address was not saved. Stop it and start it again."];

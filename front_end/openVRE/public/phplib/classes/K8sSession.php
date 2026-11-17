@@ -58,16 +58,20 @@ class K8sSession
         }
 
         $access = is_array($data["access"] ?? null) ? $data["access"] : array();
-        if (($access["type"] ?? "web") !== "guacamole") {
-            $this->accessUrl = (string)($access["url"] ?? ($data["access_url"] ?? ""));
+        if (($access["type"] ?? "") === "web") {
+            $this->accessUrl = (string)($access["url"] ?? "");
             return true;
+        }
+        if (($access["type"] ?? "") !== "guacamole") {
+            $this->stop($this->pid);
+            return $this->failed("scheduler returned an unknown access type");
         }
         try {
             $this->accessUrl = (new GuacamoleConnections())->create(
                 self::guacamoleUsername(),
                 $this->pid,
                 // Service DNS name without the cluster domain (not always cluster.local).
-                ($access["host"] ?? $this->pid) . "." . $this->scheduler->namespace() . ".svc",
+                $access["host"] . "." . $this->scheduler->namespace() . ".svc",
                 (int)($access["port"] ?? 0),
                 strtolower(trim((string)($access["protocol"] ?? ""))) ?: "vnc"
             );

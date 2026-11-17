@@ -80,11 +80,6 @@ class ProcessK8s
         }
     }
 
-    public static function isBatchJobPid(string $pid): bool
-    {
-        return str_starts_with($pid, self::BATCH_JOB_PREFIX);
-    }
-
     /** A unique, Kubernetes-safe Job name (at most 63 characters). */
     private function jobName(string $name): string
     {

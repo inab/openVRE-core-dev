@@ -312,17 +312,6 @@ class CreateDeleteTests(unittest.TestCase):
         self.assertEqual(self.kube.objects, {})
         self.assertEqual(sessions.delete(self.kube, self.s, "openvre", spec.name), (False, []))
 
-    def test_delete_by_name_without_session_label(self):
-        """The Deployment and Service are also found by name (always the session name)."""
-        name = "openvre-ix-rstudio-abc12345"
-        lbl = {"openvre.io/interactive": "true", "app": name}
-        for kind, path, oname in (("Deployment", DEP_PATH, name),
-                                  ("Service", "/api/v1/namespaces/openvre/services", name)):
-            self.kube.objects[f"{path}/{oname}"] = {"kind": kind, "metadata": {"name": oname, "labels": lbl}}
-        found, errors = sessions.delete(self.kube, self.s, "openvre", name)
-        self.assertEqual((found, errors), (True, []))
-        self.assertEqual(self.kube.objects, {})
-
     def test_delete_records_kinds(self):
         """A web session records its kinds (gateway: no Ingress, no ConfigMap); the stop deletes exactly those."""
         spec = self.create()

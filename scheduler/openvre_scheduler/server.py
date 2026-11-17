@@ -236,7 +236,7 @@ class Handler(BaseHTTPRequestHandler):
             job, template = jobs.create(kube, s, self.templates, ns, body, owner=self.user.owner if self.user else None)
             name = job.get("metadata", {}).get("name", "")
             log.info("job created", extra={"request_id": self.request_id, "job": name, "namespace": ns,
-                                           "template": template or "(raw manifest)"})
+                                           "template": template})
             return self._send(201, {"ok": True, "name": name, "template": template,
                                     "stdout": f"job.batch/{name} created", "stderr": ""})
         if len(segs) != 2:
@@ -248,10 +248,8 @@ class Handler(BaseHTTPRequestHandler):
             if job is not None and not may_access(self.user, job, s):
                 job = None  # someone else's Job: answer as if it did not exist
             if job is None:
-                return self._send(200, {"ok": True, "exists": False, "job": ""})
-            return self._send(200, {"ok": True, "exists": True, "status": jobs.summarize(job),
-                                    # Raw Job kept as a string for frontends that parse it themselves.
-                                    "job": json.dumps(job)})
+                return self._send(200, {"ok": True, "exists": False})
+            return self._send(200, {"ok": True, "exists": True, "status": jobs.summarize(job)})
         if method == "DELETE":
             job = jobs.get(kube, ns, name)
             if job is not None and not may_access(self.user, job, s):
@@ -289,7 +287,6 @@ class Handler(BaseHTTPRequestHandler):
                 # How to reach the session: {"type": "web", "url"} or
                 # {"type": "guacamole", "host", "port", "protocol"}.
                 "access": spec.access,
-                "access_url": spec.access.get("url", ""),
                 "path_prefix": spec.path_prefix,
                 "audit_host_path": spec.audit_host_path,
                 "expires_at": spec.expires_at,
@@ -303,9 +300,8 @@ class Handler(BaseHTTPRequestHandler):
             if st is not None and not may_access(self.user, st["deployment"], s):
                 st = None
             if st is None:
-                return self._send(200, {"ok": True, "exists": False, "deployment": ""})
-            out = {"ok": True, "exists": True, "state": st["state"], "reason": st.get("reason", ""),
-                   "deployment": json.dumps(st["deployment"])}
+                return self._send(200, {"ok": True, "exists": False})
+            out = {"ok": True, "exists": True, "state": st["state"], "reason": st.get("reason", "")}
             if st.get("message"):
                 out["message"] = st["message"]
             return self._send(200, out)
@@ -366,7 +362,7 @@ def main():
         "version": __version__, "port": settings.listen_port, "namespaces": settings.allowed_namespaces,
         "strict": settings.strict, "audit": settings.audit_enabled,
         "session_ttl_hours": settings.session_ttl_hours, "max_sessions_per_user": settings.max_sessions_per_user,
-        "templates": sorted(tpls), "raw_job_manifests": settings.allow_raw_job_manifests,
+        "templates": sorted(tpls),
         "user_token": settings.user_token,
     })
     server.serve_forever()

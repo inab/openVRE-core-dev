@@ -110,7 +110,6 @@ class Settings:
 
     # Workload templates
     template_dir: str = ""
-    allow_raw_job_manifests: bool = False
 
     # Audit
     audit_enabled: bool = False
@@ -196,9 +195,6 @@ def load(env=None):
 
     default_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "templates")
     s.template_dir = _str(env, "OPENVRE_TEMPLATE_DIR") or default_dir
-    # Off: POST /jobs only accepts {template, params}. On: raw manifests are also
-    # accepted (still checked by the Job policy). Only for moving off old frontends.
-    s.allow_raw_job_manifests = _bool(env, "OPENVRE_ALLOW_RAW_JOB_MANIFESTS", False)
 
     s.audit_enabled = _bool(env, "OPENVRE_INTERACTIVE_AUDIT_SIDECAR_ENABLED", False)
     s.audit_image = _str(env, "OPENVRE_INTERACTIVE_AUDIT_IMAGE")

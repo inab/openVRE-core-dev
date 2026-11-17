@@ -204,26 +204,19 @@ def status(kube, ns, name):
 
 
 def _session_objects(kube, ns, name):
-    """(kind, name, object) for every object of a session, found by the session label.
-    Only the kinds recorded on its Deployment are looked up, so stopping a desktop
-    session needs no rights on ConfigMaps. Sessions without that record (older
-    schedulers) get every kind, plus the Deployment and Service by name."""
+    """(kind, name) -> object for every object of a session: the kinds recorded on
+    its Deployment, found by the session label. Only those kinds are looked up,
+    so stopping a desktop session needs no rights on ConfigMaps. The Deployment
+    is deleted last, so an interrupted stop can be retried."""
     dep = kube.get(_object_path("Deployment", ns, name))
-    recorded = ((dep or {}).get("metadata", {}).get("annotations") or {}).get(mf.KINDS_ANNOTATION, "")
-    kinds = [k for k in mf.API_PATHS if k in recorded.split(",")] if recorded else list(mf.API_PATHS)
+    if dep is None:
+        return {}
+    recorded = (dep.get("metadata", {}).get("annotations") or {}).get(mf.KINDS_ANNOTATION, "")
     found = {}
-    for kind in kinds:
+    for kind in (k for k in mf.API_PATHS if k in recorded.split(",") and k != "Deployment"):
         for obj in kube.list(mf.API_PATHS[kind].format(ns=q(ns)), f"{mf.SESSION_LABEL}={name}"):
             found[(kind, obj["metadata"]["name"])] = obj
-    if dep is not None:
-        found[("Deployment", name)] = dep
-    if recorded:
-        return found
-    for kind, obj_name in (("Service", name), ("Deployment", name)):
-        if (kind, obj_name) not in found:
-            obj = kube.get(_object_path(kind, ns, obj_name))
-            if obj is not None:
-                found[(kind, obj_name)] = obj
+    found[("Deployment", name)] = dep
     return found
 
 
@@ -243,7 +236,8 @@ def delete(kube, settings, ns, name, reason="delete"):
             audit.safe(audit.snapshot_delete, kube, settings, audit_dir, ns, name, reason)
     found = False
     # Service first: the gateway drops the route before the backend disappears.
-    order = {"Service": 0, "Deployment": 1, "ConfigMap": 2}
+    # Deployment last: it records the session's kinds for a retry.
+    order = {"Service": 0, "ConfigMap": 1, "Deployment": 2}
     for (kind, obj_name), obj in sorted(objs.items(), key=lambda kv: order[kv[0][0]]):
         if not _is_managed(obj):
             log.warning("refusing to delete unmanaged object", extra={"kind": kind, "name": obj_name})

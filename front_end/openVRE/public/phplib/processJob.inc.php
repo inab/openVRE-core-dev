@@ -96,8 +96,8 @@ function execJob($workDir, $shFile, $queue, $cpus = 1, $mem = 0, $logFile = "job
 
 /**
  * The launcher a job was started with. Callers that know the job pass it; for
- * the others it is read from the saved job. Only jobs saved without one fall
- * back to guessing from the pid.
+ * the others it is read from the saved job. Numeric pids without a saved
+ * launcher are SGE jobs, as before.
  */
 function jobLauncher($pid, $launcherType = null, $login = null)
 {
@@ -115,9 +115,6 @@ function jobLauncher($pid, $launcherType = null, $login = null)
     }
     if (is_numeric($pid)) {
         return "SGE";
-    }
-    if (ProcessK8s::isBatchJobPid($pid)) {
-        return "kubernetes_native";
     }
     return null;
 }

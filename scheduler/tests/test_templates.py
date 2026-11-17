@@ -208,8 +208,8 @@ class JobsBuildTests(unittest.TestCase):
             jobs.build({"template": "nope", "params": {}}, "openvre", self.s, self.tpls)
         self.assertEqual(cm.exception.status, 404)
 
-    def test_raw_manifest_off_by_default(self):
-        with self.assertRaisesRegex(v.ValidationError, "raw manifests are disabled"):
+    def test_raw_manifest_rejected(self):
+        with self.assertRaisesRegex(v.ValidationError, "template"):
             jobs.build({"manifest": {}}, "openvre", self.s, self.tpls)
 
 

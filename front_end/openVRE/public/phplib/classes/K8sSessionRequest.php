@@ -6,11 +6,11 @@ namespace OpenVRE;
  * Builds the scheduler request for an interactive session from a tool
  * definition plus OpenVRE's context (user, project, run folder, mounts).
  *
- * Template and parameters come from the tool:
+ * Template and parameters come from the tool's usual fields (container_image,
+ * container_port, interactive_access, proxy, cpus, memory, ...); see
+ * toolFieldsTemplate(). A tool can instead name a scheduler template directly:
  *   infrastructure.k8s.template  e.g. "openvre-web-session", "openvre-desktop-session"
  *   infrastructure.k8s.params    sent to the scheduler as they are (image, port, cpu, memory, env, ...)
- * Tools without infrastructure.k8s use their older fields (container_image,
- * container_port, interactive_access, proxy, ...); see legacyTemplate().
  *
  * Nothing tool-specific is decided here: a new tool needs a tool definition,
  * not a code change.
@@ -110,7 +110,7 @@ class K8sSessionRequest
         if (!empty($k8s['template'])) {
             return array((string)$k8s['template'], is_array($k8s['params'] ?? null) ? $k8s['params'] : array());
         }
-        return self::legacyTemplate($infra, $cpus ?? ($infra['cpus'] ?? 1), $memory ?? ($infra['memory'] ?? 2));
+        return self::toolFieldsTemplate($infra, $cpus ?? ($infra['cpus'] ?? 1), $memory ?? ($infra['memory'] ?? 2));
     }
 
     /** Where the run folder appears in the container. */
@@ -139,10 +139,10 @@ class K8sSessionRequest
     }
 
     /**
-     * Template and parameters for tools registered before infrastructure.k8s:
+     * Template and parameters from the tool's usual fields:
      * interactive_access.mode "guacamole" -> desktop template, else web template.
      */
-    private static function legacyTemplate(array $infra, $cpus, $memory): array
+    private static function toolFieldsTemplate(array $infra, $cpus, $memory): array
     {
         $access = is_array($infra['interactive_access'] ?? null) ? $infra['interactive_access'] : array();
         $desktop = strtolower(trim((string)($access['mode'] ?? ''))) === 'guacamole';

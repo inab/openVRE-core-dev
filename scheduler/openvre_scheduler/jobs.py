@@ -1,6 +1,5 @@
-"""Batch Jobs: create from a template (or, if allowed, a raw manifest), read status, delete."""
+"""Batch Jobs: create from a template, read status, delete."""
 
-import json
 import logging
 
 from . import policy
@@ -18,43 +17,21 @@ def _path(ns, name=None):
     return base if name is None else f"{base}/{q(name)}"
 
 
-def parse_manifest(raw):
-    """A raw Job manifest as a JSON object (older frontends: a JSON string)."""
-    if isinstance(raw, dict):
-        return raw
-    if isinstance(raw, str):
-        try:
-            obj = json.loads(raw)
-        except ValueError:
-            raise v.ValidationError("manifest must be JSON (YAML is not accepted)")
-        if isinstance(obj, dict):
-            return obj
-    raise v.ValidationError("manifest must be a JSON object")
-
-
 def build(body, ns, settings, templates):
-    """Turn a POST /jobs body into a checked Job. Returns (job, template name or "")."""
-    if "template" in body:
-        name = v.plain_text(body.get("template"), "template", 63, required=True)
-        tpl = templates.get(name)
-        v.require(tpl is not None, f"unknown template {name!r}", 404)
-        v.require(tpl.kind == "Job", f"template {name!r} does not create a Job")
-        manifest, _ = tpl.render(body.get("params") or {}, settings)
-        source = name
-    elif "manifest" in body:
-        v.require(settings.allow_raw_job_manifests,
-                  "raw manifests are disabled; send {\"template\": ..., \"params\": {...}}", 400)
-        manifest = parse_manifest(body["manifest"])
-        source = ""
-    else:
-        raise v.ValidationError("send {\"template\": ..., \"params\": {...}}")
+    """Turn a POST /jobs body into a checked Job. Returns (job, template name)."""
+    v.require("template" in body, "send {\"template\": ..., \"params\": {...}}")
+    name = v.plain_text(body.get("template"), "template", 63, required=True)
+    tpl = templates.get(name)
+    v.require(tpl is not None, f"unknown template {name!r}", 404)
+    v.require(tpl.kind == "Job", f"template {name!r} does not create a Job")
+    manifest, _ = tpl.render(body.get("params") or {}, settings)
 
     # The policy runs on templated Jobs too: a mistake in a template file must
     # not be able to produce a privileged or secret-reading pod.
     job, errors = policy.check_job(manifest, ns, settings, log)
     if errors:
         raise v.ValidationError("job rejected by policy: " + "; ".join(errors), 422)
-    return job, source
+    return job, name
 
 
 def create(kube, settings, templates, ns, body, owner=None):

@@ -38,7 +38,6 @@ class Tooljob
 
 	public $containerName;
 	public $access_path;
-	public $interactive_tool = array();
 
 	// Paths to files genereted during ToolJob execution
 	public $config_file;
@@ -1590,11 +1589,6 @@ class Tooljob
 		// The session's own URL: a gateway path for web tools, a Guacamole link for desktops.
 		$this->access_path = $session->getAccessUrl();
 		$this->containerName = $this->pid;
-		$this->interactive_tool = array(
-			"container_name" => $this->pid,
-			"access_url" => $this->access_path,
-			"k8s_name" => $this->pid,
-		);
 
 		$this->logger->info("K8s interactive session started tool={$this->toolId} pid={$this->pid} url={$this->access_path}");
 		return $this->pid;

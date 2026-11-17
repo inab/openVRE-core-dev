@@ -28,7 +28,7 @@ def batch(**overrides):
 
 class ServerTests(unittest.TestCase):
     def setUp(self):
-        self.s = settings(SCHEDULER_MAX_BODY_BYTES="200000", OPENVRE_ALLOW_RAW_JOB_MANIFESTS="1")
+        self.s = settings(SCHEDULER_MAX_BODY_BYTES="200000")
         self.s.listen_host, self.s.listen_port = "127.0.0.1", 0
         self.kube = FakeKube()
         self.srv = server.make_server(self.s, self.kube, TPLS)
@@ -82,7 +82,7 @@ class ServerTests(unittest.TestCase):
         status, body, _ = self.call("GET", f"/jobs/{name}?namespace=openvre")
         self.assertTrue(body["exists"])
         self.assertEqual(body["status"]["state"], "Pending")
-        self.assertIsInstance(body["job"], str)  # kept for older frontends
+        self.assertNotIn("job", body)
         path = f"/apis/batch/v1/namespaces/openvre/jobs/{name}"
         self.kube.objects[path]["status"] = {"failed": 1, "conditions": [
             {"type": "Failed", "status": "True", "reason": "DeadlineExceeded"}]}
@@ -92,22 +92,15 @@ class ServerTests(unittest.TestCase):
         _, body, _ = self.call("DELETE", f"/jobs/{name}?namespace=openvre")
         self.assertIn("already deleted", body["stdout"])
 
-    def test_job_policy_rejection(self):
-        m = php_job_manifest()
-        m["spec"]["template"]["spec"]["volumes"].append({"name": "s", "secret": {"secretName": "x"}})
-        status, body, _ = self.call("POST", "/jobs", {"namespace": "openvre", "manifest": m})
-        self.assertEqual(status, 422)
-        self.assertIn("policy", body["error"])
-        self.assertEqual(self.kube.objects, {})
-
-    def test_yaml_manifest_rejected(self):
-        status, body, _ = self.call("POST", "/jobs", {"namespace": "openvre", "manifest": "apiVersion: batch/v1\nkind: Job\n"})
+    def test_raw_manifest_rejected(self):
+        status, body, _ = self.call("POST", "/jobs", {"namespace": "openvre", "manifest": php_job_manifest()})
         self.assertEqual(status, 400)
-        self.assertIn("JSON", body["error"])
+        self.assertIn("template", body["error"])
+        self.assertEqual(self.kube.objects, {})
 
     def test_namespace_forbidden(self):
         self.assertEqual(self.call("GET", "/jobs/openvre-bj-x?namespace=kube-system")[0], 403)
-        status, _, _ = self.call("POST", "/jobs", {"namespace": "kube-system", "manifest": php_job_manifest(ns="kube-system")})
+        status, _, _ = self.call("POST", "/jobs", {**batch(), "namespace": "kube-system"})
         self.assertEqual(status, 403)
 
     def test_path_tricks_rejected(self):
@@ -130,8 +123,8 @@ class ServerTests(unittest.TestCase):
         status, body, _ = self.call("POST", "/interactive-sessions", session_body())
         self.assertEqual(status, 201, body)
         name = body["name"]
-        self.assertEqual(body["access_url"], "/interactive-tool/" + name[len("openvre-ix-"):] + "/")
-        self.assertEqual(body["access"], {"type": "web", "url": body["access_url"]})
+        self.assertEqual(body["access"], {"type": "web", "url": "/interactive-tool/" + name[len("openvre-ix-"):] + "/"})
+        self.assertNotIn("access_url", body)
         self.assertEqual(body["template"], "openvre-web-session")
         _, body, _ = self.call("GET", f"/interactive-sessions/{name}?namespace=openvre")
         self.assertEqual((body["exists"], body["state"]), (True, "Pending"))
@@ -151,7 +144,6 @@ class ServerTests(unittest.TestCase):
         status, body, _ = self.call("POST", "/v1/interactive-sessions", desktop_body())
         self.assertEqual(status, 201, body)
         self.assertEqual(body["access"], {"type": "guacamole", "host": body["name"], "port": 5901, "protocol": "vnc"})
-        self.assertEqual(body["access_url"], "")
 
     def test_k8s_unreachable_is_503(self):
         self.kube.unreachable = True
@@ -171,13 +163,6 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(status, 404)
         status, body, _ = self.call("POST", "/jobs", {"namespace": "openvre"})
         self.assertEqual(status, 400)
-
-    def test_raw_manifest_can_be_disabled(self):
-        self.s.allow_raw_job_manifests = False
-        status, body, _ = self.call("POST", "/jobs", {"namespace": "openvre", "manifest": php_job_manifest()})
-        self.assertEqual(status, 400)
-        self.assertIn("raw manifests are disabled", body["error"])
-        self.s.allow_raw_job_manifests = True
 
     def test_list_templates(self):
         self.assertEqual(self.call("GET", "/v1/templates", token=None)[0], 401)
