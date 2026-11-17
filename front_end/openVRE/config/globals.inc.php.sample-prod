@@ -72,7 +72,7 @@ $GLOBALS['adminRealm']             = $GLOBALS['authServer']."/admin/realms/".$GL
 $GLOBALS['baoUrl'] = getenv('BAO_ADDR') . "/" . getenv('BAO_API_VERSION');
 $GLOBALS['baoRolename'] = getenv('BAO_ROLENAME');
 $GLOBALS['baoSecretPath'] = getenv('BAO_SECRET_PATH');
-
+$GLOBALS['baoCertFilePath'] = getenv("BAO_SSL_CAFILE");
 
 // EGA
 $GLOBALS['EGA_METADATA_TOKEN_ENDPOINT'] = 'https://idp.ega-archive.org/realms/EGA/protocol/openid-connect/token';
