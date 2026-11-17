@@ -28,7 +28,7 @@ class DataTransfer
     }
 
 
-    public function syncFiles(): array
+    public function syncFiles(string $userSecretsId): array
     {
         // Step 1: Get Data Locations
         try {
@@ -43,8 +43,8 @@ class DataTransfer
             return [];
         }
 
-        $vaultClient = VaultClientFactory::create();
-        $sshCredentials = $vaultClient->retrieveDatafromVault(Site::SSH);
+        $sshAccount = new SshLinkedAccount();
+        $sshCredentials = $sshAccount->getCredentials($userSecretsId);
 
         // Step 5: Create the rsync command using data locations
         $localDir = preg_replace('#/+#', '/', $this->workingDirPath);
@@ -80,7 +80,7 @@ class DataTransfer
     }
 
 
-    public function syncWorkingDir(): void
+    public function syncWorkingDir(string $userSecretsId): void
     {
         $this->logger->debug("syncWorkingDir - starting to sync local dir: " . $this->workingDirPath);
 
@@ -103,8 +103,8 @@ class DataTransfer
         $this->logger->debug("syncWorkingDir - localDir: $localDir");
 
         // Step 2: Get SSH credentials from Vault
-        $vaultClient = VaultClientFactory::create();
-        $sshCredentials = $vaultClient->retrieveDatafromVault(Site::SSH);
+        $sshAccount = new SshLinkedAccount();
+        $sshCredentials = $sshAccount->getCredentials($userSecretsId);
         $siteList = $this->arguments_exec['site_list'] ?? [];
         if (!is_array($siteList) || empty($siteList)) {
             $this->logger->error("No valid site list provided in arguments_exec.");

@@ -52,7 +52,7 @@ redirectOutside();
 					<p><img src="assets/layouts/layout/img/help/Launch01.png" style="width:800px;max-width:100%;" /></p>
 
           
-          <p>Upload prediction files to evaluate and click on compute </p> <p> info please look at the Help section on <a href="https://dev-openebench.bsc.es/vre/help/upload.php">Get Data</a></p>          
+          <p> Select input files and write the parameters </p>
 
           <p><img src="assets/layouts/layout/img/help/Launch02.png" style="width:800px;max-width:100%;" /></p>
           

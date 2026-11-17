@@ -2,7 +2,20 @@
 
 require __DIR__ . "/../../config/bootstrap.php";
 
+use OpenVRE\LoggerFactory;
+
 redirectOutside();
+
+function getToolListLogger()
+{
+	static $logger = null;
+
+	if ($logger === null) {
+		$logger = LoggerFactory::getLogger('Tool list interface');
+	}
+
+	return $logger;
+}
 
 $toolsHelp = getSingleTool_Help($_REQUEST["toolID"], $_REQUEST["op"]);
 
@@ -10,6 +23,11 @@ $dt_list = json_decode($_REQUEST["dt_list"]);
 $ft_list = json_decode($_REQUEST["ft_list"]);
 $multiple = json_decode($_REQUEST["multiple"]);
 $file_selected = json_decode($_REQUEST["file_selected"]);
+
+if ( is_null($dt_list) || is_null($ft_list)) {
+	getToolListLogger()->error("No data types or formats defined.");
+	throw new UnexpectedValueException("No data types or formats defined. Check your tool configuration.");
+}
 
 $files_list = getGSFiles_filteredBy(["data_type" => ['$in' => $dt_list], "format" => ['$in' => $ft_list], "visible" => true]);
 

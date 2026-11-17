@@ -15,10 +15,6 @@
     "keywords": [
       "genomics"
     ],
-    "keywords_tool": [
-      "Demonstrator",
-      "EGA"
-    ],
     "infrastructure": {
       "memory": 4,
       "cpus": 1,

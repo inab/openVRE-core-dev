@@ -1,5 +1,18 @@
 <?php
 
+use OpenVRE\LoggerFactory;
+
+function getRedirectLogger()
+{
+    static $logger = null;
+
+    if ($logger === null) {
+        $logger = LoggerFactory::getLogger('Redirect interface');
+    }
+
+    return $logger;
+}
+
 function redirect($url)
 {
 	header("Location:$url");
@@ -15,12 +28,13 @@ function moment()
 function redirectOutside()
 {
 	if (checkLoggedIn()) {
-		loadUser($_SESSION['User']['_id'], false);
+		$user = loadUser($_SESSION['userId'], false);
 	} else {
 		header("Location: /login.php");
+		exit;
 	}
 
-	if (!checkTermsOfUse() && (pathinfo($_SERVER['PHP_SELF'])['filename'] != 'usrProfile')) {
+	if (!checkTermsOfUse($user) && pathinfo($_SERVER['PHP_SELF'])['filename'] != 'usrProfile') {
 		redirect($GLOBALS['BASEURL'] . "user/usrProfile.php");
 	}
 }

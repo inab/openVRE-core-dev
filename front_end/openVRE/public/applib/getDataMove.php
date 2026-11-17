@@ -19,7 +19,7 @@ function collectMoveTargetDirsRecursive($dirId, $projectPath, &$dirs)
 		return;
 	}
 
-	if (isset($dir['path']) && $dir['path'] == $_SESSION['User']['id']) {
+	if (isset($dir['path']) && $dir['path'] == $_SESSION['internalUserId']) {
 		return;
 	}
 

@@ -10,6 +10,16 @@
         }
     },
     {
+        "_id": "local_ega",
+        "name": "Local Docker Infrastructure (EGA)",
+        "type": 2,
+        "launcher": {
+            "accessible_via": null,
+            "job_manager": "docker_SGE_EGA",
+            "container": "Docker"
+        }
+    },
+    {
         "_id": "MareNostrum",
         "name": "MareNostrum HPC Infrastructure",
         "type": 2,

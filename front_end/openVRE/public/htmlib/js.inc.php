@@ -53,11 +53,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 			<script src="assets/global/plugins/select2/js/select2.full.min.js" type="text/javascript"></script>
 		<?php }
 		break;
-	case 'lockScreen': ?>
-		<script src="assets/global/plugins/jquery-validation/js/jquery.validate.min.js" type="text/javascript"></script>
-		<script src="assets/global/plugins/jquery-validation/js/additional-methods.min.js" type="text/javascript"></script>
-	<?php
-		break;
 	case 'datasets': ?>
 		<script src="assets/global/scripts/datatable.js" type="text/javascript"></script>
 		<script src="assets/global/plugins/datatables/datatables.min.js" type="text/javascript"></script>
@@ -226,9 +221,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 			<script src="assets/pages/scripts/login.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 		<?php } ?>
 	<?php break;
-	case 'lockScreen': ?>
-		<script src="assets/pages/scripts/lock.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
-	<?php break;
 	case 'usrProfile': ?>
 		<script src="assets/pages/scripts/profile.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 	<?php break;
@@ -245,7 +237,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 	<?php break;
 	case 'editFile': ?>
 		<script src="assets/pages/scripts/form-validatefiles.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
-		<script src="assets/pages/scripts/get-taxon-id.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 	<?php break;
 	case 'editFile_v2': ?>
 		<script src="assets/pages/scripts/editFile_v2.js?v=<?php echo rand(); ?>" type="text/javascript"></script>

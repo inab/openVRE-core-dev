@@ -66,21 +66,22 @@
 
                 <!-- Pagination -->
                 <div class="pagination">
+                    <?php $egaPageUrl = "getdata/uploadForm.php?page="; ?>
                     <?php if ($currentPage > 1): ?>
-                        <a href="/EGA?page=<?php echo $currentPage - 1; ?>">&laquo; Previous</a>
+                        <a href="<?php echo $egaPageUrl . ($currentPage - 1); ?>#load_from_ega">&laquo; Previous</a>
                     <?php endif; ?>
 
                     <?php
                     $start_page = max(1, $currentPage - 10);
-                    $end_page = min($total_pages, $currentPage + 9);
+                    $end_page = $total_pages;
 
                     for ($i = $start_page; $i <= $end_page; $i++): ?>
-                        <a href="/EGA?page=<?php echo $i; ?>"
+                        <a href="<?php echo $egaPageUrl . $i; ?>#load_from_ega"
                             class="<?php echo $i == $currentPage ? 'active' : ''; ?>"><?php echo $i; ?></a>
                     <?php endfor; ?>
 
-                    <?php if ($currentPage < $total_pages): ?>
-                        <a href="/EGA?page=<?php echo $currentPage + 1; ?>">Next &raquo;</a>
+                    <?php if ($hasNextPage): ?>
+                        <a href="<?php echo $egaPageUrl . ($currentPage + 1); ?>#load_from_ega">Next &raquo;</a>
                     <?php endif; ?>
                 </div>
             </div>
@@ -96,6 +97,13 @@
 
 
 <script>
+    // Reopen the EGA tab after following a datasets pagination link
+    window.addEventListener('load', function () {
+        if (window.location.hash === '#load_from_ega' && window.jQuery) {
+            jQuery('.nav-tabs a[href="#load_from_ega"]').tab('show');
+        }
+    });
+
     document.addEventListener('DOMContentLoaded', function () {
         const rows = document.querySelectorAll('.dataset-row');
         rows.forEach(row => {
@@ -114,8 +122,11 @@
         });
     });
 
+    const filesPerPage = 10;
+
     function fetchFiles(accessionId, offset, fileListBody, filePagination) {
-        fetch(`getdata/fetchEgaDatasets.php?action=fetch_files&accession_id=${accessionId}&offset=${offset}&limit=10`)
+        // One extra file is requested to know whether there is a next page
+        fetch(`getdata/fetchEgaDatasets.php?action=fetch_files&accession_id=${accessionId}&offset=${offset}&limit=${filesPerPage + 1}`)
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
@@ -130,10 +141,15 @@
                 }
 
                 fileListBody.innerHTML = ''; // Clear previous file list
-
-                data.filter(file => file.locations.includes('crg')).forEach(file => {
+                const hasNextFilesPage = data.length > filesPerPage;
+                data = data.slice(0, filesPerPage);
+                egaLocations = ['crg', 'spain'];
+                data.filter(file => file.locations.some(location => egaLocations.includes(location))).forEach(file => {
                     const row = document.createElement('tr');
                     row.dataset.datasetId = accessionId;
+                    row.dataset.fileId = file.accession_id;
+                    row.dataset.displayName = file.display_name;
+                    row.dataset.fileSize = file.filesize;
 
                     // Convert filesize from bytes to MB or GB
                     const filesize = file.filesize;
@@ -156,9 +172,6 @@
 
                 // Add pagination controls
                 filePagination.innerHTML = '';
-                const totalFiles = data.length;
-                const filesPerPage = 5;
-                const totalFilePages = Math.ceil(totalFiles / filesPerPage);
 
                 if (offset > 0) {
                     const prevButton = document.createElement('button');
@@ -167,7 +180,7 @@
                     filePagination.appendChild(prevButton);
                 }
 
-                if (offset + filesPerPage < totalFiles) {
+                if (hasNextFilesPage) {
                     const nextButton = document.createElement('button');
                     nextButton.innerText = 'Next';
                     nextButton.addEventListener('click', () => fetchFiles(accessionId, offset + filesPerPage, fileListBody, filePagination));
@@ -180,59 +193,53 @@
     }
 
     document.getElementById('add-to-workspace').addEventListener('click', function () {
-        const selectedDatasetIds = [];
-        const selectedFileIds = [];
-        const selectedFileNames = [];
-        const selectedFileSizes = [];
+        const selectedFiles = [];
         document.querySelectorAll('.file-select:checked').forEach(checkbox => {
             const row = checkbox.closest('tr');
-            const datasetId = row.dataset.datasetId;
-            const fileId = row.cells[1].innerText;
-            const displayName = row.cells[2].innerText;
-            const fileSize = toBytes(row.cells[3].innerText);
-            const file = `${datasetId}/${displayName}`;
+            const { datasetId, fileId, displayName, fileSize } = row.dataset;
 
-            selectedDatasetIds.push(datasetId);
-            selectedFileIds.push(fileId);
-            selectedFileNames.push(displayName);
-            selectedFileSizes.push(fileSize);
+            selectedFiles.push({
+                remote_path: `${datasetId}/${displayName}`,
+                name: displayName,
+                size: Number(fileSize) || 0,
+                meta: { dataset_id: datasetId, file_id: fileId }
+            });
         });
 
-        if (selectedDatasetIds.length === 0) {
+        if (selectedFiles.length === 0) {
             alert('No files selected');
             return;
         }
 
-        // Perform the desired operation with selectedFiles
-        console.log('Selected files:', selectedDatasetIds);
-        // You can add your desired operation here
-        addFilesToWorkspace(selectedDatasetIds, selectedFileIds, selectedFileNames, selectedFileSizes);
+        addFilesToWorkspace(selectedFiles);
     });
 
-    function addFilesToWorkspace(datasetIds, fileIds, displayNames, fileSizes) {
-        fetch(`applib/getData.php?uploadType=EGA&datasetIds=${datasetIds}&fileIds=${fileIds}&displayNames=${displayNames}&fileSizes=${fileSizes}`).then(response => {
-            console.log('Response:', response);
+    function addFilesToWorkspace(files) {
+        const body = new FormData();
+        body.append('uploadType', 'remote');
+        body.append('source', 'EGA');
+        body.append('files', JSON.stringify(files));
+
+        fetch('applib/getData.php', { method: 'POST', body }).then(async response => {
+            const data = await response.json().catch(() => null);
             if (!response.ok) {
-                throw new Error('Network response was not ok');
+                throw new Error((data && data.error) || 'Network response was not ok');
             }
+
+            return data;
+        }).then(data => {
+            const uploadedIds = (data && data.fileIds) || [];
+            if (uploadedIds.length === 0) {
+                throw new Error('No files were added to the workspace');
+            }
+
+            // Ask the user for the files metadata
+            const query = uploadedIds.map(id => 'fn[]=' + encodeURIComponent(id)).join('&');
+            location.href = "getdata/uploadForm2.php?" + query;
         }).catch(error => {
             console.error('Error:', error);
+            alert('Error adding files to the workspace: ' + error.message);
         });
-    }
-
-    function toBytes(displaySize) {
-        const size = parseFloat(displaySize); // Extract the numeric value
-
-        // Check for unit and convert accordingly
-        if (displaySize.includes('GB')) {
-            return size * 1e9; // Convert GB to bytes
-        } else if (displaySize.includes('MB')) {
-            return size * 1e6; // Convert MB to bytes
-        } else if (displaySize.includes('KB')) {
-            return size * 1e3; // Convert KB to bytes
-        }
-
-        return null; // Return null if unit is unknown
     }
 
 </script>

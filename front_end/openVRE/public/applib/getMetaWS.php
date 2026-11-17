@@ -12,9 +12,11 @@ if ($_REQUEST["type"] != 2) {
 	// EXTRACT FILE METADATA FROM DMP FILE
 	$mt   = getGSFile_fromId($_REQUEST["id"], "", $asRoot);
 	$tool = getTool_fromId($mt["tool"], 1);
+	$user = getUserById($_SESSION['userId']);
 } else {
 	// EXTRACT JOB METADATA FROM USER JOBS
-	$login = ($_REQUEST['user'] ? $_REQUEST['user'] : $_SESSION['User']['_id']);
+	$login = ($_REQUEST['user'] ? $_REQUEST['user'] : $_SESSION['userId']);
+	$user = getUserById($login);
 	$job = getUserJobPid($login, $_REQUEST["id"]);
 	$mt = $job[$_REQUEST["id"]];
 	$job_path = getAttr_fromGSFileId($mt["_id"], "path", $asRoot);
@@ -341,13 +343,8 @@ if (isset($mt["arguments"])) {
 // cloudName, memory and cpus
 $mem = "";
 $cpus = "";
-if (is_null($mt['cloudName']) || strlen($mt["cloudName"]) == 0)
-	$mt['cloudName'] = $GLOBALS['cloud'];
 
-if (isset($mt['imageType'])) {
-	$mem  = $mt['imageType']['memory'];
-	$cpus = $mt['imageType']['cpus'];
-} elseif (isset($tool['infrastructure']['memory'])) {
+if (isset($tool['infrastructure']['memory'])) {
 	$mem  = $tool['infrastructure']['memory'];
 	$cpus = $tool['infrastructure']['cpus'];
 }
@@ -380,7 +377,7 @@ if ($mt["cloudName"] != "") {
 <!--- DATA ONLY FOR DEVEL USERS -->
 
 <?php
-if ($_SESSION['User']['Type'] ==  UserType::Admin->value || $_SESSION['User']['Type'] == UserType::ToolDev->value) {
+if ($user->getType() ==  UserType::Admin->value || $user->getType() == UserType::ToolDev->value) {
 ?>
 
 	<h3>Development data</h3>
@@ -393,7 +390,7 @@ if ($_SESSION['User']['Type'] ==  UserType::Admin->value || $_SESSION['User']['T
 			</tr>
 			<tr>
 				<td>
-					<?php if ($_SESSION['User']['Type'] == UserType::Admin->value || $_SESSION['User']['Type'] == UserType::ToolDev->value) { ?>
+					<?php if ($user->getType() == UserType::Admin->value || $user->getType() == UserType::ToolDev->value) { ?>
 						<br />
 						<pre style="font-size:0.7em;margin:10px 25px;"><?php echo json_encode($mt, JSON_PRETTY_PRINT); ?></pre>
 					<?php } ?>
@@ -456,7 +453,7 @@ if ($_SESSION['User']['Type'] ==  UserType::Admin->value || $_SESSION['User']['T
 
 	// Devel buttons
 
-	if (($_SESSION['User']['Type'] == UserType::Admin->value) || ($_SESSION['User']['Type'] == UserType::ToolDev->value)) { ?>
+	if (($user->getType() == UserType::Admin->value) || ($user->getType() == UserType::ToolDev->value)) { ?>
 
 		<?php if (file_exists($mt['submission_file'])) { ?>
 			<a href="workspace/workspace.php?op=openPlainFileFromPath&fnPath=<?php echo urlencode($mt['submission_file']); ?>" class="btn green" target="_blank"><i class="fa fa-paper-plane"></i> VIEW SUBMIT FILE </a>
@@ -465,21 +462,21 @@ if ($_SESSION['User']['Type'] ==  UserType::Admin->value || $_SESSION['User']['T
 		<?php } ?>
 		<?php if (file_exists($mt['config_file'])) { ?>
 			<a href="workspace/workspace.php?op=openPlainFileFromPath&fnPath=<?php echo urlencode($mt['config_file']); ?>" class="btn green" target="_blank"><i class="fa fa-cog"></i> VIEW CONFIG FILE </a>
-		<?php } elseif (file_exists($GLOBALS['dataDir'] . $mt['path'] . "/" . $GLOBALS['tool_config_file'])) { ?>
+		<?php } elseif (file_exists($GLOBALS['userDataDir'] . $mt['path'] . "/" . $GLOBALS['tool_config_file'])) { ?>
 			<a href="workspace/workspace.php?op=openPlainFileFromPath&fnPath=<?php echo urlencode($mt['path'] . "/" . $GLOBALS['tool_config_file']); ?>" class="btn green" target="_blank"><i class="fa fa-cog"></i> VIEW CONFIG FILE </a>
 		<?php } else { ?>
 			<a href="javascript:;" class="btn grey tooltips" data-container="body" data-html="true" data-placement="bottom" data-original-title="<p align='left' style='margin:0'>Fie not available</p>"><i class="fa fa-exclamation-triangle"></i> VIEW CONFIG FILE </a>
 		<?php } ?>
 		<?php if (file_exists($mt['metadata_file'])) { ?>
 			<a href="workspace/workspace.php?op=openPlainFileFromPath&fnPath=<?php echo urlencode($mt['metadata_file']); ?>" class="btn green" target="_blank"><i class="fa fa-tags"></i> VIEW META FILE </a>
-		<?php } elseif (file_exists($GLOBALS['dataDir'] . $mt['path'] . "/" . $GLOBALS['tool_metadata_file'])) { ?>
+		<?php } elseif (file_exists($GLOBALS['userDataDir'] . $mt['path'] . "/" . $GLOBALS['tool_metadata_file'])) { ?>
 			<a href="workspace/workspace.php?op=openPlainFileFromPath&fnPath=<?php echo urlencode($mt['path'] . "/" . $GLOBALS['tool_metadata_file']); ?>" class="btn green" target="_blank"><i class="fa fa-tags"></i> VIEW META FILE </a>
 		<?php } else { ?>
 			<a href="javascript:;" class="btn grey tooltips" data-container="body" data-html="true" data-placement="bottom" data-original-title="<p align='left' style='margin:0'>Fie not available</p>"><i class="fa fa-exclamation-triangle"></i> VIEW META FILE </a>
 		<?php } ?>
 		<?php if (file_exists($mt['stageout_file'])) { ?>
 			<a href="workspace/workspace.php?op=openPlainFileFromPath&fnPath=<?php echo urlencode($mt['stageout_file']); ?>" class="btn green" target="_blank"><i class="fa fa-line-chart"></i> VIEW RESULTS FILE </a>
-		<?php } elseif (file_exists($GLOBALS['dataDir'] . $mt['path'] . "/" . $GLOBALS['tool_stageout_file'])) { ?>
+		<?php } elseif (file_exists($GLOBALS['userDataDir'] . $mt['path'] . "/" . $GLOBALS['tool_stageout_file'])) { ?>
 			<a href="workspace/workspace.php?op=openPlainFileFromPath&fnPath=<?php echo urlencode($mt['path'] . "/" . $GLOBALS['tool_stageout_file']); ?>" class="btn green" target="_blank"><i class="fa fa-line-chart"></i> VIEW RESULTS FILE </a>
 		<?php } else { ?>
 			<a href="javascript:;" class="btn grey tooltips" data-container="body" data-html="true" data-placement="bottom" data-original-title="<p align='left' style='margin:0'>Fie not available</p>"><i class="fa fa-exclamation-triangle"></i> VIEW RESULTS FILE </a>

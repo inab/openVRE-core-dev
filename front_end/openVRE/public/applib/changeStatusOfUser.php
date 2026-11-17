@@ -6,9 +6,9 @@ if ($_POST) {
 	$login = $_POST['id'];
 	$status = $_POST['userStatus'];
 	$user = getUserById($login);
-	if ($user['_id']) {
-		$newdata = array('$set' => array('Status' => $status));
-		$GLOBALS['usersCol']->updateOne(array('_id' => $login), $newdata);
+	if ($user->get_id()) {
+		$user->setStatus($status);
+		modifyUser($login, ['Status' => $status]);
 		echo '1';
 	} else {
 		echo '0';

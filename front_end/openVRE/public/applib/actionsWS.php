@@ -25,12 +25,12 @@ if (is_null($_REQUEST['op'])) {
 }
 
 if (is_null($_REQUEST['fn']) && is_null($_REQUEST['fnPath']) && !preg_match('/cancelJob/', $_REQUEST['op'])) {
-	getWorkspaceActionsLogger()->error("Selected operation ('" . $_REQUEST['op'] . "') requires at least one file. Any file name received.");
+	getWorkspaceActionsLogger()->error("Selected operation ('" . $_REQUEST['op'] . "') requires at least one file. No filename received.");
 	header("location:../workspace/");
 }
 
 $filePath = getAttr_fromGSFileId($_REQUEST['fn'], 'path');
-$rfn      = $GLOBALS['dataDir'] . "/$filePath";
+$rfn      = $GLOBALS['userDataDir'] . "/$filePath";
 
 // Process operation
 if (isset($_REQUEST['op'])) {

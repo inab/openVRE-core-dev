@@ -54,7 +54,7 @@ class LoggerFactory
         $logger->pushProcessor(new UidProcessor());
         $logger->pushProcessor(new PsrLogMessageProcessor());
         $logger->pushProcessor(function ($record) {
-            $record['extra']['userId'] = $_SESSION['User']['id'];
+            $record['extra']['userId'] = $_SESSION['internalUserId'];
             return $record;
         });
         self::$loggers['app-mongodb'] = $logger;

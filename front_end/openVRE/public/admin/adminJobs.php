@@ -5,19 +5,18 @@ require __DIR__ . "/../../config/bootstrap.php";
 redirectAdminOutside();
 
 
-#
 ## find active jobs
 
 // get users with jobs to examinate
-$jobs_per_user = getAllUserJobs();
-$users_withJobs = array_keys($jobs_per_user);
+$usersWithJobs = getAllUserJobs();
 
-// update job status
-foreach ($users_withJobs as $u) {
-    updatePendingFiles($u);
+/** @var OpenVRE\User */
+foreach ($usersWithJobs as $user) {
+    updatePendingFiles($user->get_id());
 }
-// get user's job updated
-$jobs_per_user = getAllUserJobs();
+
+// get user's jobs updated
+$usersWithJobs = getAllUserJobs();
 
 ?>
 
@@ -107,7 +106,10 @@ $jobs_per_user = getAllUserJobs();
                                         </thead>
                                         <tbody>
                                             <?php
-                                            foreach ($jobs_per_user as $login => $jobs) {
+                                            /** @var OpenVRE\User */
+                                            foreach ($usersWithJobs as $user) {
+                                                $login = $user->get_id();
+                                                $jobs = $user->getLastJobs();
                                                 foreach ($jobs as $pid => $job) {
                                             ?>
                                                     <tr>
@@ -125,10 +127,8 @@ $jobs_per_user = getAllUserJobs();
                                                             <a href="javascript:viewFileMeta('<?php echo $pid; ?>', '<?php echo $job['execution']; ?>', 2,'<?php echo $login; ?>');" style="margin-left:5px;"><i class="fa fa-info-circle"></i></a>
                                                         </td>
                                                         <td><?php echo $login; ?></td>
-                                                        <td><?php if ($job['start_time']) {
-                                                                echo date("F d Y H:i:s", $job['start_time']);
-                                                            } elseif (is_file($job['config_file'])) {
-                                                                echo date("F d Y H:i:s", filemtime($job['config_file']));
+                                                        <td><?php if (is_file($job['executionDirectories']['executionConfigFile'])) {
+                                                                echo date("F d Y H:i:s", filemtime($job['executionDirectories']['executionConfigFile']));
                                                             } else {
                                                                 echo "ND";
                                                             } ?>

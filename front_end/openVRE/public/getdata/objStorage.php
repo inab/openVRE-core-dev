@@ -171,7 +171,7 @@ redirectOutside();
   <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
   <script>
   // Inject session variables from PHP into JS
-  window.currentUserId = "<?php echo $_SESSION['User']['id']; ?>";
+  window.currentUserId = "<?php echo $_SESSION['internalUserId']; ?>";
 </script>
 <script src="/assets/pages/scripts/openstack.js"></script>
 

@@ -170,8 +170,10 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 		break;
 }
 
-// load all tools
-$tools = getTools_List();
+$user = getUserById($_SESSION['userId']);
+
+// load all tools 
+$tools = getTools_List($user);
 sort($tools);
 
 // load all visualizers
@@ -321,7 +323,7 @@ $datasets = [];
 						</li>
 					</ul>
 				</li>
-				<?php if (in_array($_SESSION['User']['Type'], $GLOBALS['NO_GUEST'])) { ?>
+				<?php if (in_array($_SESSION['userType'], $GLOBALS['NO_GUEST'])) { ?>
 					<li>
 					<li class="nav-item <?php if ($currentSection == 'hd') { ?>active open<?php } ?>">
 						<a href="helpdesk/" class="nav-link nav-toggle">
@@ -330,7 +332,7 @@ $datasets = [];
 						</a>
 					</li>
 				<?php } ?>
-				<?php if (in_array($_SESSION['User']['Type'], $GLOBALS['ADMIN']) || in_array($_SESSION['User']['Type'], $GLOBALS['TOOLDEV'])) { ?>
+				<?php if (in_array($_SESSION['userType'], $GLOBALS['ADMIN']) || in_array($_SESSION['userType'], $GLOBALS['TOOLDEV'])) { ?>
 					<li class="nav-item  <?php if ($currentSection == 'ad') { ?>active open<?php } ?>">
 						<a href="javascript:;" class="nav-link nav-toggle">
 							<i class="icon-settings"></i>
@@ -339,14 +341,14 @@ $datasets = [];
 							<span class="arrow <?php if ($currentSection == 'ad') { ?>open<?php } ?>"></span>
 						</a>
 						<ul class="sub-menu">
-							<?php if (!in_array($_SESSION['User']['Type'], $GLOBALS['TOOLDEV'])) { ?>
+							<?php if (!in_array($_SESSION['userType'], $GLOBALS['TOOLDEV'])) { ?>
 								<li class="nav-item  <?php if ($currentSubSection == 'ds') { ?>active open<?php } ?>">
 									<a href="admin/dashboard.php" class="nav-link ">
 										<span class="title">Dashboard</span>
 									</a>
 								</li>
 							<?php } ?>
-							<?php if (!in_array($_SESSION['User']['Type'], $GLOBALS['TOOLDEV'])) { ?>
+							<?php if (!in_array($_SESSION['userType'], $GLOBALS['TOOLDEV'])) { ?>
 								<li class="nav-item  <?php if ($currentSubSection == 'au') { ?>active open<?php } ?>">
 									<a href="admin/adminUsers.php" class="nav-link ">
 										<span class="title">Users Administration</span>
