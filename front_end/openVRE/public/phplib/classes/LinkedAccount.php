@@ -48,8 +48,7 @@ class LinkedAccount
 
     public function removeCredentials()
     {
-        $this->logger->info("Removing credentials for site: " . $this->site->value);
-
-        // TODO: To be implemented
+        throw new NotFoundException("Remove function not implemeted");
+        //$this->logger->info("Removing credentials for site: " . $this->site->value);
     }
 }
