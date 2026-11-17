@@ -5,9 +5,10 @@ front_end/openVRE/config/globals.inc.php
 shared_data
 tools/*
 !tools/mock_tool
-openbao/config/
+openbao/config/jwt-user-policies.hcl
+openbao/config/openvre-system.hcl
+openbao/config/openbao.hcl
 openbao/data/*
-openbao/bootstrap/*
 openbao/secrets/*
 vendor/
 guacamole/
