@@ -11,6 +11,8 @@ path "auth/token/renew-self" {
 path "auth/token/revoke-self" {
   capabilities = ["update"]
 }  
-path "secret/metadata/*" {
+# Metadata is scoped to the user's own prefix. "secret/metadata/*" let any
+# logged-in user list and permanently delete every user's secrets.
+path "secret/metadata/{{identity.entity.aliases.JWT_ACCESSOR.name}}/*" {
   capabilities = ["read", "list", "delete"]
 }

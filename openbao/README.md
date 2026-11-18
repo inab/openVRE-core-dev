@@ -197,11 +197,19 @@ For this deployment there is only one OpenBao node, so no `retry_join` configura
 
 # 6. Start OpenBao
 
+In production OpenBao is its own Compose project
+(`docker-compose-openbao.yml`), so deploying the app never restarts it.
 Start only the OpenBao server:
 
 ```bash
-docker compose up -d bao-server
+docker compose -p openvre-openbao -f docker-compose-openbao.yml up -d
 ```
+
+`./deploy.sh` runs the same command on every deploy (a no-op when it is
+already running). The data volume is `external`: create it once with
+`docker volume create "$BAO_DATA_VOLUME"` before the first start of a new
+installation, and the network with
+`docker network create --subnet 172.21.0.0/24 "$NETWORK_NAME"`.
 
 Check that the container is running:
 
@@ -615,3 +623,95 @@ At this point, the following should all be true:
 * The KV secrets engine is enabled
 * TLS is enabled
 * The `bao_data` Docker volume is being used
+
+---
+
+# 19. Infrastructure secrets (deploy.sh)
+
+The app's own secrets (database passwords, Keycloak client and admin
+secrets, mail password, front-end TLS key) are stored in a separate kv-v2
+engine, `infra/`, at `infra/openvre/<kv_path>`. [`secrets/manifest`](../secrets/manifest)
+lists each one. `sudo ./deploy.sh` reads them and writes one file per secret
+to a tmpfs (`/run/openvre/secrets/<name>`, mode 0400, owned by the reading
+container's UID). Compose mounts each file at `/run/secrets/<name>`.
+
+## Setup
+
+`bao-config-prod.sh` (section 10) also enables `infra/`, installs the policies
+in `openbao/policies/` and configures the AppRole `openvre-deploy` (read-only
+`infra/openvre/*`, 5-minute tokens, login only from `BAO_APPROLE_CIDR`,
+default `172.21.0.1/32`: the host's address on the Docker network). Write its
+credentials on the host, as root:
+
+```bash
+sudo -E ./openbao/bao-config-prod.sh --install-approle
+```
+
+This writes `role_id` and `secret_id` to `/etc/openvre/approle/` (directory
+0700, files 0400, root). They go straight to files, never to the terminal.
+
+Then store each secret of the manifest (needs an admin token). Read the value
+with hidden input so it never appears in argv or shell history:
+
+```bash
+read -rsp 'value: ' V; echo
+printf '%s' "$V" | bao kv patch -mount=infra openvre/<kv_path> <field>=-   # or `kv put` for a new path
+unset V
+bao kv put -mount=infra openvre/frontend-tls key=@openVRE.key           # from a file
+```
+
+## The AppRole credential
+
+The `secret_id` is the one secret on the host that unlocks the others. It is
+limited (read-only, bound to the host's address, short tokens, every use in
+the audit log), but **root on the host, and anything that can use
+`/var/run/docker.sock`, can read it**, just like the tmpfs files.
+
+- Rotate it (e.g. yearly, or when an admin leaves): run
+  `--install-approle` again. Every older `secret_id` is destroyed.
+- Revoke it in an emergency (admin token):
+  `bao delete auth/approle/role/openvre-deploy` deletes the role and every
+  `secret_id` at once. Re-run `bao-config-prod.sh --install-approle` to create
+  new ones; until then deploy with `sudo ./deploy.sh --token-prompt`.
+- If the host reaches OpenBao through a proxy instead of the Docker network,
+  set `BAO_APPROLE_CIDR` to the address OpenBao sees and re-run the script.
+
+## Optional: Keycloak login for secret admins
+
+```bash
+export BAO_OIDC_CLIENT_ID=openvre-bao-cli
+./openbao/bao-config-prod.sh --oidc
+```
+
+Enables `auth/oidc` (role `openvre-operator`) and maps the Keycloak group
+`openvre-secrets-admins` to the policy `openvre-secrets-admin` (manage
+`infra/openvre/*`). The Keycloak client must be confidential, allow the
+redirect URI `http://localhost:8250/oidc/callback`, and have a *Group
+Membership* mapper with claim name `groups` and *Full group path* off. To
+grant or remove access, change the group membership in Keycloak.
+
+## Rotating a secret
+
+Change it **at its source first**, then in OpenBao (`bao kv patch` as above),
+then recreate the containers that read it:
+
+| `kv_path` / `field` | 1. Change at the source | 2. Redeploy |
+|---|---|---|
+| `mongo/app_password` | `docker exec -it my-mongodb mongosh -u <root> -p --authenticationDatabase admin`, `use <MONGO_MAIN_DB>`, `db.changeUserPassword("<app user>", passwordPrompt())` | `sudo ./deploy.sh --force-recreate front_end` |
+| `mongo/root_password` | same shell: `use admin`, `db.changeUserPassword("<root user>", passwordPrompt())` | `sudo ./deploy.sh` |
+| `keycloak/db_password` | `docker exec -it postgres psql -U <POSTGRES_USER> -d <POSTGRES_DB> -c '\password <POSTGRES_USER>'` | `sudo ./deploy.sh --force-recreate keycloak` |
+| `keycloak/client_secret` | Keycloak admin: Clients, `<KEYCLOAK_CLIENT>`, Credentials, Regenerate | `sudo ./deploy.sh --force-recreate front_end keycloak` |
+| `keycloak/admin_password` | Keycloak admin: Users, `<KEYCLOAK_ADMIN_USER>`, Credentials, Reset password | `sudo ./deploy.sh` |
+| `mail/password` | at the mail provider | `sudo ./deploy.sh --force-recreate front_end` |
+| `frontend-tls/key` | new certificate **with a new key**; `bao kv patch ... key=@new.key`, new cert at `FRONTEND_SSL_PEM`, `shred -u new.key` | `sudo ./deploy.sh --force-recreate front_end` |
+
+(Mongo root, Postgres and the Keycloak admin passwords are only read when
+their volume is empty, so a plain redeploy just keeps the files in sync.)
+
+## Adding a secret
+
+Add a row to `secrets/manifest`, store the value in OpenBao, add it to the
+top-level `secrets:` of both compose files and to the service's `secrets:`
+list, and point the app at `/run/secrets/<name>` (a native `*_FILE` variable,
+or any `X_FILE` variable for services started through `scripts/load-secrets.sh`).
+For dev, also commit a dummy file in `secrets-dev/`.

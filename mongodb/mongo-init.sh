@@ -1,6 +1,12 @@
 #!/bin/bash
 set -e
 
+# The app user's password comes from a file (/run/secrets) when compose sets
+# MONGO_INITDB_PASSWORD_FILE. The image's own file_env only covers ROOT_*.
+if [ -n "${MONGO_INITDB_PASSWORD_FILE:-}" ]; then
+    MONGO_INITDB_PASSWORD=$(cat "$MONGO_INITDB_PASSWORD_FILE")
+fi
+
 echo ">>>>>>> Starting MongoDB initialization script"
 
 mongosh <<EOF

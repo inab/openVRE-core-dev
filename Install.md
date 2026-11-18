@@ -42,12 +42,19 @@ cp front_end/openVRE/config/globals.inc.php.sample front_end/openVRE/config/glob
 
 For advanced system administration, such as SGE fine-tuning, Keycloak integration, or Vault setup, see [Admin-Specific Configuration](https://github.com/inab/openVRE/wiki/Developing-and-Administering-OpenVRE).
 
+## Secrets
+
+Passwords and client secrets are not in `.env`. Dev uses the committed dummy
+files in [secrets-dev/](secrets-dev/README.md), mounted read-only at
+`/run/secrets/<name>` in the containers (Compose `secrets:`). Nothing to set
+up; read one with e.g. `cat secrets-dev/keycloak_admin_password`.
+
 ## Start the services
 
 Run the `docker-compose.yml` file once you have set up your OpenVRE instance with the following command: 
 
 ``` bash
-docker compose --profile "local_auth" up -d 
+docker compose --profile "local_auth" up -d
 ```
 
 and check the status of the resulting containers:

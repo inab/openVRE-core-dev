@@ -5,9 +5,9 @@ services:
     container_name: my-mongodb
     environment:
       MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+      MONGO_INITDB_ROOT_PASSWORD_FILE: /run/secrets/mongo_root_password
       MONGO_INITDB_USERNAME: ${MONGO_INITDB_USERNAME}
-      MONGO_INITDB_PASSWORD: ${MONGO_INITDB_PASSWORD}
+      MONGO_INITDB_PASSWORD_FILE: /run/secrets/mongo_app_password
       MONGO_MAIN_DB: ${MONGO_MAIN_DB}
       MONGO_TLS_MODE: ${MONGO_TLS_MODE}
     ports:
@@ -19,37 +19,12 @@ services:
       - ./mongodb/init_documents:/init_documents:ro
       # - ${MONGO_SSL_COMBINED_CAFILE}:${MONGO_CA_COMBINED_FILE}:ro
       # - ${MONGO_SSL_KEYFILE}:${MONGO_CERT_KEYFILE}:ro
+    secrets: [mongo_root_password, mongo_app_password]
     networks:
       net_vre:
         ipv4_address: 172.21.0.10
     restart: on-failure:2
 
-
-  bao-server:
-    container_name: bao-server
-    hostname: bao-server
-    image: openbao/openbao:2.4.0
-    restart: unless-stopped
-    environment:
-      BAO_ADDR: ${BAO_ADDR}
-      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
-      KEYCLOAK_SERVER: ${KEYCLOAK_SERVER}
-    volumes:
-      - bao_data:/openbao/data
-      - ./openbao/config:/openbao/config:ro
-      - ./openbao/bao-config-prod.sh:/usr/local/bin/bao-config-prod.sh:ro
-      - "${BAO_SSL_PEM}:${BAO_CERT_PEM}:ro"
-      - "${BAO_SSL_KEY}:${BAO_CERT_KEY}:ro"
-      - "${BAO_SSL_CAFILE}:${BAO_CERT_CAFILE}:ro"
-    cap_add:
-      - IPC_LOCK
-    command:
-      - server
-      - -config=/openbao/config/openbao-prod.hcl
-
-    networks:
-      net_vre:
-        ipv4_address: 172.21.0.18
 
   postgres:
     container_name: postgres
@@ -58,9 +33,10 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_PASSWORD_FILE: /run/secrets/keycloak_db_password
     volumes:
       - keycloak_data:/var/lib/postgresql/data
+    secrets: [keycloak_db_password]
     networks:
       net_vre:
         ipv4_address: 172.21.0.13
@@ -73,9 +49,9 @@ services:
     profiles: ["local_auth"]
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER}
-      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      KC_BOOTSTRAP_ADMIN_PASSWORD_FILE: /run/secrets/keycloak_admin_password
       KC_DB: ${KEYCLOAK_DB_VENDOR}
-      KC_DB_PASSWORD: ${KEYCLOAK_DB_PASSWORD}
+      KC_DB_PASSWORD_FILE: /run/secrets/keycloak_db_password
       KC_DB_SCHEMA: ${KEYCLOAK_DB_SCHEMA}
       KC_DB_URL_DATABASE: ${KEYCLOAK_DB_NAME}
       KC_DB_URL_HOST: ${KEYCLOAK_DB_HOST}
@@ -85,11 +61,14 @@ services:
       # KC_HTTPS_CERTIFICATE_FILE: ${KEYCLOAK_CERT_PEM}
       # KC_HTTPS_CERTIFICATE_KEY_FILE: ${KEYCLOAK_CERT_KEY}
       KC_PROXY_HEADERS: xforwarded
-      KEYCLOAK_SECRET: ${KEYCLOAK_SECRET}
+      KEYCLOAK_SECRET_FILE: /run/secrets/keycloak_client_secret
     volumes:
       - ${KEYCLOAK_REALMS_DIR}:${KEYCLOAK_IMPORT_DIR}:ro
       # - ${KEYCLOAK_SSL_PEM}:${KEYCLOAK_CERT_PEM}
       # - ${KEYCLOAK_SSL_KEY}:${KEYCLOAK_CERT_KEY}
+      - ./scripts/load-secrets.sh:/usr/local/bin/load-secrets.sh:ro
+    secrets: [keycloak_admin_password, keycloak_client_secret, keycloak_db_password]
+    entrypoint: ["/bin/sh", "/usr/local/bin/load-secrets.sh", "/opt/keycloak/bin/kc.sh"]
     command: ["start", "--import-realm"]
     ports:
       - ${KEYCLOAK_PORT}:8080 # 8443
@@ -109,11 +88,11 @@ services:
     image: front_end
     environment:
       FRONTEND_CERT_PEM: ${FRONTEND_CERT_PEM}
-      FRONTEND_CERT_KEY: ${FRONTEND_CERT_KEY}
+      FRONTEND_CERT_KEY: /run/secrets/frontend_tls_key
       FRONTEND_HOST_PATH: ${FRONTEND_HOST_PATH}
       KEYCLOAK_CLIENT: ${KEYCLOAK_CLIENT}
       KEYCLOAK_REALM: ${KEYCLOAK_REALM}
-      KEYCLOAK_SECRET: ${KEYCLOAK_SECRET}
+      KEYCLOAK_SECRET_FILE: /run/secrets/keycloak_client_secret
       KEYCLOAK_SERVER: ${KEYCLOAK_SERVER}
       INCLUDE_EGA_DATASETS: ${INCLUDE_EGA_DATASETS}
       INCLUDE_EXTERNAL_DATASETS: ${INCLUDE_EXTERNAL_DATASETS}
@@ -121,10 +100,11 @@ services:
       INCLUDE_OPENSTACK_DATASETS: ${INCLUDE_OPENSTACK_DATASETS}
       MAIL_HOST: ${MAIL_HOST}
       MAIL_USER: ${MAIL_USER}
-      MAIL_PASS: ${MAIL_PASS}
+      MAIL_PASS_FILE: /run/secrets/mail_password
       # MONGO_CA_FILE: ${MONGO_CA_FILE}
       # MONGO_CERT_KEYFILE: ${MONGO_CERT_KEYFILE}
-      MONGO_CREDENTIALS: ${MONGO_INITDB_USERNAME}:${MONGO_INITDB_PASSWORD}
+      MONGO_USER: ${MONGO_INITDB_USERNAME}
+      MONGO_PASSWORD_FILE: /run/secrets/mongo_app_password
       MONGO_MAIN_DB: ${MONGO_MAIN_DB}
       MONGO_SERVER: ${MONGO_SERVER}
       MONGO_TLS_MODE: ${MONGO_TLS_MODE}
@@ -132,11 +112,11 @@ services:
       SERVER_DOMAIN: ${SERVER_DOMAIN}
       SERVER_DOMAIN_PROTOCOL: ${SERVER_DOMAIN_PROTOCOL}
       SERVER_PORT: ${FRONTEND_PORT}
-      VAULT_ADDR: ${VAULT_ADDR}
-      VAULT_API_VERSION: ${VAULT_API_VERSION}
-      VAULT_CERT_CAFILE: ${VAULT_CERT_CAFILE}
-      VAULT_ROLENAME: ${VAULT_ROLENAME}
-      VAULT_SECRET_PATH: ${VAULT_SECRET_PATH}
+      BAO_ADDR: ${BAO_ADDR}
+      BAO_API_VERSION: ${BAO_API_VERSION}
+      BAO_CERT_CAFILE: ${BAO_CERT_CAFILE}
+      BAO_ROLENAME: ${BAO_ROLENAME}
+      BAO_SECRET_PATH: ${BAO_SECRET_PATH}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./front_end/openVRE/public/:/var/www/html/openVRE/public
@@ -147,10 +127,13 @@ services:
       - ./tools:/var/www/html/openVRE/public/tools
       - ./shared_data:/shared_data
       - ${FRONTEND_SSL_PEM}:${FRONTEND_CERT_PEM}:ro
-      - ${FRONTEND_SSL_KEY}:${FRONTEND_CERT_KEY}:ro
       # - ${MONGO_SSL_CAFILE}:${MONGO_CA_FILE}:ro
       # - ${MONGO_SSL_KEYFILE}:${MONGO_CERT_KEYFILE}:ro
-      - ${VAULT_SSL_CAFILE}:${VAULT_CERT_CAFILE}:ro
+      - ${BAO_SSL_CAFILE}:${BAO_CERT_CAFILE}:ro
+      - ./scripts/load-secrets.sh:/usr/local/bin/load-secrets.sh:ro
+    secrets: [frontend_tls_key, keycloak_client_secret, mail_password, mongo_app_password]
+    entrypoint: ["/bin/sh", "/usr/local/bin/load-secrets.sh", "/entrypoint"]
+    command: ["supervisord"]
     ports:
       - "${FRONTEND_PORT}:443"
     networks:
@@ -198,15 +181,32 @@ volumes:
     name: ${MONGO_VOLUME}
   keycloak_data:
     name: ${KEYCLOAK_DB_VOLUME}
-  bao_data:
-    name: ${BAO_DATA_VOLUME}
+
+# Mounted read-only at /run/secrets/<name> in the services that list them.
+# The files live on a host tmpfs, written from OpenBao by ./deploy.sh
+# (see secrets/manifest). Without SECRETS_DIR this file does not load at all.
+secrets:
+  mongo_root_password:
+    file: ${SECRETS_DIR:?run ./deploy.sh}/mongo_root_password
+  mongo_app_password:
+    file: ${SECRETS_DIR:?run ./deploy.sh}/mongo_app_password
+  keycloak_client_secret:
+    file: ${SECRETS_DIR:?run ./deploy.sh}/keycloak_client_secret
+  keycloak_admin_password:
+    file: ${SECRETS_DIR:?run ./deploy.sh}/keycloak_admin_password
+  keycloak_db_password:
+    file: ${SECRETS_DIR:?run ./deploy.sh}/keycloak_db_password
+  mail_password:
+    file: ${SECRETS_DIR:?run ./deploy.sh}/mail_password
+  frontend_tls_key:
+    file: ${SECRETS_DIR:?run ./deploy.sh}/frontend_tls_key
 
 networks:
+  # Shared with docker-compose-openbao.yml (bao-server keeps 172.21.0.18).
+  # deploy.sh creates it with --subnet 172.21.0.0/24 if it does not exist.
+  # On an OpenStack cloud, create it by hand with the MTU option instead:
+  #   docker network create --subnet 172.21.0.0/24 \
+  #     --opt com.docker.network.driver.mtu=1440 <NETWORK_NAME>
   net_vre:
+    external: true
     name: ${NETWORK_NAME}
-    # Use this driver_opts on openStack cloud
-    # driver_opts:
-    #  com.docker.network.driver.mtu: 1440 or 1442 (to be checked at OpenStack configuration)
-    ipam:
-      config:
-        - subnet: 172.21.0.0/24

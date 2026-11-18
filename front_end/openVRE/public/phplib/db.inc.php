@@ -2,7 +2,13 @@
 
 require_once __DIR__ . "/../../vendor/autoload.php";
 
-$connectionUri = "mongodb://" . getenv('MONGO_CREDENTIALS') . "@" . getenv('MONGO_SERVER') . "/?authSource=" . getenv('MONGO_MAIN_DB');
+// MONGO_CREDENTIALS ("user:password") is the legacy form. Compose now passes
+// MONGO_USER and MONGO_PASSWORD (loaded from /run/secrets by load-secrets.sh).
+$mongoCredentials = getenv('MONGO_CREDENTIALS');
+if ($mongoCredentials === false || $mongoCredentials === '') {
+	$mongoCredentials = rawurlencode((string) getenv('MONGO_USER')) . ":" . rawurlencode((string) getenv('MONGO_PASSWORD'));
+}
+$connectionUri = "mongodb://" . $mongoCredentials . "@" . getenv('MONGO_SERVER') . "/?authSource=" . getenv('MONGO_MAIN_DB');
 $VREConn =  new MongoDB\Client(
 	$connectionUri,
 	array(

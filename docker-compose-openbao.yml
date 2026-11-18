@@ -1,0 +1,46 @@
+# Production OpenBao, as its own Compose project so app deploys never restart it.
+#
+# Started by ./deploy.sh as:
+#   docker compose -p openvre-openbao -f docker-compose-openbao.yml up -d
+# The app stack (docker-compose-prod.yml) shares the external network below.
+# Dev does not use this file: docker-compose.yml builds its own dev bao-server.
+services:
+  bao-server:
+    container_name: bao-server
+    hostname: bao-server
+    image: openbao/openbao:2.4.0
+    restart: unless-stopped
+    environment:
+      BAO_ADDR: ${BAO_ADDR}
+      # Lets `docker exec bao-server bao ...` (e.g. unseal) verify the TLS cert.
+      BAO_CACERT: ${BAO_CERT_CAFILE}
+    # Skip the image entrypoint: it adds -config=/openbao/config (the whole
+    # directory). Run as the same openbao user so raft data ownership is kept.
+    entrypoint:
+      - su-exec
+      - openbao
+      - bao
+      - server
+      - -config=/openbao/config/openbao-prod.hcl
+    volumes:
+      - bao_data:/openbao/data
+      - ./openbao/config/openbao-prod.hcl:/openbao/config/openbao-prod.hcl:ro
+      - "${BAO_SSL_PEM}:${BAO_CERT_PEM}:ro"
+      - "${BAO_SSL_KEY}:${BAO_CERT_KEY}:ro"
+      - "${BAO_SSL_CAFILE}:${BAO_CERT_CAFILE}:ro"
+    cap_add:
+      - IPC_LOCK
+    networks:
+      net_vre:
+        ipv4_address: 172.21.0.18
+
+volumes:
+  # Never auto-created: an empty volume would mean a new, uninitialised OpenBao.
+  bao_data:
+    external: true
+    name: ${BAO_DATA_VOLUME:?set BAO_DATA_VOLUME in .env}
+
+networks:
+  net_vre:
+    external: true
+    name: ${NETWORK_NAME:?set NETWORK_NAME in .env}

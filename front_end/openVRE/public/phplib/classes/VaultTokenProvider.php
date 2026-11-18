@@ -43,8 +43,8 @@ class VaultTokenProvider
         curl_setopt($ch, CURLOPT_POSTFIELDS, json_encode($data));
         curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        if (getenv('VAULT_CERT_CAFILE') !== false) {
-            curl_setopt($ch, CURLOPT_CAINFO, getenv('VAULT_CERT_CAFILE'));
+        if (getenv('BAO_CERT_CAFILE') !== false) {
+            curl_setopt($ch, CURLOPT_CAINFO, getenv('BAO_CERT_CAFILE'));
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
             curl_setopt($ch, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_3);
