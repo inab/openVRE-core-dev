@@ -18,8 +18,11 @@ RUN apt-get install -y \
         libmcrypt-dev \
         libpng-dev
 
+# SGE client for the docker_SGE launcher. Kubernetes images (jobs and sessions
+# go through the scheduler) build with --build-arg INSTALL_SGE=false.
+ARG INSTALL_SGE=true
 RUN apt-get update -qq ; apt-get upgrade ; \
-    apt-get install -y gridengine-client ; \
+    if [ "$INSTALL_SGE" = "true" ]; then apt-get install -y gridengine-client ; fi ; \
     apt-get autoremove -y && apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN apt-get update && apt-get install -y libmcrypt-dev \ 
