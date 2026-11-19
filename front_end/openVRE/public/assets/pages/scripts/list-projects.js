@@ -28,6 +28,9 @@ var createDatatableTools = function () {
       lengthMenu: [[20,-1],[20,"All"]],
        // set the initial value
        "pageLength": 20,
+       // Table starts as display:none; jQuery 3 in Firefox returns undefined
+       // widths, which DataTables 1.10.8 then .match()es. Skip that path.
+       "autoWidth": false,
        "order": [
            [2, "desc"]
        ], // set first column as a default sort by asc

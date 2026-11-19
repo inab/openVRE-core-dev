@@ -37,6 +37,5 @@ var FormDropzone = function () {
 
 }();
 
-jQuery(document).ready(function() {    
-   FormDropzone.init();
-});
+// Must run before Dropzone's autoDiscover (on DOMContentLoaded); jQuery 3 ready handlers fire too late
+FormDropzone.init();

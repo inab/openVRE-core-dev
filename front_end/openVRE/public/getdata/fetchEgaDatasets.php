@@ -15,7 +15,7 @@ $offset = ($currentPage - 1) * 10;
 
 $userEmail = $_SESSION['User']['Email'];
 $vaultToken = $_SESSION['userVaultInfo']['vaultKey'];
-$vaultAddress = $GLOBALS['vaultUrl'] . "/" . $GLOBALS['secretPath'] . $_SESSION['User']['secretsId'] . '/EGA';
+$vaultAddress = $GLOBALS['baoUrl'] . "/" . $GLOBALS['secretPath'] . $_SESSION['User']['secretsId'] . '/EGA';
 
 $vaultClient = VaultClientFactory::create();
 $data = $vaultClient->retrieveDatafromVault(Site::EGA);

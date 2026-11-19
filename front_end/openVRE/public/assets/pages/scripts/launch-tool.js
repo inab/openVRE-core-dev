@@ -17,6 +17,9 @@ var createDatatableTools = function () {
       lengthMenu: [[20,-1],[20,"All"]],
        // set the initial value
        "pageLength": 20,
+      // DataTables 1.10.8 width calc breaks on jQuery 3 with hidden columns + overlay scrollbars
+
+       "autoWidth": false,
        //"searchHighlight": true,
        "order": [
            [1, "asc"]

@@ -30,13 +30,13 @@ var Demo = function() {
 
             $('.page-header > .page-header-inner').removeClass("container");
 
-            if ($('.page-container').parent(".container").size() === 1) {
+            if ($('.page-container').parent(".container").length === 1) {
                 $('.page-container').insertAfter('body > .clearfix');
             }
 
-            if ($('.page-footer > .container').size() === 1) {
+            if ($('.page-footer > .container').length === 1) {
                 $('.page-footer').html($('.page-footer > .container').html());
-            } else if ($('.page-footer').parent(".container").size() === 1) {
+            } else if ($('.page-footer').parent(".container").length === 1) {
                 $('.page-footer').insertAfter('.page-container');
                 $('.scroll-to-top').insertAfter('.page-footer');
             }
