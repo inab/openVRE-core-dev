@@ -1548,15 +1548,12 @@ class Tooljob
 	/** Creates a project folder on disk and lists it in the workspace (idempotent). */
 	protected function registerProjectDir($relPath, $absPath)
 	{
+		// As the Docker launcher does: createGSDirBNS also lists the folder in its parent.
 		$dirId = createGSDirBNS($relPath, 1);
 		if (!$dirId) {
 			$this->logger->warning("Cannot register directory $relPath");
 		} else {
-			addMetadataToFile($dirId, array("expiration" => -1, "description" => "Interactive tool data"));
-			$parentDirId = getGSFileId_fromPath(dirname($relPath), 1);
-			if ($parentDirId) {
-				$GLOBALS['filesCol']->updateOne(['_id' => $parentDirId], ['$addToSet' => ['files' => $dirId]]);
-			}
+			addMetadataToFile($dirId, array("expiration" => -1, "description" => "Uploaded personal data"));
 		}
 		if (!is_dir($absPath)) {
 			mkdir($absPath, 0775, true);

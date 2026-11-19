@@ -2,6 +2,7 @@
 
 namespace OpenVRE;
 
+use League\OAuth2\Client\Token\AccessToken;
 use Monolog\Logger;
 
 /**
@@ -137,6 +138,16 @@ class SchedulerClient
      */
     private function userAccessToken(): string
     {
+        // Apache's OIDC module passes the current (refreshed) access token with every
+        // request, as upstream's projects.inc.php reads it. Keep the session copy in step.
+        $fromModule = (string)($_SERVER['OIDC_access_token'] ?? "");
+        if ($fromModule !== "") {
+            $_SESSION['userToken'] = new AccessToken(array(
+                'access_token' => $fromModule,
+                'expires' => (int)($_SERVER['OIDC_access_token_expires'] ?? 0),
+            ));
+            return preg_replace('/[\r\n]/', '', $fromModule);
+        }
         $token = $_SESSION['userToken'] ?? null;
         if (!is_object($token) || !method_exists($token, 'getToken')) {
             return "";
