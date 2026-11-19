@@ -39,7 +39,6 @@ class ProcessK8s
     private string $command = "";
     private string $workDir = "";
     private string $jobname = "";
-    private string $fullcommand = "";
     private string $stdout = "";
     private string $stderr = "";
 
@@ -101,8 +100,7 @@ class ProcessK8s
         }
 
         $this->pid = $this->jobName($this->jobname);
-        $this->fullcommand = "POST /v1/jobs (template " . self::BATCH_TEMPLATE . ")";
-        $this->logger->info("K8s job submission via scheduler: " . $this->fullcommand);
+        $this->logger->info("K8s job submission via scheduler: POST /v1/jobs (template " . self::BATCH_TEMPLATE . ")");
         $response = $this->scheduler->request("POST", "/v1/jobs", array(
             "namespace" => $this->scheduler->namespace(),
             "template" => self::BATCH_TEMPLATE,
@@ -229,11 +227,6 @@ class ProcessK8s
             return array(true, trim((string)($response["data"]["stdout"] ?? "")));
         }
         return array(false, $response["error"] ?: "Failed to delete kubernetes job");
-    }
-
-    public function getFullCommand()
-    {
-        return $this->fullcommand;
     }
 
     public function getPid()

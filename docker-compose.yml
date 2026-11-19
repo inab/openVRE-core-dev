@@ -68,8 +68,6 @@ services:
     hostname: ${FRONTEND_HOSTNAME}
     build:
       context: ./front_end/
-      args:
-        INSTALL_SGE: "${INSTALL_SGE:-true}"
     image: front_end
     environment:
       FRONTEND_HOST_PATH: ${FRONTEND_HOST_PATH}
