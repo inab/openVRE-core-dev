@@ -132,7 +132,8 @@ function getRunningJobInfo($pid, $launcherType = null)
         case "SGE":
         case "docker_SGE":
             return (new ProcessSGE())->getRunningJobInfo($pid);
-        case "kubernetes_native":
+        case "kubernetes_batch":
+        case "kubernetes_native":   // batch jobs saved before kubernetes_batch
             return (new ProcessK8s())->getRunningJobInfo($pid);
         case "kubernetes_interactive":
             return (new K8sSession())->getRunningJobInfo($pid);
@@ -256,7 +257,8 @@ function delJob($pid, $launcherType = null, $login = null)
     // cancel job
     if ($launcherType == "SGE" || $launcherType == "docker_SGE") {
         list($stopped, $msg) = (new ProcessSGE())->stop($pid);
-    } elseif ($launcherType == "kubernetes_native") {
+    } elseif ($launcherType == "kubernetes_batch" || $launcherType == "kubernetes_native") {
+        // kubernetes_native: batch jobs saved before kubernetes_batch.
         list($stopped, $msg) = (new ProcessK8s())->stop($pid);
     } else {
         getJobProcessLogger()->error("Cannot delete job of type '$launcherType' [id = $pid]. Launcher not implemented.");
@@ -278,7 +280,7 @@ function delJob($pid, $launcherType = null, $login = null)
 
     // Give qdel time to take effect. The scheduler's DELETE is already done
     // when it returns, so Kubernetes Jobs need no wait.
-    if ($launcherType != "kubernetes_native") {
+    if ($launcherType != "kubernetes_batch" && $launcherType != "kubernetes_native") {
         sleep(15);
     }
     return true;

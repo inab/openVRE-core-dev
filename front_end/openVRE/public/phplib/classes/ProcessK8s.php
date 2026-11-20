@@ -5,7 +5,9 @@ namespace OpenVRE;
 use Monolog\Logger;
 
 /**
- * Kubernetes batch Jobs (launcher "kubernetes_native").
+ * Kubernetes batch Jobs: tools with launcher "kubernetes_native" that are not
+ * interactive. Each run is saved with launcher "kubernetes_batch" (older runs:
+ * "kubernetes_native"), which routes its status and stop requests here.
  *
  * A Job is sent to the scheduler as the template "openvre-batch-job" plus
  * parameters (scheduler/templates/). User, volumes, node placement and

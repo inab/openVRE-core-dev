@@ -1489,8 +1489,9 @@ class Tooljob
 			return $this->enqueueInteractiveK8s($tool, $cpus, $memory);
 		}
 		if ($jobManager === "kubernetes_native") {
-			// Saved with the job: status and stop requests are routed by it.
-			$this->launcher = "kubernetes_native";
+			// Saved with the job: status and stop requests are routed by it
+			// (kubernetes_batch here, kubernetes_interactive for sessions).
+			$this->launcher = "kubernetes_batch";
 		}
 
 		$jobOptions = array();
