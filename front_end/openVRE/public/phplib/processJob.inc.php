@@ -1,5 +1,6 @@
 <?php
 
+use OpenVRE\K8sSession;
 use OpenVRE\LoggerFactory;
 use OpenVRE\NotFoundException;
 use OpenVRE\ProcessK8s;
@@ -93,6 +94,32 @@ function execJob($workDir, $shFile, $queue, $cpus = 1, $mem = 0, $logFile = "job
 }
 
 
+/**
+ * The launcher a job was started with. Callers that know the job pass it; for
+ * the others it is read from the saved job. Numeric pids without a saved
+ * launcher are SGE jobs, as before.
+ */
+function jobLauncher($pid, $launcherType = null, $login = null)
+{
+    if (!empty($launcherType)) {
+        return $launcherType;
+    }
+    $pid = (string)$pid;
+    $job = $_SESSION['User']['lastjobs'][$pid] ?? null;
+    $login = $login ?: ($_SESSION['User']['_id'] ?? null);
+    if (empty($job['launcher']) && $login) {
+        $job = getUserJobPid($login, $pid)[$pid] ?? null;
+    }
+    if (!empty($job['launcher'])) {
+        return $job['launcher'];
+    }
+    if (is_numeric($pid)) {
+        return "SGE";
+    }
+    return null;
+}
+
+
 function getRunningJobInfo($pid, $launcherType = null)
 {
     if (is_null($pid)) {
@@ -100,27 +127,20 @@ function getRunningJobInfo($pid, $launcherType = null)
         throw new NotFoundException("Job ID not found in session.");
     }
 
-    if (is_null($launcherType) && is_numeric($pid)) {
-        $launcherType = "SGE";
-    } elseif (strpos((string)$pid, "-") !== false) {
-        $launcherType = "kubernetes_native";
+    $launcherType = jobLauncher($pid, $launcherType);
+    switch ($launcherType) {
+        case "SGE":
+        case "docker_SGE":
+            return (new ProcessSGE())->getRunningJobInfo($pid);
+        case "kubernetes_batch":
+            return (new ProcessK8s())->getRunningJobInfo($pid);
+        case "kubernetes_interactive":
+            return (new K8sSession())->getRunningJobInfo($pid);
+        case "Slurm_Singularity":
+            return (new ProcessSlurm())->getRunningJobInfo($pid);
     }
-
-    if ($launcherType == "SGE" || $launcherType == "docker_SGE") {
-        $process = new ProcessSGE();
-        $job = $process->getRunningJobInfo($pid);
-    } elseif ($launcherType == "kubernetes_native") {
-        $process = new ProcessK8s();
-        $job = $process->getRunningJobInfo($pid);
-    } elseif ($launcherType == "Slurm_Singularity") {
-        $process = new ProcessSlurm();
-        $job = $process->getRunningJobInfo($pid);
-    } else {
-        getJobProcessLogger()->error("Cannot monitor job '$pid' of type '$launcherType'. Launcher not implemented.");
-        throw new UnexpectedValueException("Cannot monitor job '$pid' of type '$launcherType'. Launcher not implemented.");
-    }
-
-    return $job;
+    getJobProcessLogger()->error("Cannot monitor job '$pid' of type '$launcherType'. Launcher not implemented.");
+    throw new UnexpectedValueException("Cannot monitor job '$pid' of type '$launcherType'. Launcher not implemented.");
 }
 
 
@@ -216,50 +236,50 @@ function delJob($pid, $launcherType = null, $login = null)
         getJobProcessLogger()->error("Job ID not provided.");
         throw new NotFoundException("Job ID not provided.");
     }
+    $launcherType = jobLauncher($pid, $launcherType, $login);
+    if (!$login) {
+        $login = $_SESSION['User']['_id'];
+    }
 
-    // guess launcher
-    if (!$launcherType && is_numeric($pid)) {
-        $launcherType = "docker_SGE";
-    } elseif (strpos((string)$pid, "-") !== false) {
-        $launcherType = "kubernetes_native";
+    if ($launcherType === "kubernetes_interactive") {
+        list($ok, $msg) = (new K8sSession())->stop($pid);
+        if (!$ok) {
+            getJobProcessLogger()->error("delJob kubernetes_interactive pid=$pid failed: $msg");
+            throw new UnexpectedValueException("Cannot stop interactive session [id = $pid]. $msg");
+        }
+        $_SESSION['errorData']['Info'][] = "Interactive session stopped.";
+        delUserJob($login, $pid);
+        unset($_SESSION['User']['lastjobs'][$pid]);
+        return true;
     }
 
     // cancel job
-    $r_sge = false;
     if ($launcherType == "SGE" || $launcherType == "docker_SGE") {
-        $processSGE = new ProcessSGE();
-        list($r_sge, $msg_sge) = $processSGE->stop($pid);
-    } elseif ($launcherType == "kubernetes_native") {
-        getJobProcessLogger()->debug("delJob kubernetes_native pid=$pid calling ProcessK8s::stop");
-        $processK8s = new ProcessK8s();
-        list($r_sge, $msg_sge) = $processK8s->stop($pid);
-        getJobProcessLogger()->debug(
-            "delJob kubernetes_native pid=$pid stop_ok=" . ($r_sge ? "1" : "0")
-                . " msg=" . $msg_sge
-        );
+        list($stopped, $msg) = (new ProcessSGE())->stop($pid);
+    } elseif ($launcherType == "kubernetes_batch") {
+        list($stopped, $msg) = (new ProcessK8s())->stop($pid);
     } else {
         getJobProcessLogger()->error("Cannot delete job of type '$launcherType' [id = $pid]. Launcher not implemented.");
         throw new UnexpectedValueException("Cannot delete job of type '$launcherType' [id = $pid]. Launcher not implemented.");
     }
 
-    $jobUser = $_SESSION['User']['lastjobs'][$pid];
-
-    if ($jobUser && $jobUser['job_type'] == "interactive") {
+    $jobUser = $_SESSION['User']['lastjobs'][$pid] ?? null;
+    if ($jobUser && ($jobUser['job_type'] ?? '') === "interactive") {
         return false;
     }
 
-    if ($r_sge === false) {
-        getProcessValidationLogger()->error("Cannot delete $launcherType job [id = $pid].<br/> SGE Error: $msg_sge<br/>Docker Error");
-        throw new UnexpectedValueException("Cannot delete $launcherType job [id = $pid].<br/> SGE Error: $msg_sge<br/>Docker Error");
+    if ($stopped === false) {
+        getJobProcessLogger()->error("Cannot delete $launcherType job [id = $pid]. Error: $msg");
+        throw new UnexpectedValueException("Cannot delete $launcherType job [id = $pid]. Error: $msg");
     }
 
     $_SESSION['errorData']['Info'][] = "Job successfully cancelled";
     LoggerFactory::getPersistentLogger()->info("Job {pid} successfully cancelled", array('pid' => $pid));
 
-    // wait to make qdel/terminateActivity effective
-    sleep(15);
-
-    if (!$login) {
-        $login = $_SESSION['User']['_id'];
+    // Give qdel time to take effect. The scheduler's DELETE is already done
+    // when it returns, so Kubernetes Jobs need no wait.
+    if ($launcherType != "kubernetes_batch") {
+        sleep(15);
     }
+    return true;
 }

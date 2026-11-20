@@ -2088,7 +2088,7 @@ function resolvePath_toLocalAbsolutePath($path, $job)
 	// path is an absolute path
 	if (preg_match('/^\//', $path)) {
 		if (preg_match('/^' . preg_quote($job['root_dir_virtual'], '/') . '/', $path)) {
-			if ($job['launcher'] == "SGE" || $job['launcher'] == "ega_demo" || $job['launcher'] == "docker_SGE" || $job['launcher'] == "kubernetes_native") {
+			if ($job['launcher'] == "SGE" || $job['launcher'] == "ega_demo" || $job['launcher'] == "docker_SGE" || $job['launcher'] == "kubernetes_batch") {
 				$rfn = str_replace($job['root_dir_mug'], $GLOBALS['dataDir'], $path);
 			}
 			// direct from path
