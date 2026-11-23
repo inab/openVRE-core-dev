@@ -419,7 +419,7 @@ Each session is named `openvre-ix-<tool>-<12 random hex>` and served at `/intera
 - `strategy: Recreate`, so two copies never use the same workspace
 - labels `openvre.io/interactive`, `openvre.io/session`, `openvre.io/user`, `openvre.io/template`, `app.kubernetes.io/managed-by: openvre-scheduler`
 - annotations `openvre.io/session-id`, `openvre.io/user-id`, `openvre.io/created-at`, `openvre.io/template-version`, `openvre.io/expires-at` (with a TTL), `openvre.io/audit-host-path` (with audit)
-- the tool container keeps running as the image user (RStudio's init needs root); `fsGroup` is `OPENVRE_JOB_RUN_AS_GID`; no seccomp profile, because desktop apps in Guacamole sessions may need syscalls `RuntimeDefault` blocks
+- web tools run as the image user; desktop tools run as `OPENVRE_JOB_RUN_AS_UID` / `_GID`, with all capabilities dropped; `fsGroup` is `OPENVRE_JOB_RUN_AS_GID`; no seccomp profile, because desktop apps in Guacamole sessions may need syscalls `RuntimeDefault` blocks
 
 **Status.** Read from the Deployment named after the session. `state` is `Failed` when a container waits with `ImagePullBackOff`, `ErrImagePull`, `CrashLoopBackOff` or a container config error; `reason` says which. The frontend shows that as `ERROR`.
 
@@ -527,7 +527,7 @@ Read once at startup. The scheduler refuses to start (exit code 2, a `CRITICAL` 
 | `OPENVRE_INTERACTIVE_AUDIT_WATCH_SEC` | `900` | How long a new session is followed before it is recorded as `NotReadyInTime` |
 | `OPENVRE_INTERACTIVE_AUDIT_LOG_LINES` | `200` | Log lines per container in each snapshot |
 
-`OPENVRE_AUDIT_RUN_AS_UID` / `_GID` are no longer read; the scheduler's UID comes from its pod `securityContext`.
+`OPENVRE_AUDIT_RUN_AS_UID` / `_GID` (default `10002`) set the audit sidecar's user and group. Use the same values as the scheduler pod's `securityContext`: both write the same audit folders. The sidecar reads the workspace through the pod's `fsGroup`.
 
 ## Logs
 

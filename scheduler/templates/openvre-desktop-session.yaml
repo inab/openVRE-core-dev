@@ -94,6 +94,13 @@ objects:
               image: "{{ image }}"
               command: "{{ session.command }}"
               env: "{{ env }}"
+              securityContext:
+                runAsNonRoot: true
+                runAsUser: "{{ config.run_as_uid }}"
+                runAsGroup: "{{ config.run_as_gid }}"
+                allowPrivilegeEscalation: false
+                capabilities:
+                  drop: [ALL]
               ports:
                 - name: desktop
                   containerPort: "{{ port }}"

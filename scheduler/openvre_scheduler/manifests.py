@@ -6,6 +6,8 @@ from . import validation as v
 USERDATA_VOLUME = "userdata"
 ADMINDATA_VOLUME = "admindata"
 AUDIT_CONTAINER = "audit-sidecar"
+# Fixed path: a tool's own path (e.g. under /root) may not be reachable in the sidecar image.
+AUDIT_WORKSPACE = "/audit-workspace"
 INTERACTIVE_LABEL = "openvre.io/interactive"
 SESSION_LABEL = "openvre.io/session"
 TEMPLATE_LABEL = "openvre.io/template"
@@ -195,11 +197,12 @@ def audit_blocks(spec, settings, mounts):
     sub = v.subpath(spec.audit_host_path, prefix)
     if not sub:
         raise ValueError("audit session subPath is empty")
+    watched = next((m for m in mounts if m["mountPath"] == spec.workspace_mount_path), mounts[0])
     container = {
         "name": AUDIT_CONTAINER,
         "image": settings.audit_image,
         "env": [
-            {"name": "WATCH_PATH", "value": spec.workspace_mount_path},
+            {"name": "WATCH_PATH", "value": AUDIT_WORKSPACE},
             {"name": "WORKING_DIR", "value": spec.working_dir},
             {"name": "EXECUTION_ID", "value": spec.name},
             {"name": "SESSION_ID", "value": spec.session_id},
@@ -207,13 +210,15 @@ def audit_blocks(spec, settings, mounts):
             {"name": "INTERVAL_SEC", "value": settings.audit_interval_sec},
             {"name": "EXCLUDE_REL_PREFIXES", "value": DEFAULT_AUDIT_EXCLUDE_PREFIXES},
         ],
-        # userData read-only (watch) + adminData read-write (audit files). The tool container never sees adminData.
-        "volumeMounts": [{**m, "readOnly": True} for m in mounts]
-        + [{"name": ADMINDATA_VOLUME, "mountPath": "/audit-root", "subPath": sub}],
+        # The workspace read-only (watch) + adminData read-write (audit files). The tool container never sees adminData.
+        "volumeMounts": [
+            {**watched, "mountPath": AUDIT_WORKSPACE, "readOnly": True},
+            {"name": ADMINDATA_VOLUME, "mountPath": "/audit-root", "subPath": sub},
+        ],
         "securityContext": {
             "runAsNonRoot": True,
-            "runAsUser": settings.job_run_as_uid,
-            "runAsGroup": settings.job_run_as_gid,
+            "runAsUser": settings.audit_run_as_uid,
+            "runAsGroup": settings.audit_run_as_gid,
             "allowPrivilegeEscalation": False,
             "capabilities": {"drop": ["ALL"]},
         },

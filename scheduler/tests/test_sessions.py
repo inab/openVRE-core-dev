@@ -359,6 +359,12 @@ class CreateDeleteTests(unittest.TestCase):
             self.assertEqual(sidecar["volumeMounts"][-1]["subPath"], spec.audit_host_path[len(f"{tmp}/admindata/"):])
             self.assertEqual(pod["volumes"][1], {"name": "admindata", "persistentVolumeClaim": {"claimName": "admin-pvc"}})
             self.assertTrue(all(m["readOnly"] for m in sidecar["volumeMounts"][:-1]))
+            # Separate identity from tools, and a workspace path that exists in any sidecar image.
+            self.assertEqual((sidecar["securityContext"]["runAsUser"], sidecar["securityContext"]["runAsGroup"]), (10002, 10002))
+            self.assertEqual(sidecar["volumeMounts"][0]["mountPath"], "/audit-workspace")
+            env = {e["name"]: e["value"] for e in sidecar["env"]}
+            self.assertEqual(env["WATCH_PATH"], "/audit-workspace")
+            self.assertEqual(pod["securityContext"]["fsGroup"], 1000)
 
 
 if __name__ == "__main__":

@@ -100,6 +100,9 @@ class Settings:
     default_job_ttl_sec: int = 3600
     job_run_as_uid: int = 1000
     job_run_as_gid: int = 1000
+    # The audit sidecar writes with the scheduler's identity, separate from tools.
+    audit_run_as_uid: int = 10002
+    audit_run_as_gid: int = 10002
 
     # Workload templates
     template_dir: str = ""
@@ -183,6 +186,8 @@ def load(env=None):
     # which files on the shared volume a Job can read and write.
     s.job_run_as_uid = _int(env, "OPENVRE_JOB_RUN_AS_UID", 1000)
     s.job_run_as_gid = _int(env, "OPENVRE_JOB_RUN_AS_GID", 1000)
+    s.audit_run_as_uid = _int(env, "OPENVRE_AUDIT_RUN_AS_UID", 10002)
+    s.audit_run_as_gid = _int(env, "OPENVRE_AUDIT_RUN_AS_GID", 10002)
 
     default_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "templates")
     s.template_dir = _str(env, "OPENVRE_TEMPLATE_DIR") or default_dir
@@ -236,6 +241,8 @@ def check(s):
         problems.append("OPENVRE_REAPER_INTERVAL_SEC must be at least 30")
     if s.job_run_as_uid < 1 or s.job_run_as_gid < 1:
         problems.append("OPENVRE_JOB_RUN_AS_UID and OPENVRE_JOB_RUN_AS_GID must be non-root (>= 1)")
+    if s.audit_run_as_uid < 1 or s.audit_run_as_gid < 1:
+        problems.append("OPENVRE_AUDIT_RUN_AS_UID and OPENVRE_AUDIT_RUN_AS_GID must be non-root (>= 1)")
     if problems:
         raise ConfigError("; ".join(problems))
 
