@@ -1,12 +1,3 @@
-"""Building blocks for interactive session templates ({{ session.* }}), and
-the shared helpers for node placement.
-
-The session templates (templates/openvre-*-session.yaml) decide which objects
-a session has and how they fit together. The parts that need logic (mounts,
-the audit sidecar, labels, gateway route settings) are computed here, so templates
-stay declarative and every template gets the same, tested behaviour.
-"""
-
 import json
 from dataclasses import dataclass, field
 

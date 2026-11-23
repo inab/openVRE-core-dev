@@ -1,11 +1,3 @@
-"""Policy for batch Job manifests sent to POST /jobs.
-
-The frontend builds the Job. The scheduler only accepts it if it stays inside
-these rules, and it forces safe settings on top. The goal: holding the
-scheduler token must not be enough to run privileged pods, read Secrets or
-borrow a ServiceAccount.
-"""
-
 import copy
 
 from . import validation as v

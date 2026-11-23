@@ -1,8 +1,3 @@
-"""Settings read from environment variables once at startup.
-
-Every variable the scheduler understands is listed in scheduler/README.md.
-"""
-
 import os
 from dataclasses import dataclass, field
 

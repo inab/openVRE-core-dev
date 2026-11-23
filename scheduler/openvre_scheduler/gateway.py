@@ -1,15 +1,3 @@
-"""Session routes for the openvre-gateway (Traefik).
-
-Traefik's HTTP provider polls GET /gateway/routes every few seconds and uses the
-answer as its dynamic configuration. The answer is built from the session
-Services in each allowed namespace: their gateway annotations (path, request
-headers, set by manifests.gateway_annotations) and their first port. Nothing is
-kept in memory, so a restart of the scheduler or of Traefik loses no route.
-
-Fixed routes (frontend, Keycloak, Guacamole) are not here: Traefik reads them
-from its own file configuration (Helm chart).
-"""
-
 import json
 import logging
 import threading

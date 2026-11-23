@@ -1,30 +1,3 @@
-"""Workload templates: YAML files that define what a caller may launch.
-
-A caller sends a template name and parameters. The scheduler checks each
-parameter against the type the template declares, then fills the values into
-the template's objects. The caller never sends a manifest, so it cannot set
-the image, volumes, user or security settings unless the template exposes
-them as parameters.
-
-Two kinds of template:
-  kind: Job                 one batch Job (manifest:)
-  kind: InteractiveSession  the objects of one interactive session (objects:)
-
-Placeholders are replaced as values in the parsed data, never as text in the
-file, so a parameter value cannot change the structure:
-
-    "{{ name }}"          the whole string becomes the value, keeping its type
-                          (number, list, mapping). If the value is empty
-                          (null), the key or list item is left out.
-    "a {{ name }} b"      text placeholder: only text-like values
-    "{{ config.key }}"    a value from the scheduler's own configuration
-    "{{ session.key }}"   a value the scheduler computes for a session
-                          (InteractiveSession templates only)
-    - "{{ ...name }}"     inside a list: insert the items of a list value here
-
-The file format and every parameter type are described in scheduler/README.md.
-"""
-
 import logging
 import os
 import re

@@ -1,12 +1,3 @@
-"""Interactive sessions: create from a template, read status, delete, and expire.
-
-A request names a session template and carries two parts:
-  context  set by the frontend: who and where (user, tool, project, run folder,
-           workspace mounts). Checked here by fixed rules.
-  params   the tool's own settings (image, port, env, ...). Checked by the
-           template's declared parameter types.
-"""
-
 import logging
 import os
 import threading

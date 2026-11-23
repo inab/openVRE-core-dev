@@ -1,18 +1,3 @@
-"""Who is calling the scheduler, and for which user.
-
-Two checks:
-
-1. The caller: the shared bearer token (SCHEDULER_AUTH_TOKEN), compared in
-   constant time. It only proves the request comes from the frontend.
-
-2. The user (on whose behalf): the user's own Keycloak access token, sent by
-   the frontend in X-OpenVRE-User-Token and checked against Keycloak's public
-   keys. The scheduler takes the user from the token, never from the request
-   body, and only lets a user see or stop their own sessions and Jobs. With
-   OPENVRE_USER_TOKEN=required, the shared token alone cannot read or change
-   any session or Job.
-"""
-
 import hashlib
 import hmac
 import json
