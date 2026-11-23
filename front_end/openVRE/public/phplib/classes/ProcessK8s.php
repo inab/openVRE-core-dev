@@ -15,7 +15,6 @@ use Monolog\Logger;
  * are in K8sSession.
  *
  * Environment variables (besides those of SchedulerClient):
- *   OPENVRE_K8S_JOB_IMAGE       image when the tool sets none (may be empty)
  *   OPENVRE_K8S_JOB_TTL         seconds to keep a finished Job (default 120)
  *   OPENVRE_K8S_JOB_DEADLINE    max seconds a Job may run (default 86400)
  *   OPENVRE_K8S_JOB_MEMORY_REQUEST / _LIMIT  memory when the tool sets none
@@ -44,7 +43,7 @@ class ProcessK8s
     private string $stdout = "";
     private string $stderr = "";
 
-    private string $jobImage;
+    private string $jobImage = "";
     private int $jobTtl;
     private int $jobDeadline;
     private array $jobEnv = [];
@@ -58,7 +57,6 @@ class ProcessK8s
     {
         $this->logger = LoggerFactory::getLogger("K8s interface");
         $this->scheduler = new SchedulerClient();
-        $this->jobImage = SchedulerClient::env("OPENVRE_K8S_JOB_IMAGE");
         $this->jobTtl = (int)SchedulerClient::optionalEnv("OPENVRE_K8S_JOB_TTL", "120");
         $this->jobDeadline = (int)SchedulerClient::optionalEnv("OPENVRE_K8S_JOB_DEADLINE", "86400");
 
@@ -95,7 +93,7 @@ class ProcessK8s
 
     private function submit(int $cpu, int $mem): void
     {
-        $err = $this->jobImage === "" ? "OPENVRE_K8S_JOB_IMAGE is not set" : $this->scheduler->configError();
+        $err = $this->jobImage === "" ? "Missing infrastructure.container_image for this tool" : $this->scheduler->configError();
         if ($err !== "") {
             $this->fail($err);
             return;

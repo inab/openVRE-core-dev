@@ -147,16 +147,16 @@ class K8sSessionRequest
         $access = is_array($infra['interactive_access'] ?? null) ? $infra['interactive_access'] : array();
         $desktop = strtolower(trim((string)($access['mode'] ?? ''))) === 'guacamole';
 
-        $image = (string)($infra['container_image'] ?? SchedulerClient::optionalEnv("OPENVRE_INTERACTIVE_DEFAULT_IMAGE"));
+        $image = (string)($infra['container_image'] ?? "");
         if ($image === "") {
             throw new \InvalidArgumentException("Missing infrastructure.container_image for interactive tool");
         }
         $port = (int)($desktop ? ($access['port'] ?? 0)
-            : ($infra['container_port'] ?? SchedulerClient::optionalEnv("OPENVRE_INTERACTIVE_DEFAULT_PORT", "0")));
+            : ($infra['container_port'] ?? 0));
         if ($port <= 0) {
             throw new \InvalidArgumentException($desktop
                 ? "Guacamole interactive tool is missing interactive_access.port"
-                : "Missing infrastructure.container_port (and OPENVRE_INTERACTIVE_DEFAULT_PORT unset)");
+                : "Missing infrastructure.container_port");
         }
 
         $params = array(

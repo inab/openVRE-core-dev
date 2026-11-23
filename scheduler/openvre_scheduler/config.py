@@ -84,8 +84,6 @@ class Settings:
     # Interactive sessions
     external_base: str = ""
     auth_url: str = ""
-    interactive_default_image: str = ""
-    interactive_default_port: str = ""
     interactive_default_mount: str = ""
     node_selector: str = ""
     tolerations: str = ""
@@ -168,8 +166,6 @@ def load(env=None):
 
     s.external_base = _str(env, "OPENVRE_EXTERNAL_BASE").rstrip("/")
     s.auth_url = _str(env, "OPENVRE_INTERACTIVE_AUTH_URL")
-    s.interactive_default_image = _str(env, "OPENVRE_INTERACTIVE_DEFAULT_IMAGE")
-    s.interactive_default_port = _str(env, "OPENVRE_INTERACTIVE_DEFAULT_PORT")
     s.interactive_default_mount = _str(env, "OPENVRE_INTERACTIVE_DEFAULT_MOUNT")
     s.node_selector = _str(env, "OPENVRE_NODE_SELECTOR")
     s.tolerations = _str(env, "OPENVRE_TOLERATIONS")

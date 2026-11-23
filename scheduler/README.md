@@ -508,7 +508,7 @@ Read once at startup. The scheduler refuses to start (exit code 2, a `CRITICAL` 
 | `OPENVRE_GATEWAY_TOKEN` | | At least 16 characters, different from `SCHEDULER_AUTH_TOKEN`. The gateway sends it to `GET /gateway/routes`. Empty: no gateway on this site (see [Sites without the gateway](#sites-without-the-gateway)). |
 | `OPENVRE_EXTERNAL_BASE` | | Public URL (`https://host`); its scheme sets `X-Forwarded-Proto` for sessions |
 | `OPENVRE_INTERACTIVE_AUTH_URL` | | Login check in front of web sessions (Traefik `forwardAuth`): every request is first sent there; 2xx lets it through, anything else (e.g. a redirect to login) goes back to the browser |
-| `OPENVRE_INTERACTIVE_DEFAULT_IMAGE` / `_PORT` / `_MOUNT` | | Defaults for session requests |
+| `OPENVRE_INTERACTIVE_DEFAULT_MOUNT` | | Workspace path for a tool with no writable volume |
 | `OPENVRE_MAX_SESSION_CPU` / `_MEMORY` | | Upper limits for one session (e.g. `4`, `16Gi`) |
 | `OPENVRE_SESSION_TTL_HOURS` | `0` (off) | Delete sessions this many hours after creation |
 | `OPENVRE_REAPER_INTERVAL_SEC` | `300` | How often expired sessions are checked (min 30) |
