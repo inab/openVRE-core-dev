@@ -21,6 +21,7 @@ PARAM_KEYS = {"type", "description", "required", "default", "max_length", "enum"
 # {{ config.* }}: name -> "text" (usable inside text), "list" (spreadable) or "any" (whole value only)
 CONFIG_REFS = {
     "shared_pvc": "text", "shared_data_prefix": "text", "userdata_pvc": "text",
+    "protected_mounts": "list", "protected_volumes": "list",
     "run_as_uid": "text", "run_as_gid": "text",
     "node_selector": "any", "affinity": "any", "tolerations": "list",
 }
@@ -32,6 +33,9 @@ SESSION_REFS = {
     "command": "any", "gateway_annotations": "any",
     "mounts": "list", "audit_containers": "list", "audit_volumes": "list", "pull_secrets": "list",
 }
+
+# {{ job.* }}: computed per Job, in templates that set user_folder_param
+JOB_REFS = {"user_folder": "text"}
 
 # Session parameters with a fixed meaning: the scheduler's building blocks read them.
 # A session template must declare "port"; the others are optional.
@@ -204,6 +208,8 @@ def config_values(settings):
         "shared_pvc": settings.shared_pvc,
         "shared_data_prefix": settings.shared_data_prefix,
         "userdata_pvc": settings.userdata_pvc,
+        "protected_mounts": manifests.protected_mounts(settings),
+        "protected_volumes": manifests.protected_volumes(settings),
         "run_as_uid": settings.job_run_as_uid,
         "run_as_gid": settings.job_run_as_gid,
         "node_selector": manifests.parse_node_selector(settings.node_selector),
@@ -249,6 +255,7 @@ class _Base:
     TOP_KEYS = set()
     REQUIRED_KEYS = set()
     ALLOW_SESSION_REFS = False
+    ALLOW_JOB_REFS = False
 
     def __init__(self, data, source):
         unknown = set(data) - self.TOP_KEYS
@@ -286,6 +293,13 @@ class _Base:
             if key not in SESSION_REFS:
                 raise TemplateError(f"{self.source}: {path}: unknown session value {ref!r}")
             return SESSION_REFS[key]
+        if ref.startswith("job."):
+            key = ref[len("job."):]
+            if not self.ALLOW_JOB_REFS:
+                raise TemplateError(f"{self.source}: {path}: {ref!r} needs user_folder_param in a Job template")
+            if key not in JOB_REFS:
+                raise TemplateError(f"{self.source}: {path}: unknown job value {ref!r}")
+            return JOB_REFS[key]
         if ref not in self.params:
             raise TemplateError(f"{self.source}: {path}: unknown parameter {ref!r}")
         t = self.params[ref].type
@@ -350,12 +364,20 @@ class _Base:
 # Job templates ---------------------------------------------------------------
 
 class JobTemplate(_Base):
-    TOP_KEYS = {"name", "version", "description", "kind", "name_param", "parameters", "manifest"}
+    TOP_KEYS = {"name", "version", "description", "kind", "name_param", "user_folder_param", "parameters", "manifest"}
     REQUIRED_KEYS = {"name", "kind", "name_param", "parameters", "manifest"}
 
     def __init__(self, data, source):
         super().__init__(data, source)
         self.name_param = data["name_param"]
+        # A path parameter (e.g. workdir) that names the user's folder: {{ job.user_folder }}
+        # is then userdata/<user>, and every path parameter must stay inside it.
+        self.user_folder_param = data.get("user_folder_param")
+        if self.user_folder_param is not None:
+            up = self.params.get(self.user_folder_param)
+            if up is None or up.type != "path" or not up.required:
+                raise TemplateError(f"{source}: user_folder_param must be a required parameter of type path")
+            self.ALLOW_JOB_REFS = True
         np = self.params.get(self.name_param)
         if np is None or np.type != "name" or not np.required or not np.prefix:
             raise TemplateError(f"{source}: name_param must be a required parameter of type name with a prefix")
@@ -373,10 +395,32 @@ class JobTemplate(_Base):
     def render(self, raw_params, settings):
         values = self.resolve_params(raw_params, settings)
         cfg = config_values(settings)
-        manifest = fill(self.manifest, lambda ref: cfg[ref[7:]] if ref.startswith("config.") else values[ref])
+        job = self._job_values(values, settings)
+
+        def lookup(ref):
+            if ref.startswith("config."):
+                return cfg[ref[7:]]
+            if ref.startswith("job."):
+                return job[ref[4:]]
+            return values[ref]
+
+        manifest = fill(self.manifest, lookup)
         labels = manifest.setdefault("metadata", {}).setdefault("labels", {})
         labels["openvre.io/template"] = self.name
         return manifest, values[self.name_param]
+
+    def _job_values(self, values, settings):
+        if not self.user_folder_param:
+            return {}
+        from . import manifests
+        folder = manifests.user_folder(values[self.user_folder_param], settings)
+        prefix = settings.shared_data_prefix.rstrip("/")
+        allowed = (f"{prefix}/{folder}/", f"{prefix}/{manifests.PUBLIC_DIR}/")
+        for name, p in self.params.items():
+            if p.type == "path" and values.get(name):
+                v.require(values[name].startswith(allowed),
+                          f"{name} must be inside the user's folder ({prefix}/{folder}) or {prefix}/{manifests.PUBLIC_DIR}")
+        return {"user_folder": folder}
 
 
 # Interactive session templates -----------------------------------------------

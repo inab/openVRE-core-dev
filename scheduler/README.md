@@ -196,6 +196,8 @@ Session template parameters (`web` / `desktop`):
 
 From the scheduler config, not the caller: `runAsUser`/`runAsGroup`/`fsGroup` (`OPENVRE_JOB_RUN_AS_UID/GID`), the shared PVC and mount path, `nodeSelector` (`OPENVRE_NODE_SELECTOR`), tolerations (`OPENVRE_TOLERATIONS` plus eviction).
 
+**What the Job sees.** Only the user's own folder, taken from `workdir` (`/shared_data/userdata/<user>/...`), mounted at its usual path, plus the protected-data PVC (`DEFAULT_PROTECTED_PVC`) read-only at `/shared_data/public`. Other users' folders are not in the pod. `workdir` and `submit_script` must both be inside that user's folder (the script may also be in `/shared_data/public`).
+
 Example request:
 
 ```json
@@ -222,6 +224,7 @@ name: my-template            # must match the file name (my-template.yaml)
 description: What it runs and who calls it.
 kind: Job                    # or InteractiveSession (see "Session templates")
 name_param: job_name         # the parameter that becomes metadata.name
+user_folder_param: input     # optional: a required path parameter that names the user's folder
 
 parameters:
   job_name: {type: name, prefix: my-prefix-, required: true}
@@ -251,8 +254,9 @@ manifest:                    # an ordinary Kubernetes manifest with placeholders
 |---|---|
 | `"{{ name }}"` (the whole string) | Replaced by the value with its type kept: number, list, mapping |
 | `"text {{ name }} text"` | Text placeholder. Only for string, int, quantity, path, image and name parameters |
-| `"{{ config.key }}"` | Scheduler configuration: `shared_pvc`, `shared_data_prefix`, `run_as_uid`, `run_as_gid`, `node_selector`, `tolerations` |
-| `- "{{ ...name }}"` (a list item) | Insert the items of a list value (env, pull_secrets, `config.tolerations`) at this point |
+| `"{{ config.key }}"` | Scheduler configuration: `shared_pvc`, `shared_data_prefix`, `run_as_uid`, `run_as_gid`, `node_selector`, `tolerations`, `protected_mounts`, `protected_volumes` |
+| `"{{ job.user_folder }}"` | `userdata/<user>` from the `user_folder_param` path. With it set, every path parameter must be inside that folder or `/shared_data/public` |
+| `- "{{ ...name }}"` (a list item) | Insert the items of a list value (env, pull_secrets, `config.tolerations`, `config.protected_mounts`, `config.protected_volumes`) at this point |
 
 **Parameter types.**
 
@@ -388,7 +392,7 @@ Allowing a registry namespace means trusting everyone who can push to it. Keep p
 Session templates can grow over time, so every filled-in session is checked before anything is created. Rejected sessions return 422 with every reason.
 
 - Only ConfigMap, Deployment and Service (no Ingress: the gateway routes web sessions); every object named after the session. A web session must have a Service named after the session.
-- Deployment: `replicas` forced to 1, selector forced to the session; no `hostNetwork`, `hostPID`, `hostIPC`, `serviceAccountName`, `nodeName`, `runtimeClassName`, ...; volumes only allowed PVCs, `emptyDir`, or the session's own ConfigMaps (no `secret`, `projected`, `hostPath`, ...); the admin volume only in the audit sidecar; with a single shared PVC, tool containers must mount a sub-folder outside the audit folder; containers and init containers: no `privileged`, no added capabilities, no `hostPort`, no `envFrom` or Secret-reading env, images through the allowlist (the configured audit image is exempt); `automountServiceAccountToken` and `enableServiceLinks` forced off.
+- Deployment: `replicas` forced to 1, selector forced to the session; no `hostNetwork`, `hostPID`, `hostIPC`, `serviceAccountName`, `nodeName`, `runtimeClassName`, ...; volumes only allowed PVCs, `emptyDir`, or the session's own ConfigMaps (no `secret`, `projected`, `hostPath`, ...); the admin volume only in the audit sidecar; with a single shared PVC, tool containers must mount a sub-folder outside the audit folder; containers and init containers: no `privileged`, no added capabilities, no `hostPort`, no `envFrom` or Secret-reading env, images through the allowlist (the configured audit image is exempt); `automountServiceAccountToken` and `enableServiceLinks` forced off; every mount of the protected-data PVC forced `readOnly`.
 - Service: `ClusterIP` only, no `nodePort`, selector forced to the session. The `openvre.io/gateway-*` annotations are forced: set from the scheduler's values on a web session's Service, removed everywhere else (desktop sessions are only reachable through Guacamole).
 - ConfigMap: string data only.
 - Every object gets the session labels and the request namespace.
@@ -406,7 +410,7 @@ Every Job filled in from a template passes this policy before it is created. A m
 - images pass the allowlist (see `OPENVRE_STRICT`)
 - `imagePullSecrets` are on the allowed list
 
-It then forces: `automountServiceAccountToken: false`, `enableServiceLinks: false`, `runAsNonRoot`, seccomp `RuntimeDefault`, `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`, the OpenVRE labels including `openvre.io/batch: "true"` (the batch NetworkPolicy selects it), and the default pull secrets.
+It then forces every mount of the protected-data PVC to `readOnly`, and: `automountServiceAccountToken: false`, `enableServiceLinks: false`, `runAsNonRoot`, seccomp `RuntimeDefault`, `allowPrivilegeEscalation: false`, `capabilities.drop: [ALL]`, the OpenVRE labels including `openvre.io/batch: "true"` (the batch NetworkPolicy selects it), and the default pull secrets.
 
 A rejected Job returns 422 with every reason in `error`.
 
@@ -498,6 +502,7 @@ Read once at startup. The scheduler refuses to start (exit code 2, a `CRITICAL` 
 | `DEFAULT_USERDATA_PVC` | shared PVC | PVC mounted into session pods |
 | `DEFAULT_ADMINDATA_PVC` | shared PVC | PVC for audit files (sidecar only, never the tool container) |
 | `DEFAULT_TOOLS_PVC` | | Optional extra PVC allowed in Jobs |
+| `DEFAULT_PROTECTED_PVC` | | VRE protected data from third parties (e.g. FEM). Mounted read-only at `<prefix>/public` in Jobs and sessions. Must not be the user-data or admin-data PVC. Empty: not mounted |
 | `OPENVRE_ALLOWED_PVCS` | | Comma list of further PVCs Jobs and sessions may use |
 | `OPENVRE_SHARED_DATA_PREFIX` | `/shared_data` | Paths in requests must be under this; it maps to the PVC root |
 | `OPENVRE_STRICT` | off | `1`: images not allowed are rejected (403). Off: they are allowed and logged. |

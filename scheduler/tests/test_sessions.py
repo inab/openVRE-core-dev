@@ -349,7 +349,7 @@ class CreateDeleteTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             s = settings(OPENVRE_INTERACTIVE_AUDIT_SIDECAR_ENABLED="1", OPENVRE_INTERACTIVE_AUDIT_IMAGE="audit:1",
                          OPENVRE_INTERACTIVE_AUDIT_BASE=f"{tmp}/admindata", OPENVRE_STRICT="1",
-                         OPENVRE_IMAGE_ALLOWLIST="ghcr.io/inab/*")
+                         OPENVRE_IMAGE_ALLOWLIST="ghcr.io/inab/*", DEFAULT_PROTECTED_PVC="protected-pvc")
             spec = self.create(session_body(tool_id="my_tool", user_id="Alice@x"), s=s)
             self.assertTrue(spec.audit_host_path.startswith(f"{tmp}/admindata/my_tool/alice-x/openvre-ix-"))
             pod = self.kube.objects[f"{DEP_PATH}/{spec.name}"]["spec"]["template"]["spec"]
@@ -357,7 +357,8 @@ class CreateDeleteTests(unittest.TestCase):
             # The sidecar image is exempt from the tool image allowlist.
             self.assertEqual((sidecar["name"], sidecar["image"]), ("audit-sidecar", "audit:1"))
             self.assertEqual(sidecar["volumeMounts"][-1]["subPath"], spec.audit_host_path[len(f"{tmp}/admindata/"):])
-            self.assertEqual(pod["volumes"][1], {"name": "admindata", "persistentVolumeClaim": {"claimName": "admin-pvc"}})
+            self.assertEqual(pod["volumes"][1], {"name": "protected", "persistentVolumeClaim": {"claimName": "protected-pvc", "readOnly": True}})
+            self.assertEqual(pod["volumes"][2], {"name": "admindata", "persistentVolumeClaim": {"claimName": "admin-pvc"}})
             self.assertTrue(all(m["readOnly"] for m in sidecar["volumeMounts"][:-1]))
             # Separate identity from tools, and a workspace path that exists in any sidecar image.
             self.assertEqual((sidecar["securityContext"]["runAsUser"], sidecar["securityContext"]["runAsGroup"]), (10002, 10002))
@@ -365,6 +366,10 @@ class CreateDeleteTests(unittest.TestCase):
             env = {e["name"]: e["value"] for e in sidecar["env"]}
             self.assertEqual(env["WATCH_PATH"], "/audit-workspace")
             self.assertEqual(pod["securityContext"]["fsGroup"], 1000)
+            # The sidecar watches the workspace only, and the tool reads public without writing.
+            self.assertFalse(any(m["mountPath"].endswith("/public") for m in sidecar["volumeMounts"]))
+            public = [m for m in pod["containers"][0]["volumeMounts"] if m["name"] == "protected"]
+            self.assertEqual(public, [{"name": "protected", "mountPath": "/shared_data/public", "readOnly": True}])
 
 
 if __name__ == "__main__":

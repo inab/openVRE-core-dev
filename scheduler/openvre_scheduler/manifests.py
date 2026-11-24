@@ -8,6 +8,10 @@ ADMINDATA_VOLUME = "admindata"
 AUDIT_CONTAINER = "audit-sidecar"
 # Fixed path: a tool's own path (e.g. under /root) may not be reachable in the sidecar image.
 AUDIT_WORKSPACE = "/audit-workspace"
+# VRE protected data from third parties (DEFAULT_PROTECTED_PVC), at <prefix>/public: tools only ever read it.
+PROTECTED_VOLUME = "protected"
+PUBLIC_DIR = "public"
+USERDATA_DIR = "userdata"
 INTERACTIVE_LABEL = "openvre.io/interactive"
 SESSION_LABEL = "openvre.io/session"
 TEMPLATE_LABEL = "openvre.io/template"
@@ -157,8 +161,31 @@ def annotations(spec):
     return out
 
 
+def protected_mounts(settings):
+    """The protected-data PVC at <prefix>/public, always read-only. Empty when DEFAULT_PROTECTED_PVC is not set."""
+    if not settings.protected_pvc:
+        return []
+    return [{"name": PROTECTED_VOLUME, "mountPath": f"{settings.shared_data_prefix.rstrip('/')}/{PUBLIC_DIR}",
+             "readOnly": True}]
+
+
+def protected_volumes(settings):
+    if not settings.protected_pvc:
+        return []
+    return [{"name": PROTECTED_VOLUME, "persistentVolumeClaim": {"claimName": settings.protected_pvc, "readOnly": True}}]
+
+
+def user_folder(path, settings):
+    """'userdata/<user>' for a path under <prefix>/userdata/<user>/..., which is all a batch Job mounts."""
+    rel = v.subpath(v.path_under(path, f"{settings.shared_data_prefix.rstrip('/')}/{USERDATA_DIR}", "workdir"),
+                    settings.shared_data_prefix).split("/")
+    v.require(len(rel) >= 3, f"workdir must be inside a user's folder: <prefix>/{USERDATA_DIR}/<user>/...")
+    return f"{rel[0]}/{rel[1]}"
+
+
 def userdata_mounts(spec, settings):
-    """Mounts of the userData PVC (volume "userdata"). Paths were checked in sessions.py."""
+    """Mounts of the userData PVC (volume "userdata"): the tool's folders, plus
+    the protected-data PVC read-only. Paths were checked in sessions.py."""
     mounts, seen = [], set()
     for vm in spec.volume_mounts:
         sub = v.subpath(vm["host_path"], settings.shared_data_prefix)
@@ -172,13 +199,14 @@ def userdata_mounts(spec, settings):
         if vm.get("read_only"):
             m["readOnly"] = True
         mounts.append(m)
-    if mounts:
-        return mounts
-    sub = v.subpath(spec.working_dir, settings.shared_data_prefix)
-    m = {"name": USERDATA_VOLUME, "mountPath": spec.workspace_mount_path}
-    if sub:
-        m["subPath"] = sub
-    return [m]
+    if not mounts:
+        sub = v.subpath(spec.working_dir, settings.shared_data_prefix)
+        m = {"name": USERDATA_VOLUME, "mountPath": spec.workspace_mount_path}
+        if sub:
+            m["subPath"] = sub
+        mounts.append(m)
+    taken = {m["mountPath"] for m in mounts}
+    return mounts + [m for m in protected_mounts(settings) if m["mountPath"] not in taken]
 
 
 def readiness_probe(port, path):

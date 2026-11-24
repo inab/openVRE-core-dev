@@ -118,6 +118,8 @@ objects:
             - name: userdata
               persistentVolumeClaim:
                 claimName: "{{ config.userdata_pvc }}"
+            # VRE protected data (DEFAULT_PROTECTED_PVC), mounted read-only by session.mounts.
+            - "{{ ...config.protected_volumes }}"
             - "{{ ...session.audit_volumes }}"
 
   - apiVersion: v1

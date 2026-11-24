@@ -172,6 +172,43 @@ class RenderTests(unittest.TestCase):
                 self.render(**overrides)
             self.assertIn(fragment, cm.exception.message, overrides)
 
+    def test_job_mounts_only_the_users_folder(self):
+        pod = self.render()["spec"]["template"]["spec"]
+        self.assertEqual(pod["containers"][0]["volumeMounts"], [
+            {"name": "shared-data", "mountPath": "/shared_data/userdata/alice", "subPath": "userdata/alice"}])
+        self.assertEqual([vol["name"] for vol in pod["volumes"]], ["shared-data"])
+
+    def test_paths_must_stay_in_one_users_folder(self):
+        cases = [
+            ({"workdir": "/shared_data/userdata"}, "inside a user's folder"),
+            ({"workdir": "/shared_data/userdata/alice"}, "inside a user's folder"),
+            ({"workdir": "/shared_data/public/x"}, "must be under /shared_data/userdata"),
+            ({"submit_script": "/shared_data/userdata/bob/p/run1/.submit"}, "submit_script must be inside"),
+            ({"submit_script": "/shared_data/userdata/alice-x/.submit"}, "submit_script must be inside"),
+        ]
+        for overrides, fragment in cases:
+            with self.assertRaises(v.ValidationError, msg=str(overrides)) as cm:
+                self.render(**overrides)
+            self.assertIn(fragment, cm.exception.message, overrides)
+
+    def test_protected_pvc_read_only(self):
+        s = settings(DEFAULT_PROTECTED_PVC="protected-pvc")
+        pod = self.tpl.render(dict(GOOD_PARAMS), s)[0]["spec"]["template"]["spec"]
+        self.assertEqual(pod["containers"][0]["volumeMounts"][1],
+                         {"name": "protected", "mountPath": "/shared_data/public", "readOnly": True})
+        self.assertEqual(pod["volumes"][1],
+                         {"name": "protected", "persistentVolumeClaim": {"claimName": "protected-pvc", "readOnly": True}})
+        # A script in public/ (e.g. a FEM helper) is allowed; the run folder still is the user's.
+        self.tpl.render(dict(GOOD_PARAMS, submit_script="/shared_data/public/fem/run.sh"), s)
+
+    def test_user_folder_param_rules(self):
+        text = minimal("wd: {type: string, required: true}", 'env: [{name: W, value: "{{ wd }}"}]')
+        text = text.replace("name_param: job_name", "name_param: job_name\nuser_folder_param: wd")
+        with self.assertRaisesRegex(templates.TemplateError, "user_folder_param must be"):
+            templates.Template(templates.load_yaml(text, "t.yaml"), "t.yaml")
+        with self.assertRaisesRegex(templates.TemplateError, "needs user_folder_param"):
+            make(extra_manifest='env: [{name: U, value: "{{ job.user_folder }}"}]')
+
     def test_required(self):
         params = dict(GOOD_PARAMS)
         del params["image"]
@@ -202,6 +239,18 @@ class JobsBuildTests(unittest.TestCase):
         with self.assertRaises(v.ValidationError) as cm:
             jobs.build({"template": "t", "params": {"job_name": "openvre-bj-x"}}, "openvre", self.s, {"t": bad})
         self.assertEqual(cm.exception.status, 422)
+
+    def test_policy_forces_protected_read_only(self):
+        s = settings(DEFAULT_PROTECTED_PVC="protected-pvc")
+        tpl = make(extra_manifest='volumeMounts: [{name: pub, mountPath: /shared_data/public}]')
+        pod = tpl.manifest["spec"]["template"]["spec"]
+        pod["volumes"] = [{"name": "pub", "persistentVolumeClaim": {"claimName": "protected-pvc"}}]
+        pod["securityContext"] = {"runAsUser": 1000}
+        tpl.manifest["spec"]["activeDeadlineSeconds"] = 60
+        job, _ = jobs.build({"template": "t", "params": {"job_name": "openvre-bj-x"}}, "openvre", s, {"t": tpl})
+        pod = job["spec"]["template"]["spec"]
+        self.assertTrue(pod["containers"][0]["volumeMounts"][0]["readOnly"])
+        self.assertTrue(pod["volumes"][0]["persistentVolumeClaim"]["readOnly"])
 
     def test_unknown_template(self):
         with self.assertRaises(v.ValidationError) as cm:

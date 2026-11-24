@@ -18,6 +18,8 @@ name: openvre-batch-job
 description: Run one OpenVRE tool execution as a Kubernetes Job.
 kind: Job
 name_param: job_name
+# The Job only mounts this user's folder (userdata/<user>), taken from workdir.
+user_folder_param: workdir
 
 parameters:
   job_name:
@@ -33,12 +35,12 @@ parameters:
     type: path
     under: /shared_data
     required: true
-    description: Run folder on the shared volume. The script starts here.
+    description: Run folder, inside the user's folder (/shared_data/userdata/<user>/...). The script starts here.
   submit_script:
     type: path
     under: /shared_data
     required: true
-    description: Submission script written by the frontend.
+    description: Submission script written by the frontend, inside the same user's folder.
   cpu:
     type: quantity
     default: "1"
@@ -122,9 +124,14 @@ manifest:
                 cpu: "{{ cpu }}"
                 memory: "{{ memory_limit }}"
             volumeMounts:
+              # Only this user's folder, at its usual path.
               - name: shared-data
-                mountPath: "{{ config.shared_data_prefix }}"
+                mountPath: "{{ config.shared_data_prefix }}/{{ job.user_folder }}"
+                subPath: "{{ job.user_folder }}"
+              # VRE protected data (DEFAULT_PROTECTED_PVC), read-only.
+              - "{{ ...config.protected_mounts }}"
         volumes:
           - name: shared-data
             persistentVolumeClaim:
               claimName: "{{ config.shared_pvc }}"
+          - "{{ ...config.protected_volumes }}"

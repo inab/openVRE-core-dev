@@ -22,6 +22,12 @@ class ConfigTests(unittest.TestCase):
         with self.assertRaises(config.ConfigError):
             config.load(dict(BASE_ENV, SCHEDULER_AUTH_TOKEN="short"))
 
+    def test_protected_pvc(self):
+        self.assertIn("protected-pvc", settings(DEFAULT_PROTECTED_PVC="protected-pvc").allowed_pvcs)
+        for same in ("shared-pvc", "admin-pvc"):
+            with self.assertRaisesRegex(config.ConfigError, "DEFAULT_PROTECTED_PVC must be its own PVC"):
+                settings(DEFAULT_PROTECTED_PVC=same)
+
     def test_token_rotation_list(self):
         s = settings(SCHEDULER_AUTH_TOKEN="old-token-aaaaaaaaaaaa,new-token-bbbbbbbbbbbb")
         self.assertEqual(len(s.auth_tokens), 2)

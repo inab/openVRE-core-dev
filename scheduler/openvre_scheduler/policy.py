@@ -109,7 +109,23 @@ def check_job(manifest, ns, settings, log=None):
         return None, errs
 
     _force_safe_settings(job, pod)
+    _force_protected_read_only(pod, settings)
     return job, []
+
+
+def _force_protected_read_only(pod, settings):
+    """Every mount of the protected-data PVC is read-only, whatever the template or manifest says."""
+    if not settings.protected_pvc:
+        return
+    names = set()
+    for vol in pod.get("volumes") or []:
+        if isinstance(vol, dict) and (vol.get("persistentVolumeClaim") or {}).get("claimName") == settings.protected_pvc:
+            vol["persistentVolumeClaim"]["readOnly"] = True
+            names.add(vol.get("name"))
+    for c in (pod.get("containers") or []) + (pod.get("initContainers") or []):
+        for m in (c.get("volumeMounts") or []) if isinstance(c, dict) else []:
+            if isinstance(m, dict) and m.get("name") in names:
+                m["readOnly"] = True
 
 
 def _pull_secrets(value, settings):
@@ -315,6 +331,7 @@ def _check_session_deployment(obj, where, blocks, settings, admin_pvc, separate_
 
     pod["automountServiceAccountToken"] = False
     pod["enableServiceLinks"] = False
+    _force_protected_read_only(pod, settings)
     if not pod.get("imagePullSecrets"):
         pod.pop("imagePullSecrets", None)
     else:

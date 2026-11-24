@@ -70,6 +70,7 @@ class Settings:
     userdata_pvc: str = ""
     admindata_pvc: str = ""
     tools_pvc: str = ""
+    protected_pvc: str = ""
     allowed_pvcs: list = field(default_factory=list)
     shared_data_prefix: str = "/shared_data"
 
@@ -155,8 +156,9 @@ def load(env=None):
     s.userdata_pvc = _str(env, "DEFAULT_USERDATA_PVC") or s.shared_pvc
     s.admindata_pvc = _str(env, "DEFAULT_ADMINDATA_PVC") or s.shared_pvc
     s.tools_pvc = _str(env, "DEFAULT_TOOLS_PVC")
+    s.protected_pvc = _str(env, "DEFAULT_PROTECTED_PVC")
     extra_pvcs = _list(env, "OPENVRE_ALLOWED_PVCS")
-    s.allowed_pvcs = sorted({p for p in [s.shared_pvc, s.userdata_pvc, s.tools_pvc, *extra_pvcs] if p})
+    s.allowed_pvcs = sorted({p for p in [s.shared_pvc, s.userdata_pvc, s.tools_pvc, s.protected_pvc, *extra_pvcs] if p})
     s.shared_data_prefix = (_str(env, "OPENVRE_SHARED_DATA_PREFIX", "/shared_data").rstrip("/") or "/shared_data")
 
     s.strict = _bool(env, "OPENVRE_STRICT", False)
@@ -243,6 +245,9 @@ def check(s):
         problems.append("OPENVRE_JOB_RUN_AS_UID and OPENVRE_JOB_RUN_AS_GID must be non-root (>= 1)")
     if s.audit_run_as_uid < 1 or s.audit_run_as_gid < 1:
         problems.append("OPENVRE_AUDIT_RUN_AS_UID and OPENVRE_AUDIT_RUN_AS_GID must be non-root (>= 1)")
+    if s.protected_pvc and s.protected_pvc in (s.shared_pvc, s.userdata_pvc, s.admindata_pvc):
+        # Tools mount the whole protected PVC: on the user-data PVC that would show every user's files.
+        problems.append("DEFAULT_PROTECTED_PVC must be its own PVC, not the user-data or admin-data one")
     if problems:
         raise ConfigError("; ".join(problems))
 
