@@ -117,36 +117,6 @@ $(document).ready(function() {
 		}
 	});
 
-	// load visualizers
-	$('#visualization').click(function () {
-  	// Only call notifications when opening the dropdown
-    if (!$(this).parent().hasClass('open')) {
-	
-			$('#visualizers_list').html('');
-
-			var files = '';
-
-			for(i in allFiles){
-				if(allFiles[i].checked) {
-					files += '&fn[]=' + allFiles[i].fileId;
-				}
-			}
-
-			files = files.substring(1);
-
-			$.ajax({
-				type: "POST",
-				url: baseURL + "applib/getVisualizers.php",
-				data: files,
-				success: function(data) {
-					$('#visualizers_list').css('background', '#fff');
-					d = data.replace(/(\r\n|\n|\r|\t)/gm,"");
-    			$('#visualizers_list').html(d);
-				}
-  		});
-		}
-	});
-
 
 	// remove all the files from run tools portlet
 	$('#btn-rmv-all').click(function(){

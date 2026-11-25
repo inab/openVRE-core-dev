@@ -15,10 +15,8 @@ if ($user->getType() == UserType::Admin->value) {
 }
 
 $tls = getTools_List($user);
-$vlzrs = getVisualizers_List();
 
-$tlsvlzrs = array_merge($tls, $vlzrs);
-sort($tlsvlzrs);
+sort($tls);
 
 ?>
 
@@ -175,7 +173,7 @@ sort($tlsvlzrs);
                                                 <select class="form-control form-field-enabled valid select2tools" name="tools[]" id="tools" aria-invalid="false" multiple="multiple" <?php echo $stTools; ?>>
                                                     <option value=""></option>
                                                     <?php
-                                                    foreach ($tlsvlzrs as $id => $value) {
+                                                    foreach ($tls as $id => $value) {
                                                         $selected = "";
                                                         if (in_array($value['_id'], $user->getDevelopedTools())) $selected = "selected";
 

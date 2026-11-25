@@ -6,11 +6,7 @@ redirectOutside();
 require "../htmlib/header.inc.php";
 
 $user = getUserById($_SESSION['userId']);
-$tls = getTools_ListComplete($user);
-##### $vslzrs = getVisualizers_ListComplete(1);
-$vslzrs = array();
-
-$toolList = array_merge($tls, $vslzrs);
+$toolList = getTools_ListComplete($user);
 sort($toolList);
 ?>
 
@@ -39,7 +35,7 @@ sort($toolList);
 							<i class="fa fa-circle"></i>
 						</li>
 						<li>
-							<span>Launch Tool / Visualizer</span>
+							<span>Launch Tool</span>
 							<i class="fa fa-circle"></i>
 						</li>
 						<li>

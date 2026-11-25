@@ -552,7 +552,7 @@ box-shadow:  1px 1px 8px 0px rgba(204, 204, 204, 1);
      background-color:  #085176;
  }
 
-#av_tools_list,  #visualizers_list  {
+#av_tools_list  {
      min-height: 30px;
      background: #fff url(../img/loading-spinner-blue.gif) no-repeat center center;
    }

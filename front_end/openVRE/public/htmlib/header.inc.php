@@ -115,8 +115,7 @@
 			<link href="assets/global/plugins/select2/css/select2.min.css" rel="stylesheet" type="text/css" />
 			<link href="assets/global/plugins/select2/css/select2-bootstrap.min.css" rel="stylesheet" type="text/css" />
 		<?php break;
-		case 'tools':
-		case 'visualizers': ?>
+		case 'tools': ?>
 			<link href="assets/global/plugins/cubeportfolio/css/cubeportfolio.css" rel="stylesheet" type="text/css" />
 			<?php break ?>;
 
@@ -153,8 +152,7 @@
 		case 'output': ?>
 			<link href="assets/pages/css/customized-tools.css" rel="stylesheet" type="text/css" />
 		<?php break;
-		case 'tools':
-		case 'visualizers': ?>
+		case 'tools': ?>
 			<link href="assets/pages/css/portfolio.min.css" rel="stylesheet" type="text/css" />
 			<?php break; ?>
 	<?php } ?>
@@ -204,7 +202,6 @@
 		case 'tutorials':
 		case 'references':
 		case 'tools':
-		case 'visualizers':
 		case 'restoreLink':
 		case 'form':
 		case 'linkedAccount':

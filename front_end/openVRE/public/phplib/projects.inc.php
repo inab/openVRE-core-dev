@@ -1082,62 +1082,6 @@ function formatData($data)
 
 	//tools list (old school version :) delete
 
-	//visualization
-	if (isset($data['format'])) {
-
-		$data['vis_button'] = 'block';
-		$data['vis_button'] = 'none';
-
-		$visualizers = getVisualizers_ListComplete();
-		foreach ($visualizers as $vis) {
-			if (in_array($data['format'], $vis["preview"])) {
-				$data['vis_button'] = 'block';
-				switch ($vis["_id"]) {
-
-					case "ngl":
-						$ext = 'pdb';
-						if ($pos = strrpos($data['longfilename'], '.')) {
-							$name = substr($data['longfilename'], 0, $pos);
-							$ext = substr($data['longfilename'], $pos);
-						} else {
-							$name = $data['longfilename'];
-						}
-
-						$e = ltrim($ext, ".");
-						$data['PDBView'] = "<li><a href=\"javascript:openNGL('" . $data['_id'] . "', '" . $name . "', '" . $e . "');\"><i class=\"fa fa-window-maximize\"></i> Preview in 3D</a></li>";
-						break;
-
-					case "tadkit":
-						if ($pos = strrpos($data['longfilename'], '.')) {
-							$name = substr($data['longfilename'], 0, $pos);
-							$ext = substr($data['longfilename'], $pos);
-						} else {
-							$name = $data['longfilename'];
-						}
-
-						$data['PDBView'] = "<li><a href=\"javascript:openTADbit('" . $data['_id'] . "', '" . $name . "');\"><i class=\"fa fa-window-maximize\"></i> Preview in 3D</a></li>";
-						break;
-				}
-			}
-
-			if (in_array($data['format'], $vis["accepted_file_types"])) {
-				$data['vis_button'] = 'block';
-				switch ($vis["_id"]) {
-					case "ngl":
-						$data['NGLView'] = "<li><a href=\"visualizers/ngl/?user=" . $_SESSION['internalUserId'] . "&fn[]=" . $data['_id'] . "\" target='_blank'><i class=\"fa fa-codepen\" ></i> View in NGL</a></li>";
-						break;
-
-					case "jbrowse":
-						$data['jbrowseLink'] = "<li><a target=\"_blank\" href=\"" . $_SESSION['BASEURL'] . "visualizers/jbrowse/index.php/?user=" . $_SESSION['internalUserId'] . "&fn[]=" . $data['_id'] . "\"><i class=\"fa fa-align-right\"></i> View in JBrowse</a></li>";
-						break;
-
-					case "tadkit":
-						$data['tadkitLink'] = "<li><a target=\"_blank\" href=\"visualizers/tadkit/index.php/?user=" . $_SESSION['internalUserId'] . "&fn=" . $data['_id'] . "\"><i class=\"fa fa-cubes fa-rotate-180\"></i> View in TADkit</a></li>";
-						break;
-				}
-			}
-		}
-	}
 	//input_files
 	if (isset($data['input_files'])) {
 		$ins = $data['input_files'];

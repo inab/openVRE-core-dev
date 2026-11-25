@@ -676,11 +676,6 @@ input.tt-hint {
 }
 
 #av_tools_list,
-#visualizers_list {
-    min-height: 30px;
-    background: #FFFFFF url(../img/loading-spinner-blue.gif) no-repeat center center;
-}
-
 .truncate {
     float: left;
     max-width: 140px;

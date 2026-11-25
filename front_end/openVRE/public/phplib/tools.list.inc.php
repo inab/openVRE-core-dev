@@ -144,26 +144,6 @@ function launchToolInternal($toolId, $projectDir, $args = [], $outs = [], $outpu
 }
 
 
-// list visualizers
-function getVisualizers_List($status = 1)
-{
-
-	$visualizers = $GLOBALS['visualizersCol']->find(array('external' => true, 'status' => $status), array('name' => 1, 'title' => 1, 'short_description' => 1, 'keywords' => 1), array('title' => 1));
-
-	return iterator_to_array($visualizers);
-}
-
-
-// list visualizers
-function getVisualizers_ListComplete($status = 1)
-{
-
-	$visualizers = $GLOBALS['visualizersCol']->find(array('external' => true, 'status' => $status), array(), array('title' => 1));
-
-	return iterator_to_array($visualizers);
-}
-
-
 // list a tool input file combination
 function getInputFilesCombinations($tool)
 {

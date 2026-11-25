@@ -293,15 +293,6 @@ $files = sortFilesForTable(addTreeTableNodesToFiles($files, $user->getDataDir())
 										</ul>
 									</div>
 									<div class="btn-group">
-										<a class="btn btn-sm purple-intense" id="visualization" href="javascript:;"
-											data-toggle="dropdown">
-											<i class="fa fa-eye"></i> Visualization
-											<i class="fa fa-angle-down"></i>
-										</a>
-										<ul class="dropdown-menu pull-right" id="visualizers_list" role="menu">
-										</ul>
-									</div>
-									<div class="btn-group">
 										<a class="btn btn-sm blue-dark" id="av_tools" href="javascript:;"
 											data-toggle="dropdown">
 											<i class="fa fa-wrench"></i> Available Tools

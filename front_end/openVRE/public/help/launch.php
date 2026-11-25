@@ -47,7 +47,7 @@ redirectOutside();
 
           
 
-          <p>To launch a job using the VRE go to Run Tool / Visualizer and choose the tool you would like to use </p>				
+          <p>To launch a job using the VRE go to Run Tool and choose the tool you would like to use </p>				
 
 					<p><img src="assets/layouts/layout/img/help/Launch01.png" style="width:800px;max-width:100%;" /></p>
 

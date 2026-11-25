@@ -6,11 +6,8 @@ redirectOutside();
 $user = getUserById($_SESSION['userId']);
 $tls = getTools_List($user, 1);
 $tlsProv = getTools_List($user, 0);
-$vslzrs = getVisualizers_List(1);
-$vslzrsProv = getVisualizers_List(0);
 
-$appList = array_merge($tls, $tlsProv, $vslzrs, $vslzrsProv);
-$vslzrList = array_merge($vslzrs, $vslzrsProv);
+$appList = array_merge($tls, $tlsProv);
 
 sort($appList);
 
@@ -61,8 +58,6 @@ sort($appList);
           }
           $kw = array_unique($kw);
 	  sort($kw);
-	  // create list of tool ids 
-	  $vslzrIds = array_column(array_values($vslzrList),"_id");
 
           ?>
 
@@ -84,16 +79,13 @@ sort($appList);
             foreach ($appList as $t) {
 
               $kw = (isset($t['keywords'])?implode(" ", $t['keywords']):"");
-
-	      $type= (in_array($t['_id'],$vslzrIds)? "visualizers" : "tools");
-
               ?>
 
               <div class="cbp-item <?php echo $kw; ?> ">
                 <!-- REMOVE cbp-singlePageInline to go to new page -->
-                <a href="<?php echo $type; ?>/<?php echo $t['_id']; ?>/front/assets/home/index.html" class="cbp-caption cbp-singlePageInline" data-title="<?php echo $t['title'];?>" rel="nofollow">
+                <a href="tools/<?php echo $t['_id']; ?>/front/assets/home/index.html" class="cbp-caption cbp-singlePageInline" data-title="<?php echo $t['title'];?>" rel="nofollow">
 		<div class="cbp-caption-defaultWrap <?php if ($t['status']!=1){echo "dimmed";} ?>">
-                    <img src="<?php echo $type; ?>/<?php echo $t['_id']; ?>/front/assets/home/logo.png" alt="">
+                    <img src="tools/<?php echo $t['_id']; ?>/front/assets/home/logo.png" alt="">
                   </div>
                   <div class="cbp-caption-activeWrap">
                     <div class="cbp-l-caption-alignLeft">

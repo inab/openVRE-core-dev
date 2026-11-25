@@ -102,7 +102,7 @@ $GLOBALS['tool_stageout_file']   = ".results.json"; // Default name for runtime 
 $GLOBALS['tool_metadata_file']   = ".input_metadata.json"; // Default name for runtime metadata file
 
 
-// Tool and visualizer status
+// Tool status
 $GLOBALS['tool_status'] = Array(
 		0  => "Coming soon",
 		1  => "Active",

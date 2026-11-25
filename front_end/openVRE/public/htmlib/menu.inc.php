@@ -76,10 +76,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 		$currentSection = 'he';
 		$currentSubSection = 'h10';
 		break;
-	case 'visualizers':
-		$currentSection = 'he';
-		$currentSubSection = 'h11';
-		break;
 	case 'datasets':
 		$currentSection = 'dt';
 		$currentSubSection = 'rp';
@@ -112,11 +108,7 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 	case 'help':
 		$currentSection = 'he';
 		$a = explode("/", dirname($_SERVER['PHP_SELF']));
-		if ($a[1] == "tools") {
-			$currentSubSection = 'h6';
-		} else {
-			$currentSubSection = 'h11';
-		}
+		$currentSubSection = 'h6';
 		$currentSubSubSection = $a[sizeof($a) - 2];
 		break;
 	case 'toolhelp':
@@ -175,10 +167,6 @@ $user = getUserById($_SESSION['userId']);
 // load all tools 
 $tools = getTools_List($user);
 sort($tools);
-
-// load all visualizers
-$visualizers = getVisualizers_List();
-sort($visualizers);
 
 $datasets = [];
 
@@ -242,7 +230,7 @@ $datasets = [];
 				<li class="nav-item  <?php if ($currentSection == 'lt') { ?>active open<?php } ?>">
 					<a href="launch/" class="nav-link nav-toggle">
 						<i class="icon-rocket"></i>
-						<span class="title">Run Tool / Visualizer</span>
+						<span class="title">Run Tool</span>
 					</a>
 				</li>
 				<li class="nav-item  <?php if ($currentSection == 'he') { ?>active open<?php } ?>">

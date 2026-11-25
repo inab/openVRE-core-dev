@@ -17,7 +17,6 @@ $GLOBALS['filesCol']        = $databaseConnection->files;
 $GLOBALS['filesMetaCol']    = $databaseConnection->filesMetadata;
 $GLOBALS['logMailCol']      = $databaseConnection->checkMail;
 $GLOBALS['toolsCol']        = $databaseConnection->getCollection('tools');
-$GLOBALS['visualizersCol']  = $databaseConnection->visualizers;
 $GLOBALS['fileFormatsCol']  = $databaseConnection->file_formats;
 $GLOBALS['dataTypesCol']    = $databaseConnection->data_types;
 $GLOBALS['helpsCol']        = $databaseConnection->helps;

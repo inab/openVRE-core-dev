@@ -1,24 +1,6 @@
 
 var baseURL = $('#base-url').val();
 
-function loadReferenceGenome() {
-	$.ajax({
-		type: "POST",
-		url: baseURL + "applib/getReferenceGenomeList.php",
-		data: "data=1", 
-		success: function(data) {
-			$("#ref-genome-jbrowse").html(data);
-		}
-	});
-}
-
-function changeGenome(op) {
-	if(op.value != "") {
-		window.open(baseURL + 'visualizers/jbrowse/?direct_refGenome=' + op.value, 'childWindow');
-	}
-}
-
-
 function loadToolButtons(tool) {
 	$.ajax({
 		type: "POST",

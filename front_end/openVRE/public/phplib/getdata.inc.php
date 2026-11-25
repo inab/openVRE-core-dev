@@ -530,9 +530,7 @@ function getData_fromRepository(User $user, $url, $datatype, $filetype, $descrip
 
 function getSampleDataList(User $user)
 {
-    $fa = indexArray($GLOBALS['toolsCol']->find(array('status' => 1), array('_id' => 1)));
-    $fu = indexArray($GLOBALS['visualizersCol']->find(array('status' => 1), array('_id' => 1)));
-    $tools_active = array_keys(array_merge($fa, $fu));
+    $tools_active = array_keys(indexArray($GLOBALS['toolsCol']->find(array('status' => 1), array('_id' => 1))));
 
     // if common/anon user, list sampledata for active tools
     if ($_SESSION['userType'] == UserType::Guest->value || $_SESSION['userType'] == UserType::Registered->value) {

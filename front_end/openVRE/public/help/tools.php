@@ -79,17 +79,13 @@ sort($toolList);
                         foreach ($toolList as $t) {
 
                             $kw = (isset($t['keywords']) ? implode(" ", $t['keywords']) : "");
-
-                            if (strpos($kw, 'visualizer') === false) $type = 'tools';
-                            else $type = 'visualizers';
-
                         ?>
 
                             <div class="cbp-item <?php echo $kw; ?>">
                                 <!-- REMOVE cbp-singlePageInline to go to new page -->
                                 <a href="help/toolhelp.php?tool=<?php echo $t["_id"]; ?>&sec=help" class="cbp-caption cbp-singlePageInline" data-title="<?php echo $t['title']; ?>" rel="nofollow">
                                     <div class="cbp-caption-defaultWrap">
-                                        <img src="<?php echo $type; ?>/<?php echo $t['_id']; ?>/front/assets/home/logo.png" alt="">
+                                        <img src="tools/<?php echo $t['_id']; ?>/front/assets/home/logo.png" alt="">
                                     </div>
                                     <div class="cbp-caption-activeWrap">
                                         <div class="cbp-l-caption-alignLeft">
