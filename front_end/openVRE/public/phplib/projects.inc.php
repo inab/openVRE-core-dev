@@ -337,8 +337,8 @@ function getFilesToDisplay($projectDir, $dirSelection, $lastJobs)
 		array_push($files[$parentId]['files'], $r['_id']);
 	}
 
-	getProjectLogger()->debug("Files to display: " . json_encode(array_keys($files)));
-	getProjectLogger()->debug("Pending files: " . json_encode(array_keys($filesPending)));
+	getProjectLogger()->debug("Files to display: " . logJson(array_keys($files)));
+	getProjectLogger()->debug("Pending files: " . logJson(array_keys($filesPending)));
 
 	return array_merge($files, $filesPending);
 }
@@ -1226,7 +1226,7 @@ function updatePendingFiles($sessionId)
 
 function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$filesPending, $SGE_updated, $lastJobs)
 {
-	getProjectLogger()->debug("Start processRunningJobInfo $pid.  Job data: " . json_encode($job));
+	getProjectLogger()->debug("Start processRunningJobInfo: " . logJobSummary($job));
 
 	//set dummy id
 	$dummyId  = $job['pid'] . "_dummy";
@@ -1306,7 +1306,7 @@ function processFinishedJobInfo($projectDir, $job, $pid, $title, &$filesPending)
 
 	// build output list merging: stageout_file + stageout_data + tool defintion data
 	$outs_files = build_outputs_list($tool, $job['stageout_data'], $job['executionDirectories']['executionStageoutFile']);
-	getProjectLogger()->debug("Finished building output from toolINFO + stageout_file + stageout_data: " . json_encode($outs_files));
+	getProjectLogger()->debug("Finished building output from toolINFO + stageout_file + stageout_data: " . logJson($outs_files));
 	if (empty($outs_files)) {
 		getProjectLogger()->warning("Failed to register $pid job outfiles. Output file list empty.");
 		LoggerFactory::getPersistentLogger()->warning("Failed to register {pid} job outfiles. Output file list empty.", array('pid' => $pid));
@@ -1327,8 +1327,8 @@ function processFinishedJobInfo($projectDir, $job, $pid, $title, &$filesPending)
 			$outs_data = array($outs_data[0]);
 		}
 
-		getProjectLogger()->debug("outs_files: " . json_encode($outs_files));
-		getProjectLogger()->debug("Processing output file: " . json_encode($outs_data));
+		getProjectLogger()->debug("outs_files: " . logJson($outs_files));
+		getProjectLogger()->debug("Processing output file: " . logJson($outs_data));
 
 		// start 	
 		foreach ($outs_data as $out_data) {
@@ -1546,7 +1546,7 @@ function processPendingFiles($projectDir, $sessionId, $lastJobs)
 		}
 	}
 
-	getProjectLogger()->debug("SGE_updated before saveUserJobs: " . json_encode($SGE_updated));
+	getProjectLogger()->debug("SGE_updated before saveUserJobs: " . logJobsSummary($SGE_updated));
 	//update session and save to mongo
 	saveUserJobs($sessionId, $SGE_updated);
 	return $filesPending;
@@ -1563,7 +1563,7 @@ function saveResults($projectDir, $filePath, $metaData = array(), $job = array()
 	// check if file is local or remote
 	$is_remote = preg_match('/^\/gpfs\//', $filePath);
 
-	getProjectLogger()->debug("saveResults(" . $filePath . ", " . json_encode($metaData) . ", " . json_encode($job) . ", " . $rfn . ", " . $asRoot . ")");
+	getProjectLogger()->debug("saveResults(" . $filePath . ", " . logJson($metaData) . ", " . logJobSummary($job) . ", " . $rfn . ", " . $asRoot . ")");
 	// check given filePath
 	if ($rfn == 0) {
 		if ($is_remote) {
@@ -1659,7 +1659,7 @@ function saveResults($projectDir, $filePath, $metaData = array(), $job = array()
 
 function  build_outputs_list($tool, $stageout_job, $stageout_file)
 {
-	getProjectLogger()->debug("build_outputs_list(" . json_encode($tool) . ", " . json_encode($stageout_job) . ", " . json_encode($stageout_file) . ")");
+	getProjectLogger()->debug("build_outputs_list(" . logJson($tool) . ", " . logJson($stageout_job) . ", " . logJson($stageout_file) . ")");
 
 	// check tool output_files
 	if (!$tool['infrastructure']['interactive'] && !(isset($tool['output_files']) || count($tool['output_files']) == 0)) {

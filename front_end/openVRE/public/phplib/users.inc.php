@@ -253,7 +253,7 @@ function loadUserWithToken(User $user, $userInfo, $token)
 
 function saveUserJobs($login, $jobInfo)
 {
-    getUsersLogger()->debug("Updating user $login with job data: " . json_encode($jobInfo));
+    getUsersLogger()->debug("Updating user $login with " . logJobsSummary($jobInfo));
     $GLOBALS['usersCol']->updateOne(
         array('_id' => $login),
         array('$set'   => array('lastJobs' => $jobInfo)),
@@ -276,8 +276,7 @@ function addUserJob($login, $data, $pid)
     $pid = strval($pid);
     $lastJobs = getUserJobs($login);
     $lastJobs[$pid] = $data;
-    getUsersLogger()->debug("Adding job $pid to user $login");
-    getUsersLogger()->debug("Job data: " . json_encode($data));
+    getUsersLogger()->debug("Adding job to user $login: " . logJobSummary($data));
     $GLOBALS['usersCol']->updateOne(
         array('_id' => $login),
         array('$set'   => array('lastJobs' => $lastJobs)),
@@ -295,7 +294,7 @@ function getUserJobs($login): array
     );
 
     $lastJobs = $userWithJobs?->getLastJobs() ?? array();
-    getUsersLogger()->debug("Jobs for user $login: " . json_encode($lastJobs));
+    getUsersLogger()->debug("Jobs for user $login: " . logJobsSummary($lastJobs));
 
     return $lastJobs;
 }
@@ -316,7 +315,7 @@ function getAllUserJobs(): array
         fn(User $user) => !empty($user->getLastJobs())
     ));
 
-    getUsersLogger()->debug("Jobs for all users: " . json_encode(array_map(
+    getUsersLogger()->debug("Jobs for all users: " . logJson(array_map(
         fn(User $user) => array($user->get_id() => array_keys($user->getLastJobs())),
         $usersWithJobs
     )));

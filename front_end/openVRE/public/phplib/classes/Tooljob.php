@@ -595,7 +595,7 @@ class Tooljob
             $firstKey = array_key_first($metadata);
             $firstRemote = $metadata[$firstKey]['remote_paths'][0]['remote_path'] ?? null;
 
-            $this->logger->debug("remote_paths: " . print_r($firstRemote, true));
+            $this->logger->debug("remote_paths: " . logJson($firstRemote));
 
             if ($firstRemote) {
                 $remoteOutputPath = rtrim(dirname($firstRemote), '/') . '/' . basename($localOutputPath);
@@ -612,11 +612,11 @@ class Tooljob
             $output_files[] = $entry;
 
             $this->logger->debug("Output entry built:");
-            $this->logger->debug(json_encode($entry, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+            $this->logger->debug(logJson($entry));
         }
 
         $this->logger->debug("Output files:");
-        $this->logger->debug(json_encode($output_files, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        $this->logger->debug(logJson($output_files));
 
         $results = ["output_files" => $output_files];
         $resultsFile = rtrim($this->executionDirectories->executionDir, '/') . "/.results.json";
@@ -632,7 +632,7 @@ class Tooljob
         fclose($filePointer);
 
         $this->logger->debug("Results file written to: " . $resultsFile);
-        $this->logger->debug("FINAL RESULTS JSON:\n" . json_encode($results, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        $this->logger->debug("FINAL RESULTS JSON: " . logJson($results));
     }
 
 

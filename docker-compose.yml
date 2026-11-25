@@ -92,6 +92,7 @@ services:
       BAO_API_VERSION: ${BAO_API_VERSION}
       BAO_ROLENAME: ${BAO_ROLENAME}
       BAO_SECRET_PATH: ${BAO_SECRET_PATH}
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./front_end/openVRE/public/:/var/www/html/openVRE/public

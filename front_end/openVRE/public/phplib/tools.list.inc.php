@@ -110,7 +110,7 @@ function getTool_fromId(string $toolId, $indexByName = false)
 
 function launchToolInternal($toolId, $projectDir, $args = [], $outs = [], $outputDir = "", $logName = "")
 {
-	getToolsLogger()->debug("launchToolInternal(" . $toolId . ", " . json_encode($args) . ", " . json_encode($outs) . ", " . $outputDir . ", " . $logName . ")");
+	getToolsLogger()->debug("launchToolInternal(" . $toolId . ", " . logJson($args) . ", " . logJson($outs) . ", " . $outputDir . ", " . $logName . ")");
 
 	$tool = getTool_fromId($toolId, true);
 	if (is_null($tool)) {

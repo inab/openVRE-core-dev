@@ -103,7 +103,7 @@ if (isset($_SERVER['OIDC_access_token'])) {
         $resourceOwner = $provider->getResourceOwner($accessToken);
         $userInfo  = array_map('trim', $resourceOwner->toArray());
         getLoginLogger()->info("Successfully obtained resource owner from user access token from authorization code.");
-        getLoginLogger()->info(json_encode($userInfo));
+        getLoginLogger()->info(logJson($userInfo));
     } catch (\Exception $e) {
         exit("Internal login service error: cannot obtain resource owner from user access token from authorization code: " . $e->getMessage());
     }

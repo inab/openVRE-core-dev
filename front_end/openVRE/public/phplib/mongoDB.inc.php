@@ -959,7 +959,7 @@ function getUserPermissions(string $userId): array {
 	}
 
 	$userPermissions = array_unique($userPermissions);
-	getMongoLogger()->debug("Found permissions: " . json_encode($userPermissions) . " for user with id = $userId.");
+	getMongoLogger()->debug("Found permissions: " . logJson($userPermissions) . " for user with id = $userId.");
 
 	return $userPermissions;
 }

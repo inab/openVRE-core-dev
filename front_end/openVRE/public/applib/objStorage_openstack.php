@@ -72,7 +72,7 @@ if (isset($_REQUEST['action']) && $_REQUEST['action'] == "getContainerFiles" && 
         exit;
     }
     $files = getContainerFiles($container, $swiftClient);
-    getObjectStorageOpenstackLogger()->info("Main script - files: " . print_r($files, true));
+    getObjectStorageOpenstackLogger()->info("Main script - files: " . logJson($files));
 
     echo json_encode($files);
     exit;

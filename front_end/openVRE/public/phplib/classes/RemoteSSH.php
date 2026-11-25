@@ -40,7 +40,7 @@ class RemoteSSH
         chmod($tempKeyFile, 0600);
         $commands = [];
         foreach ($dataLocations as &$file) {
-            $this->logger->debug("prepareSync - location: " . json_encode($file));
+            $this->logger->debug("prepareSync - location: " . logJson($file));
             $server = $file['site_details']['server'];
             $destinationPath = $this->constructingDestination_MN($file['site_details']['root_path'], $username, $userProjPath);
             $file['remote_path'] = $destinationPath;

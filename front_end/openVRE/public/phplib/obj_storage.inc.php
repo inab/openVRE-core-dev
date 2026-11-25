@@ -54,7 +54,7 @@ function getContainerFiles($container, $swiftClient)
 	if ($container !== null && $swiftClient !== null) {
 		getObjectStorageLogger()->debug("getContainerFiles - container: $container");
 		$containerList = $swiftClient->runListContainer($container);
-		getObjectStorageLogger()->debug("getContainerFiles - containerList: " . print_r($containerList, true));
+		getObjectStorageLogger()->debug("getContainerFiles - containerList: " . logJson($containerList));
 		$containerList = json_encode($containerList);
 		if (json_last_error() !== JSON_ERROR_NONE) {
 			$error_message = json_last_error_msg();

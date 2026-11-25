@@ -24,7 +24,7 @@ class LoggerFactory
 
         $logger = new Logger($channel);
 
-        $handler = new StreamHandler('php://stdout', Level::Debug);
+        $handler = new StreamHandler('php://stdout', self::getStdoutLevel());
 
         $formatter = new LineFormatter(
             null,          // use default format
@@ -38,6 +38,18 @@ class LoggerFactory
         self::$loggers[$channel] = $logger;
 
         return $logger;
+    }
+
+
+    // LOG_LEVEL env var (debug, info, notice, warning, error...); defaults to debug
+    private static function getStdoutLevel(): Level
+    {
+        $name = getenv('LOG_LEVEL') ?: 'debug';
+        try {
+            return Level::fromName($name);
+        } catch (\UnhandledMatchError) {
+            return Level::Debug;
+        }
     }
 
 
