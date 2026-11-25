@@ -931,22 +931,25 @@ class Tooljob
             $customToolParameters = $this->buildEnvParams($tool['infrastructure']['container_env'], ['$this->containerName' => $this->containerName]);
         }
 
-        foreach ($tool['infrastructure']['volumes'] as $hostDir => $containerDir) {
-            $userHomeDir = $this->jobDirectories->userDirHost . "/" . $this->project;
+        // same project folder as the one mounted into the container
+        $userHomeDir = $this->jobDirectories->userDirHost . "/" . $this->project;
+        $dataDir = $_SESSION['internalUserId'] . "/" . $this->project;
+        foreach ($tool['infrastructure']['volumes'] ?? [] as $hostDir => $containerDir) {
             $customToolParameters .= "-v $userHomeDir" . "$hostDir:$containerDir ";
 
-            $user = getUserById($_SESSION['userId']);
-            $dataDir = $user->getInternalId() . "/" . $user->getActiveProject();
-            $upDirId  = createGSDirBNS($dataDir . $hostDir, 1);
-            getProjectLogger()->info("Creating directory:" . $dataDir . $hostDir . "($upDirId)");
-            addMetadataToFile($upDirId, array(
-                "expiration" => -1,
-                "description" => "Uploaded personal data"
-            ));
+            // existing folders (e.g. "repository") keep their own metadata
+            if (is_null(getGSFileId_fromPath($dataDir . $hostDir, 1))) {
+                $volumeDirId = createGSDirBNS($this->project, $dataDir . $hostDir, 1);
+                $this->logger->info("Registering volume directory: " . $dataDir . $hostDir . " ($volumeDirId)");
+                addMetadataToFile($volumeDirId, array(
+                    "expiration" => -1,
+                    "description" => "Uploaded personal data"
+                ));
+            }
 
-            $dataDirP  = $GLOBALS['userDataDir'] . "/$dataDir";
-            if (!is_dir("$dataDirP" . $hostDir)) {
-                mkdir("$dataDirP" . $hostDir, 0775);
+            $volumeDirP = $GLOBALS['userDataDir'] . "/" . $dataDir . $hostDir;
+            if (!is_dir($volumeDirP)) {
+                mkdir($volumeDirP, 0775);
             }
         }
 

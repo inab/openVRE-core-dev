@@ -2188,7 +2188,8 @@ function syncProjectFiles($projects)
 			continue; // skip projects whose root path doesn't exist
 		}
 
-		syncDirectoryRecursive($projectFullPath, $projectAttributes['path'], $projectId, null);
+		// top-level folders hang from the project folder itself
+		syncDirectoryRecursive($projectFullPath, $projectAttributes['path'], $projectId, $projectId);
 	}
 }
 
