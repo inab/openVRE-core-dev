@@ -244,7 +244,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 	<?php break;
 	case 'uploadForm2': ?>
 		<script src="assets/pages/scripts/form-validatefiles.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
-		<script src="assets/pages/scripts/get-taxon-id.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 	<?php break;
 	case 'dataFromTxt': ?>
 		<script src="assets/pages/scripts/form-validateinput.js?v=<?php echo rand(); ?>" type="text/javascript"></script>

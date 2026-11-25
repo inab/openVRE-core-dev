@@ -169,6 +169,7 @@ redirectOutside();
 								}
 
 								$filetypes = getFileTypesList();
+								$datatypes = getDataTypesList();
 							?>
 
 
@@ -204,12 +205,21 @@ redirectOutside();
 											</select>
 										</div>
 
-										<input type="hidden" id="data_type_selected" value="<?php echo $filesMeta[$idx]['data_type']; ?>">
-
 										<div class="form-group display-hide" id="dataType<?php echo $idx; ?>">
 											<label>Data Type *</label>
 											<select name="data_type" id="data_type_sel<?php echo $idx; ?>" class="form-control data-type-selector" onchange="customfromDataType(this.value, <?php echo $idx; ?>)" disabled>
+												<option value="">Select the data type</option>
+												<?php $selectedDataType = $filesMeta[$idx]['data_type'] ?? ''; ?>
+												<?php foreach ($datatypes as $dt) { ?>
+													<option value="<?php echo $dt['_id']; ?>" data-formats="<?php echo htmlspecialchars(json_encode(array_values($dt['formats'] ?? []))); ?>" <?php if ($selectedDataType == $dt['_id']) {
+																									echo "selected";
+																								} ?>><?php echo $dt['name'] ?? $dt['_id']; ?></option>
+												<?php } ?>
 											</select>
+										</div>
+
+										<div class="alert alert-warning display-hide" id="dataTypeWarning<?php echo $idx; ?>">
+											No data types are associated with the selected file format.
 										</div>
 
 										<div class="form-group descriptionTR" id="descriptionTR<?php echo $idx; ?>">
