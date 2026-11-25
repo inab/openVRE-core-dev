@@ -5,11 +5,6 @@ use OpenVRE\User;
 use OpenVRE\UserType;
 
 
-////////////////////////////////////////////
-/////// DATATPYE INPUT FILE COMBINATIONS
-////////////////////////////////////////////
-
-
 function getToolsFilteringLogger()
 {
 	static $logger = null;
@@ -21,101 +16,82 @@ function getToolsFilteringLogger()
 	return $logger;
 }
 
-
-// return datatype for a list of files
-function getFiles_DataTypes($fn)
+function getFiles_DataTypes($fileIds)
 {
+	$files = $GLOBALS['filesMetaCol']->find(['_id' => ['$in' => $fileIds]]);
 
-	$fdt = $GLOBALS['filesMetaCol']->find(array('_id' => array('$in' => $fn)), array("_id" => false, "data_type" => true));
-
-	$a = array();
-
-	foreach ($fdt as $v) $a[] = $v["data_type"];
-
-	return $a;
+	return array_map(fn($file) => $file['data_type'] ?? null, iterator_to_array($files, false));
 }
 
-
-// FILTER TOOLS
-
-
-// return valid combination of input file datatypes for all tools
 
 function getTools_DataTypes()
 {
+	$tools = $GLOBALS['toolsCol']->find(['external' => true]);
+	$requirements = [];
 
-	$dt = $GLOBALS['toolsCol']->find(array("external" => true), array("input_files_combinations_internal" => true));
-
-	$array = array();
-
-	$c = 0;
-
-	foreach ($dt as $tool) {
-
-		$combinations = $tool["input_files_combinations_internal"] ?? deriveInternalCombinations($tool);
-
-		foreach ($combinations as $combination) {
-
-			$array[$c]["id"] = $tool["_id"];
-			$array[$c]["list1"] = array();
-			$array[$c]["list2"] = array();
-			$array[$c]["list3"] = array();
-			$array[$c]["list4"] = array();
-
-			foreach ($combination as $single_c) {
-
-				foreach ($single_c as $k => $v) {
-
-					// one item
-					if ($v == 1) $array[$c]["list1"][] = $k;
-
-					// one or more (n mandatory)
-					if ($v == "+") {
-						$array[$c]["list1"][] = $k;
-						$array[$c]["list2"][] = $k;
-					}
-
-					// 0 or more (n non mandatory)
-					if ($v == "*") $array[$c]["list2"][] = $k;
-
-					// 0 or 1 (single, non mandatory)
-					if ($v == "?") $array[$c]["list4"][] = $k;
-
-					// special cases where no combinations internal are possible
-					if ($v == "-") $array[$c]["list3"][] = $k;
-				}
-			}
-
-			$c++;
+	foreach ($tools as $tool) {
+		foreach (getToolInternalCombinations($tool) as $combination) {
+			$requirements[] = buildCombinationRequirements($tool['_id'], $combination);
 		}
 	}
 
-	return $array;
+	return $requirements;
 }
 
-// build "input_files_combinations_internal" from "input_files" and "input_files_combinations"
-// for tools that do not define it. Inputs accepting several data types expand into one
-// combination per data type choice.
-function deriveInternalCombinations($tool)
+function getToolInternalCombinations($tool)
 {
-	$inputsByName = array();
-	foreach ($tool["input_files"] ?? [] as $input) {
-		$inputsByName[$input["name"]] = $input;
+	return $tool['input_files_combinations_internal'] ?? deriveInternalCombinations($tool);
+}
+
+function buildCombinationRequirements($toolId, $combination)
+{
+	$requirements = [
+		'id'             => $toolId,
+		'required'       => [],
+		'repeatable'     => [],
+		'optionalSingle' => [],
+		'standalone'     => [],
+	];
+
+	foreach ($combination as $entry) {
+		foreach ($entry as $dataType => $cardinality) {
+			foreach (getRequirementGroups($cardinality) as $group) {
+				$requirements[$group][] = $dataType;
+			}
+		}
 	}
 
-	$internal = array();
-	foreach ($tool["input_files_combinations"] ?? [] as $combination) {
-		$variants = expandCombination($combination["input_files"] ?? [], $inputsByName);
+	return $requirements;
+}
+
+function getRequirementGroups($cardinality)
+{
+	return match ((string) $cardinality) {
+		'1'     => ['required'],
+		'+'     => ['required', 'repeatable'],
+		'*'     => ['repeatable'],
+		'?'     => ['optionalSingle'],
+		'-'     => ['standalone'],
+		default => [],
+	};
+}
+
+function deriveInternalCombinations($tool)
+{
+	$inputsByName = array_column($tool['input_files'] ?? [], null, 'name');
+	$internal = [];
+
+	foreach ($tool['input_files_combinations'] ?? [] as $combination) {
+		$variants = expandCombination($combination['input_files'] ?? [], $inputsByName);
 		$internal = array_merge($internal, array_filter($variants));
 	}
 
 	return $internal;
 }
 
-// expand a list of input names into every data type choice, as lists of {data_type: cardinality}
 function expandCombination($inputNames, $inputsByName)
 {
-	$variants = array(array());
+	$variants = [[]];
 
 	foreach ($inputNames as $name) {
 		if (!isset($inputsByName[$name])) {
@@ -124,267 +100,185 @@ function expandCombination($inputNames, $inputsByName)
 
 		$input = $inputsByName[$name];
 		$cardinality = getInputCardinality($input);
+		$expanded = [];
 
-		$expanded = array();
 		foreach ($variants as $variant) {
-			foreach ($input["data_type"] ?? [] as $dataType) {
-				$expanded[] = array_merge($variant, array(array($dataType => $cardinality)));
+			foreach ($input['data_type'] ?? [] as $dataType) {
+				$expanded[] = [...$variant, [$dataType => $cardinality]];
 			}
 		}
+
 		$variants = $expanded;
 	}
 
 	return $variants;
 }
 
-// 1: exactly one, "+": one or more, "?": zero or one, "*": zero or more
 function getInputCardinality($input)
 {
-	$multiple = !empty($input["allow_multiple"]);
+	$isMultiple = !empty($input['allow_multiple']);
 
-	if (empty($input["required"])) {
-		return $multiple ? "*" : "?";
+	if (empty($input['required'])) {
+		return $isMultiple ? '*' : '?';
 	}
 
-	return $multiple ? "+" : 1;
+	return $isMultiple ? '+' : 1;
 }
 
-// return valid combination of input file datatypes for a given tool
-
-function getAvailableDTbyTool($tool)
+function getAvailableDTbyTool($toolId)
 {
-	$dt = $GLOBALS['toolsCol']->find(array("external" => true, "_id" => $tool), array("input_files_combinations_internal" => true))->toArray();
+	$tool = $GLOBALS['toolsCol']->findOne(['external' => true, '_id' => $toolId]);
 
-	$array = array();
+	if ($tool === null) {
+		return [];
+	}
 
-	$c = 0;
-
-	foreach ($dt as $tool) {
-
-		foreach ($tool["input_files_combinations_internal"] as $combination) {
-
-			$array[$c]["id"] = $tool["_id"];
-
-			foreach ($combination as $single_c) {
-
-				foreach ($single_c as $k => $v) {
-
-					$array[$c]["list"][] = $k;
-				}
-			}
+	$dataTypes = [];
+	foreach (getToolInternalCombinations($tool) as $combination) {
+		foreach ($combination as $entry) {
+			$dataTypes = array_merge($dataTypes, array_keys($entry));
 		}
 	}
 
-	$array[0]["list"] = array_unique($array[0]["list"]);
-
-	$array = $array[0];
-
-	return $array;
+	return ['id' => $tool['_id'], 'list' => array_values(array_unique($dataTypes))];
 }
 
-// return tools valid for a list of given files
 
-function getTools_ByDT($toolsDT, $filesDT)
+function getTools_ByDT($toolsRequirements, $fileDataTypes)
 {
+	$matchingTools = [];
 
-	$toolsList = array();
-
-	// foreach de totes les possible combinacions de tools
-	foreach ($toolsDT as $tdt) {
-
-		// només entrem si hi ha igual o més fitxers seleccionats que a list1 (obligatoris)
-		if (sizeof($tdt["list1"]) <= sizeof($filesDT)) {
-
-			$list1 = $tdt["list1"];
-			$list2 = $tdt["list2"];
-			$list3 = $tdt["list3"];
-			$list4 = $tdt["list4"] ?? array();
-			$listF = $filesDT;
-
-			// foreach de tots els fitxers seleccionats
-			foreach ($listF as $itemWS) {
-
-				// if item is in list1, unset
-				if (in_array($itemWS, $list1)) {
-
-					$key = array_search($itemWS, $list1);
-					unset($list1[$key]);
-
-					$key = array_search($itemWS, $listF);
-					unset($listF[$key]);
-				} elseif (in_array($itemWS, $list4)) {
-					// optional single file: each "?" entry accepts at most one file
-
-					$key = array_search($itemWS, $list4);
-					unset($list4[$key]);
-
-					$key = array_search($itemWS, $listF);
-					unset($listF[$key]);
-				}
-				if (in_array($itemWS, $list2)) {
-					// només que n'hi hagi un els esborrem tots???
-
-					$key = array_search($itemWS, $list2);
-
-					unset($list2[$key]);
-
-					/*$key = array_search($itemWS, $listF);
-					unset($listF[$key]);*/
-
-					/*if (($key = array_search($itemWS, $listF)) !== false) {
-						unset($listF[$key]);
-					}*/
-
-					$listF = array_diff($listF, [$itemWS]);
-				}
-				if (in_array($itemWS, $list3)) {
-					$toolsList[] = $tdt["id"];
-				}
-
-				/*else {
-				
-					break;
-
-					}*/
-
-				//if(!in_array($itemWS, $list1) && !in_array($itemWS, $list2)) break;
-
-			}
-
-			// matching if all mandatory types are covered and every file was accepted
-			// (list2 holds "+" and "*" types, which may legitimately remain unselected)
-			if ((sizeof($list1) == 0) && (sizeof($listF) == 0)) $toolsList[] = $tdt["id"];
+	foreach ($toolsRequirements as $requirements) {
+		if (filesMatchRequirements($fileDataTypes, $requirements)) {
+			$matchingTools[] = $requirements['id'];
 		}
 	}
 
-	$toolsList = array_unique($toolsList);
-
-	return $toolsList;
+	return array_unique($matchingTools);
 }
 
-function getTools_ListByID(User $user, $array)
+function filesMatchRequirements($fileDataTypes, $requirements)
 {
-	$array = array_values($array);
-	$tl = $GLOBALS['toolsCol']->find(array('_id' => array('$in' => $array), 'status' => array('$in' => [1, 3])), array("name" => true, "status" => true));
-	if ($_SESSION['userType'] == UserType::ToolDev->value) {
-
-		$tools_list = iterator_to_array($tl, false);
-
-		foreach ($tools_list as $key => $tool) {
-
-			if ($tool["status"] == 3 && !in_array($tool["_id"], $user->getDevelopedTools())) {
-				unset($tools_list[$key]);
-			}
-		}
-
-		return $tools_list;
-	} else {
-
-		return iterator_to_array($tl, false);
+	if (array_intersect($fileDataTypes, $requirements['standalone'])) {
+		return true;
 	}
+
+	$missingRequired = $requirements['required'];
+	$freeOptionalSlots = $requirements['optionalSingle'];
+
+	foreach ($fileDataTypes as $dataType) {
+		$isAccepted = removeFirstOccurrence($missingRequired, $dataType)
+			|| removeFirstOccurrence($freeOptionalSlots, $dataType)
+			|| in_array($dataType, $requirements['repeatable']);
+
+		if (!$isAccepted) {
+			return false;
+		}
+	}
+
+	return empty($missingRequired);
 }
 
-function getSingleTool_Help($toolID, $op)
+function removeFirstOccurrence(&$list, $value)
 {
+	$key = array_search($value, $list);
 
-	$tool = $GLOBALS['toolsCol']->findOne(array("external" => true, "_id" => $toolID), array("input_files_combinations" => true, "input_files" => true));
-
-	$c = 0;
-
-	if (is_null($tool["input_files_combinations"])) {
-		$_SESSION['errorData']['Error'][] = "TOOL " . $tool['_id'] . " no internal comb";
-		next;
+	if ($key === false) {
+		return false;
 	}
 
-	foreach ($tool["input_files_combinations"] as $combination) {
+	unset($list[$key]);
+	return true;
+}
 
-		if ($c == $op) {
+function getTools_ListByID(User $user, $toolIds)
+{
+	$tools = $GLOBALS['toolsCol']->find(
+		['_id' => ['$in' => array_values($toolIds)], 'status' => ['$in' => [1, 3]]],
+		['projection' => ['name' => true, 'status' => true]]
+	);
+	$tools = iterator_to_array($tools, false);
 
-			$array[$c]["id"] = $tool["_id"];
-			$array[$c]["operation"] = $combination["description"];
-			$array[$c]["content"] = [];
-
-			foreach ($tool["input_files"] as $inputf) {
-
-				if (in_array($inputf["name"], $combination["input_files"])) {
-					$a = [];
-					$a["description"] = $inputf["description"];
-
-					if ($inputf["allow_multiple"] === true)	$a["description"] .= " <span title='Multiple files of this type accepted' style='color:#6d91b5;font-size:0.9em;'>(multiple)</span>";
-
-					if ($inputf["required"] === true) $a["description"] .= " <span title='Mandatory file' style='color:#6d91b5;font-size:0.9em;'>(mandatory)</span>";
-					else $a["description"] .= " <span title='Optional file' style='color:#6d91b5;font-size:0.9em;'>(optional)</span>";
-
-					$a["format"] = $inputf["format"];
-
-					$b = [];
-					foreach ($inputf["data_type"] as $dt) {
-
-						$b[] = getDataTypeName($dt);
-						//$n  = iterator_to_array($n, true);
-						//$b[] = $n[$dt]["name"];
-
-					}
-
-					$a["data_type"] = $b;
-
-					$array[$c]["content"][] = $a;
-				}
-			}
-		}
-
-		$c++;
+	if ($_SESSION['userType'] != UserType::ToolDev->value) {
+		return $tools;
 	}
 
-	return $array;
+	$developedTools = $user->getDevelopedTools();
+	$isVisible = fn($tool) => $tool['status'] != 3 || in_array($tool['_id'], $developedTools);
+
+	return array_values(array_filter($tools, $isVisible));
+}
+
+
+function getSingleTool_Help($toolId, $combinationIndex)
+{
+	$tool = $GLOBALS['toolsCol']->findOne(['external' => true, '_id' => $toolId]);
+	$combination = $tool['input_files_combinations'][$combinationIndex] ?? null;
+
+	if ($combination === null) {
+		$_SESSION['errorData']['Error'][] = "TOOL " . $toolId . " no internal comb";
+		return [];
+	}
+
+	return [$combinationIndex => buildCombinationHelp($tool, $combination)];
 }
 
 function getTools_Help()
 {
-	$tools = $GLOBALS['toolsCol']->find(array("external" => true), array("input_files_combinations" => true, "input_files" => true));
-	$array = array();
-	$counter = 0;
+	$tools = $GLOBALS['toolsCol']->find(['external' => true]);
+	$help = [];
 
 	foreach ($tools as $tool) {
-		if (is_null($tool["input_files_combinations"])) {
+		if (!isset($tool['input_files_combinations'])) {
 			getToolsFilteringLogger()->error("Tool " . $tool['_id'] . " no internal comb");
 			continue;
 		}
 
-		foreach ($tool["input_files_combinations"] as $combination) {
-			$array[$counter]["id"] = $tool["_id"];
-			$array[$counter]["operation"] = $combination["description"];
-			$array[$counter]["content"] = [];
-
-			foreach ($tool["input_files"] as $inputf) {
-				if (in_array($inputf["name"], $combination["input_files"])) {
-					$a = [];
-					$a["description"] = $inputf["description"];
-
-					if ($inputf["allow_multiple"] === true) {
-						$a["description"] .= " <span title='Multiple files of this type accepted' style='color:#6d91b5;font-size:0.9em;'>(multiple)</span>";
-					}
-
-					if ($inputf["required"] === true) {
-						$a["description"] .= " <span title='Mandatory file' style='color:#6d91b5;font-size:0.9em;'>(mandatory)</span>";
-					} else {
-						$a["description"] .= " <span title='Optional file' style='color:#6d91b5;font-size:0.9em;'>(optional)</span>";
-					}
-
-					$a["format"] = $inputf["format"];
-					$b = [];
-					foreach ($inputf["data_type"] as $dt) {
-						$b[] = getDataTypeName($dt);
-					}
-
-					$a["data_type"] = $b;
-					$array[$counter]["content"][] = $a;
-				}
-			}
-
-			$counter++;
+		foreach ($tool['input_files_combinations'] as $combination) {
+			$help[] = buildCombinationHelp($tool, $combination);
 		}
 	}
 
-	return $array;
+	return $help;
+}
+
+function buildCombinationHelp($tool, $combination)
+{
+	$content = [];
+
+	foreach ($tool['input_files'] as $input) {
+		if (in_array($input['name'], $combination['input_files'])) {
+			$content[] = [
+				'description' => $input['description'] . describeInputConstraints($input),
+				'format'      => $input['format'],
+				'data_type'   => array_map('getDataTypeName', $input['data_type']),
+			];
+		}
+	}
+
+	return [
+		'id'        => $tool['_id'],
+		'operation' => $combination['description'],
+		'content'   => $content,
+	];
+}
+
+function describeInputConstraints($input)
+{
+	$labels = '';
+
+	if ($input['allow_multiple'] === true) {
+		$labels .= helpLabel('Multiple files of this type accepted', 'multiple');
+	}
+
+	$labels .= $input['required'] === true
+		? helpLabel('Mandatory file', 'mandatory')
+		: helpLabel('Optional file', 'optional');
+
+	return $labels;
+}
+
+function helpLabel($title, $text)
+{
+	return " <span title='" . $title . "' style='color:#6d91b5;font-size:0.9em;'>(" . $text . ")</span>";
 }
