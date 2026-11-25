@@ -1264,8 +1264,8 @@ function processRunningJobInfo($job, $jobProcess, $pid, $title, $descrip, &$file
 		'pending' => $jobProcess['state'],
 		'submission_file'  => fromAbsPath_toPath($job['executionDirectories']['executionSubmissionFile']),
 		'log_file'    => fromAbsPath_toPath($job['executionDirectories']['executionLogFile']),
-		'stdout_file' => fromAbsPath_toPath($job['stdout_file']),
-		'stderr_file' => fromAbsPath_toPath($job['stderr_file']),
+		'stdout_file' => fromAbsPath_toPath(getJobStdoutFile($job)),
+		'stderr_file' => fromAbsPath_toPath(getJobStderrFile($job)),
 		'job_type'    => $job['job_type']
 	);
 

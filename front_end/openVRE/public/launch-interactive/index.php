@@ -5,8 +5,8 @@ redirectOutside();
 
 require "../htmlib/header.inc.php";
 
-$interactiveToolprefix = "/interactive-tool/";
-$status = checkStatus($_GET['pid']);
+$pid    = $_GET['pid'] ?? "";
+$status = checkStatus($pid);
 
 ?>
 
@@ -30,119 +30,92 @@ $status = checkStatus($_GET['pid']);
                         </li>
                     </ul>
                 </div>
+
                 <div class="row">
                     <div class="col-md-12">
-                        <div class="row">
-
-                            <div class="col-md-12">
-
-                                <div class="portlet light bordered">
-
-                                    <div class="portlet-title">
-                                        <div class="caption">
-
-                                            <?php if ($status["ready"]) { ?>
-
-                                                <i class="fa fa-check-circle font-green"></i>
-
-                                            <?php } else { ?>
-
-                                                <i class="fa fa-spinner fa-spin font-blue"></i>
-
-                                            <?php } ?>
-
-                                            <span class="caption-subject bold uppercase">
-                                                <?php echo htmlspecialchars($status["title"]); ?>
-                                            </span>
-
-                                        </div>
-                                    </div>
-
-                                    <div class="portlet-body text-center">
-
-                                        <h4><?php echo htmlspecialchars($status["message"]); ?></h4>
-
-                                        <?php if ($status["ready"]) { ?>
-
-                                            <a class="btn btn-success btn-lg"
-                                                href="<?= htmlspecialchars($status["url"]); ?>"
-                                                target="_blank">
-
-                                                <i class="fa fa-external-link"></i>
-                                                Open Interactive Session
-
-                                            </a>
-
-
-                                        <?php } else { ?>
-
-                                            <br>
-
-                                            <div class="progress progress-striped active">
-                                                <div class="progress-bar progress-bar-info"
-                                                    style="width:100%">
-                                                </div>
-                                            </div>
-
-                                            <small>
-                                                This page refreshes automatically every 3 seconds.
-                                            </small>
-
-                                            <?php if ($status["reload"]) { ?>
-
-                                                <script>
-                                                    setTimeout(function() {
-                                                        location.reload();
-                                                    }, 3000);
-                                                </script>
-
-                                            <?php } ?>
-
-                                        <?php } ?>
-
-                                    </div>
-
+                        <div class="portlet light bordered">
+                            <div class="portlet-title">
+                                <div class="caption">
+                                    <i id="it-icon"></i>
+                                    <span id="it-title" class="caption-subject bold uppercase"></span>
                                 </div>
-
                             </div>
 
-                    </div>
+                            <div class="portlet-body text-center">
+                                <h4 id="it-message"></h4>
 
-                    <?php if (isset($status["job"])) {
-
-                        $job = $status["job"];
-
-                    ?>
-
-                        <div class="row">
-
-                            <div class="col-md-12">
-
-                                <h3>Launcher logs</h3>
-
-                                <a class="btn btn-default"
-                                    target="_blank"
-                                    href="workspace/workspace.php?op=openPlainFileFromPath&fnPath=<?php echo urlencode($job["stdout_file"]); ?>">
-                                    Job Standard Output
+                                <a id="it-open" class="btn btn-success btn-lg" target="_blank" style="display:none;">
+                                    <i class="fa fa-external-link"></i> Open Interactive Session
                                 </a>
 
-                                <pre style="max-height:250px;"><?php
-                                                                if (file_exists($job["stdout_file"]))
-                                                                    echo htmlspecialchars(file_get_contents($job["stdout_file"]));
-                                                                ?></pre>
-
-
-
+                                <div id="it-waiting" style="display:none;">
+                                    <br>
+                                    <div class="progress progress-striped active">
+                                        <div class="progress-bar progress-bar-info" style="width:100%"></div>
+                                    </div>
+                                    <small>Checking the session status every 3 seconds.</small>
+                                </div>
                             </div>
-
                         </div>
+                    </div>
+                </div>
 
-                    <?php } ?>
-
+                <div class="row" id="it-logs" style="display:none;">
+                    <div class="col-md-12">
+                        <h3>Launcher logs</h3>
+                        <a id="it-log-link" class="btn btn-default" target="_blank">Job Standard Output</a>
+                        <pre id="it-log" style="max-height:250px;margin-top:10px;"></pre>
+                    </div>
                 </div>
             </div>
-
         </div>
+
+        <script>
+            (function() {
+                var POLL_MS = 3000;
+                var statusUrl = "applib/checkInteractiveStatus.php?pid=" + encodeURIComponent(<?= json_encode($pid); ?>);
+
+                function render(status) {
+                    var icon = status.ready ? "fa fa-check-circle font-green" :
+                        (status.reload ? "fa fa-spinner fa-spin font-blue" : "fa fa-exclamation-circle font-red");
+
+                    document.getElementById("it-icon").className = icon;
+                    document.getElementById("it-title").textContent = status.title;
+                    document.getElementById("it-message").textContent = status.message;
+
+                    var open = document.getElementById("it-open");
+                    open.style.display = status.ready ? "" : "none";
+                    if (status.url) open.href = status.url;
+
+                    document.getElementById("it-waiting").style.display = status.reload ? "" : "none";
+
+                    var hasLog = !!(status.log || status.logPath);
+                    document.getElementById("it-logs").style.display = hasLog ? "" : "none";
+                    if (hasLog) {
+                        var pre = document.getElementById("it-log");
+                        pre.textContent = status.log || "";
+                        pre.scrollTop = pre.scrollHeight;
+                        document.getElementById("it-log-link").href =
+                            "workspace/workspace.php?op=openPlainFileFromPath&fnPath=" + encodeURIComponent(status.logPath);
+                    }
+                }
+
+                function poll() {
+                    fetch(statusUrl, { credentials: "same-origin" })
+                        .then(function(response) { return response.json(); })
+                        .then(function(status) {
+                            render(status);
+                            if (status.reload) setTimeout(poll, POLL_MS);
+                        })
+                        // network hiccup or non-JSON answer (e.g. session expired): keep trying
+                        .catch(function() { setTimeout(poll, POLL_MS); });
+                }
+
+                var initial = <?= json_encode($status, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG); ?>;
+                render(initial);
+                if (initial.reload) setTimeout(poll, POLL_MS);
+            })();
+        </script>
 
         <?php
         require "../htmlib/footer.inc.php";

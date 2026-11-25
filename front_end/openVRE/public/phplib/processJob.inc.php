@@ -275,3 +275,25 @@ function delJob($pid, $launcherType = null, $login = null)
         $login = $_SESSION['userId'];
     }
 }
+
+
+// Queue stdout/stderr files of a job. SGE and Slurm write them as job_output.log / job_error.log in the execution dir
+function getJobStdoutFile(array $job): ?string
+{
+    return getJobQueueLogFile($job, 'stdout_file', "job_output.log");
+}
+
+function getJobStderrFile(array $job): ?string
+{
+    return getJobQueueLogFile($job, 'stderr_file', "job_error.log");
+}
+
+function getJobQueueLogFile(array $job, string $key, string $defaultName): ?string
+{
+    if (!empty($job[$key])) {
+        return $job[$key];
+    }
+    $executionDir = $job['executionDirectories']['executionDir'] ?? null;
+
+    return $executionDir ? rtrim($executionDir, '/') . "/" . $defaultName : null;
+}
