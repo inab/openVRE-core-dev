@@ -722,8 +722,8 @@ class Tooljob
             $this->setConfigurationFile($tool);
             $this->setMetadata_file($metadata, $metadata_pub);
             if (!is_file($this->executionDirectories->executionConfigFile) && !is_file($this->executionDirectories->executionMetadataFile)) {
-                $this->logger->error("Cannot set tool command line. It required configuration file ($this->executionDirectories->executionConfigFile) and metadata file ($this->executionDirectories->executionMetadataFile)");
-                throw new UnexpectedValueException("Cannot set tool command line. It required configuration file ($this->executionDirectories->executionConfigFile) and metadata file ($this->executionDirectories->executionMetadataFile)");
+                $this->logger->error("Cannot set tool command line. It required configuration file ({$this->executionDirectories->executionConfigFile}) and metadata file ({$this->executionDirectories->executionMetadataFile})");
+                throw new UnexpectedValueException("Cannot set tool command line. It required configuration file ({$this->executionDirectories->executionConfigFile}) and metadata file ({$this->executionDirectories->executionMetadataFile})");
             }
 
             switch ($this->launcher) {
@@ -745,8 +745,8 @@ class Tooljob
                     break;
                 case "Slurm_Singularity":
                     if (empty($dataLocations)) {
-                        $this->logger->error("Tool '$this->toolId' not properly registered. Launcher for '$this->toolId' is set to \"$this->launcher\". Case not implemented.");
-                        throw new UnexpectedValueException("Tool '$this->toolId' not properly registered. Launcher for '$this->toolId' is set to \"$this->launcher\". Case not implemented.");
+                        $this->logger->error("Tool '$this->toolId' not properly registered. Launcher for '$this->toolId' is set to \"{$this->launcher->value}\". Case not implemented.");
+                        throw new UnexpectedValueException("Tool '$this->toolId' not properly registered. Launcher for '$this->toolId' is set to \"{$this->launcher->value}\". Case not implemented.");
                     }
                     $this->setResults_file($metadata);
                     $this->setToolLog_file($metadata);
@@ -755,8 +755,8 @@ class Tooljob
 
                     break;
                 default:
-                    $this->logger->error("Launcher '$this->launcher->value'  not implemented");
-                    throw new UnexpectedValueException("Launcher '$this->launcher->value'  not implemented.");
+                    $this->logger->error("Launcher '{$this->launcher->value}'  not implemented");
+                    throw new UnexpectedValueException("Launcher '{$this->launcher->value}'  not implemented.");
             }
         }
     }
@@ -816,7 +816,7 @@ class Tooljob
 
 
         $monitorContainer = <<<EOF
-			docker logs -f \$CONTAINER_ID &> $this->executionDirectories->executionLogFile &
+			docker logs -f \$CONTAINER_ID &> {$this->executionDirectories->executionLogFile} &
 			CONTAINER_URL="http://$this->containerName:$container_port";
 			EXIT_CODE_FILE="/tmp/exit_code_$this->containerName"
 			printf '%s | %s\n' "\$(date)" "Waiting for the service URL to become available in the internal network...";
@@ -875,7 +875,7 @@ class Tooljob
 			exit_code="\$(docker wait $this->containerName)";
 			printf '%s | Container has stopped (exit code = %s) \n' "\$(date)" "\$exit_code";
 
-			echo '# End time:' \$(date) >> $this->executionDirectories->executionLogFile;
+			echo '# End time:' \$(date) >> {$this->executionDirectories->executionLogFile};
 		EOF;
         $cmd = "HOST_PORT=$hostPort docker compose -f $dockerComposeFile up -d";
         $this->containerName = $tool['infrastructure']['container_image'];
@@ -894,7 +894,7 @@ class Tooljob
 		exit_code="\$(docker wait $this->containerName)";
 		printf '%s | Container has stopped (exit code = %s) \n' "\$(date)" "\$exit_code";
 
-		echo '# End time:' \$(date) >> $this->executionDirectories->executionLogFile;
+		echo '# End time:' \$(date) >> {$this->executionDirectories->executionLogFile};
 		EOF;
 
         return $cmd . "\n" . $monitorContainer . $customToolParameters;
