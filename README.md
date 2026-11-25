@@ -7,10 +7,10 @@ sensitive data infrastructures and analytical tools and workflows, providing a f
 data access, scalable computation and collaboration.
 
 This repository contains the source code for the openVRE core development version, which includes the core components of
-the platform. Other software pieces as the tools, visualizers and data are specific to the each openVRE deployment.
+the platform. Other software pieces such as the tools and data are specific to each openVRE deployment.
 
 A production-ready version of openVRE can be found in the [openVRE](https://github.com/inab/openVRE) repository. It also
-includes a complete documentation of the platform at the respository [wiki](https://github.com/inab/openVRE/wiki).
+includes complete documentation of the platform at the repository [wiki](https://github.com/inab/openVRE/wiki).
 
 This documentation may not correspond with the production version repository documentation.
 
