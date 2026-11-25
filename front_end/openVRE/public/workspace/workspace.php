@@ -43,14 +43,6 @@ $userPath = getAttr_fromGSFileId($user->getDataDir(), "path");
 if (isset($_REQUEST['op'])) {
 	switch ($_REQUEST['op']) {
 
-		case 'newFolder':
-			$r = createGSDirBNS($user->getActiveProject(), $GLOBALS['filesCol'], $_REQUEST['fn']);
-			if ($r == 0) {
-				mkdir($rfn, 0777);
-				chmod($rfn, 0777);
-			}
-			break;
-
 		case 'downloadFile':
 			if (hasPermissions($_SESSION['userId'], Permission::DownloadFile)) {
 				set_time_limit(0);
