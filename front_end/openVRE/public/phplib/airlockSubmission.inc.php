@@ -103,10 +103,11 @@ function buildDisclosureDeclarations(array $answers, string $minimizationStateme
  */
 function buildEgressSubmissionRequest(array $export, string $clientRequestId, array $texts, array $declarations): array
 {
-	return array(
-		"@type"                          => "airlock:EgressSubmissionCreateRequest",
-		"dct:conformsTo"                 => airlockConformsTo(),
+	$user = getUserById($_SESSION['userId']);
+
+	return airlockRequestHead("airlock:EgressSubmissionCreateRequest", 'airlockSubmissionConformsTo') + array(
 		"airlock:clientRequestId"        => $clientRequestId,
+		"airlock:requestedBy"            => array("@type" => "sc:Person", "@id" => airlockTreUri("user", $user->getSecretsId())),
 		"airlock:usesLandingArtifactSet" => array(array("@id" => $export['artifactSetId'])),
 		"airlock:selectedFiles"          => array_map(fn($id) => array("@id" => $id), $export['landingArtifactIds']),
 		"airlock:releaseRequest"         => array(
@@ -143,7 +144,7 @@ function createAirlockSubmission(string $exportId, array $form): array
 	$answers = is_array($form['declarations'] ?? null) ? $form['declarations'] : array();
 	$declarations = buildDisclosureDeclarations($answers, $texts['minimization']);
 
-	$clientRequestId = $export['submissionClientRequestId'] ?? ("sub-" . $exportId);
+	$clientRequestId = $export['submissionClientRequestId'] ?? ($exportId . "-egress");
 	updateAirlockExport($exportId, array("submissionClientRequestId" => $clientRequestId));
 
 	$request = buildEgressSubmissionRequest($export, $clientRequestId, $texts, $declarations);

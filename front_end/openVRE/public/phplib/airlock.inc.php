@@ -14,8 +14,14 @@
  *
  * Export requests are tracked in the 'airlockExports' collection.
  *
- * Files: airlock.inc.php (shared helpers), airlockLandingMove.inc.php (1),
- * airlockExportStatus.inc.php (2) and airlockSubmission.inc.php (3).
+ * Files: airlock.inc.php (shared helpers), airlockLandingMove.inc.php and
+ * airlockLandingRequest.inc.php (1), airlockExportStatus.inc.php (2) and
+ * airlockSubmission.inc.php (3).
+ *
+ * Identifiers are logical TRE URIs (tre://...). The staged copy of each file
+ * is implied by convention: AIRLOCK_STAGING_DIR/<project>/<stagingId>/<path>,
+ * where <path> is the file path inside the project and <stagingId> is the
+ * landing move clientRequestId.
  */
 
 use OpenVRE\AirlockException;
@@ -26,9 +32,23 @@ const AIRLOCK_PREFIX                  = "airlock:";
 const AIRLOCK_STATE_KEY               = "airlock:state";
 const AIRLOCK_FILE_ROLE_KEY           = "airlock:fileRole";
 const AIRLOCK_ROLE_CANDIDATE_RELEASE  = "candidate_release";
+const AIRLOCK_ROLE_SUPPORTING         = "supporting";
 
 const AIRLOCK_MSG_NOT_ALLOWED         = "User not allowed to export files.";
 const AIRLOCK_MSG_EXPORT_NOT_FOUND    = "Export request %s not found.";
+
+// JSON-LD mappings and vocabularies of the Airlock contract v1
+const AIRLOCK_JSONLD_CONTEXT = array(
+	"@vocab"  => "http://schema.org/",
+	"sc"      => "http://schema.org/",
+	"cr"      => "http://mlcommons.org/croissant/",
+	"prov"    => "http://www.w3.org/ns/prov#",
+	"dct"     => "http://purl.org/dc/terms/",
+	"airlock" => "https://example.org/airlock#",
+	"tre"     => "https://example.org/tre#",
+);
+const AIRLOCK_VOCABULARY = array("http://schema.org/", "http://mlcommons.org/croissant/", "http://www.w3.org/ns/prov#");
+const AIRLOCK_JSON_FLAGS = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_LINE_TERMINATORS;
 
 
 function getAirlockLogger()
@@ -56,14 +76,23 @@ function airlockTreUri(string ...$parts): string
 }
 
 
-function airlockConformsTo(): array
+/**
+ * Common head of an Airlock create request: JSON-LD context, type and the
+ * contract profiles it conforms to (comma separated in the given setting).
+ */
+function airlockRequestHead(string $type, string $profilesSetting): array
 {
-	$uris = array_values(array_filter(array_map('trim', explode(",", (string) $GLOBALS['airlockConformsTo']))));
-	if (!$uris) {
-		throw new UnexpectedValueException("Airlock contract is not configured (AIRLOCK_CONFORMS_TO is empty).");
+	$profiles = array_values(array_filter(array_map('trim', explode(",", (string) ($GLOBALS[$profilesSetting] ?? "")))));
+	if (!$profiles) {
+		throw new UnexpectedValueException("Airlock contract profiles are not configured ($profilesSetting).");
 	}
 
-	return $uris;
+	return array(
+		"@context"               => AIRLOCK_JSONLD_CONTEXT,
+		"@type"                  => $type,
+		"dct:conformsTo"         => $profiles,
+		"airlock:usesVocabulary" => AIRLOCK_VOCABULARY,
+	);
 }
 
 
@@ -78,7 +107,7 @@ function jcsCanonicalize(mixed $value): string
 			ksort($value, SORT_STRING);
 			$members = array();
 			foreach ($value as $k => $v) {
-				$members[] = json_encode((string) $k, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) . ":" . jcsCanonicalize($v);
+				$members[] = json_encode((string) $k, AIRLOCK_JSON_FLAGS) . ":" . jcsCanonicalize($v);
 			}
 			return "{" . implode(",", $members) . "}";
 		}
@@ -88,7 +117,7 @@ function jcsCanonicalize(mixed $value): string
 		throw new InvalidArgumentException("Floating point numbers are not supported in Airlock manifests.");
 	}
 
-	return json_encode($value, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+	return json_encode($value, AIRLOCK_JSON_FLAGS);
 }
 
 

@@ -81,11 +81,12 @@ $GLOBALS['EGA_METADATA_API'] = 'https://metadata.ega-archive.org';
 // Data download / Airlock export
 $GLOBALS['downloadEnabled']       = getenv('DOWNLOAD_ENABLED') !== 'false'; // set DOWNLOAD_ENABLED=false to forbid direct downloads in the whole instance
 $GLOBALS['airlockUrl']            = rtrim((string) getenv('AIRLOCK_URL'), '/'); // e.g. https://airlock.demo-tre.bsc.es. Empty disables export
-$GLOBALS['airlockStagingDir']     = rtrim((string) getenv('AIRLOCK_STAGING_DIR'), '/'); // NFS mount shared with Airlock, as seen inside this container
+$GLOBALS['airlockStagingDir']     = rtrim((string) getenv('AIRLOCK_STAGING_DIR'), '/'); // NFS mount shared with Airlock, as seen inside this container. Files are staged at <dir>/<project>/<stagingId>/<path in project>
 $GLOBALS['airlockTreUriPrefix']   = getenv('AIRLOCK_TRE_URI_PREFIX') ?: 'tre://'; // logical TRE URIs, resolved by Airlock
-$GLOBALS['airlockReleaseTarget']  = getenv('AIRLOCK_RELEASE_TARGET'); // release destination target id
-$GLOBALS['airlockRecipientGroup'] = getenv('AIRLOCK_RECIPIENT_GROUP'); // release recipient group id
-$GLOBALS['airlockConformsTo']     = getenv('AIRLOCK_CONFORMS_TO'); // Airlock contract URI(s) for dct:conformsTo, comma separated (required, provided by the Airlock team)
+$GLOBALS['airlockReleaseTarget']  = getenv('AIRLOCK_RELEASE_TARGET'); // release destination target id (project registry reference, deployment specific)
+$GLOBALS['airlockRecipientGroup'] = getenv('AIRLOCK_RECIPIENT_GROUP'); // release recipient group id (project registry reference, deployment specific)
+$GLOBALS['airlockLandingConformsTo']    = getenv('AIRLOCK_LANDING_CONFORMS_TO') ?: 'https://example.org/profiles/airlock-landing-move-create-v1,https://example.org/profiles/openvre-landing-move-create-v1'; // contract profiles of landing moves, comma separated
+$GLOBALS['airlockSubmissionConformsTo'] = getenv('AIRLOCK_SUBMISSION_CONFORMS_TO') ?: 'https://example.org/profiles/airlock-egress-submission-create-v1'; // contract profiles of egress submissions, comma separated
 $GLOBALS['airlockSslCaFile']      = getenv('AIRLOCK_SSL_CAFILE'); // optional CA bundle for the Airlock API
 
 // Google Analytics

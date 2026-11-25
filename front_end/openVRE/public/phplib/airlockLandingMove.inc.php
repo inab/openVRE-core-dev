@@ -9,15 +9,30 @@ use OpenVRE\AirlockClient;
 use OpenVRE\AirlockException;
 use OpenVRE\AirlockExportState;
 use OpenVRE\AirlockStagingException;
-use OpenVRE\User;
 
 
 /**
- * Location of a file in the NFS shared with Airlock. Workspace files are copied
- * there; remote files that already live in that NFS will only need to resolve
- * their location (not implemented yet).
+ * Project folder and path inside the project of a workspace file, whose path
+ * is <user>/<project>/<path inside the project>.
  */
-function stageFileForAirlock(array $file, string $exportId): array
+function exportFileLocation(array $file): array
+{
+	$parts = explode("/", trim($file['path'], "/"));
+	if (count($parts) < 3) {
+		throw new UnexpectedValueException("File '" . basename($file['path']) . "' is not inside a project.");
+	}
+
+	return array("project" => $parts[1], "path" => implode("/", array_slice($parts, 2)));
+}
+
+
+/**
+ * Copy a workspace file to AIRLOCK_STAGING_DIR/<project>/<stagingId>/<path>,
+ * the location Airlock derives from its logical contentUrl
+ * tre://project/<project>/<path>. Remote files already in that NFS will only
+ * need to resolve their location (not implemented yet).
+ */
+function stageFileForAirlock(array $file, string $stagingDir): array
 {
 	$name = basename($file['path']);
 	$source = $GLOBALS['userDataDir'] . "/" . $file['path'];
@@ -25,20 +40,19 @@ function stageFileForAirlock(array $file, string $exportId): array
 		throw new AirlockStagingException("File '$name' not found in disk.");
 	}
 
-	$targetDir = $GLOBALS['airlockStagingDir'] . "/" . $_SESSION['internalUserId'] . "/" . $exportId;
+	$location = exportFileLocation($file);
+	$target = $stagingDir . "/" . $location['path'];
+	$targetDir = dirname($target);
 	if (!is_dir($targetDir) && !mkdir($targetDir, 0775, true) && !is_dir($targetDir)) {
 		throw new AirlockStagingException("Cannot create the export staging directory.");
 	}
-
-	$target = $targetDir . "/" . $name;
 	if (!copy($source, $target)) {
 		throw new AirlockStagingException("Cannot copy '$name' to the export staging area.");
 	}
 
 	return array(
-		"name"       => $name,
 		"stagedPath" => $target,
-		"contentUrl" => airlockTreUri("files", $_SESSION['internalUserId'], $exportId, $name),
+		"contentUrl" => airlockTreUri("project", $location['project'], ...explode("/", $location['path'])),
 		"size"       => filesize($target),
 		"sha256"     => hash_file('sha256', $target),
 		"mimeType"   => mime_content_type($target) ?: "application/octet-stream",
@@ -47,31 +61,35 @@ function stageFileForAirlock(array $file, string $exportId): array
 
 
 /**
- * Remove the copies staged for Airlock. Only the export's own directory is
- * touched.
+ * Remove the copies staged for Airlock, and the folders left empty. Only the
+ * export's own staging directory is touched.
  */
 function cleanAirlockStaging(array $export): void
 {
-	$dir = $GLOBALS['airlockStagingDir'] . "/" . $export['owner'] . "/" . $export['_id'];
-	if (empty($GLOBALS['airlockStagingDir']) || !is_dir($dir)) {
+	$stagingDir = $export['stagingDir'] ?? "";
+	if ($stagingDir === "" || !is_dir($stagingDir)) {
 		return;
 	}
 
+	$dirs = array();
 	foreach ($export['stagedPaths'] ?? array() as $path) {
-		if (is_file($path) && dirname($path) === $dir) {
+		if (is_file($path) && str_starts_with($path, $stagingDir . "/")) {
 			unlink($path);
+			for ($dir = dirname($path); $dir !== $stagingDir && str_starts_with($dir, $stagingDir); $dir = dirname($dir)) {
+				$dirs[$dir] = substr_count($dir, "/");
+			}
 		}
 	}
-	if (count(scandir($dir)) == 2) { // only '.' and '..'
-		rmdir($dir);
+	arsort($dirs); // deepest first
+	foreach (array_merge(array_keys($dirs), array($stagingDir)) as $dir) {
+		if (is_dir($dir) && count(scandir($dir)) == 2) { // only '.' and '..'
+			rmdir($dir);
+		}
 	}
 }
 
 
-/**
- * Check that the user and the instance can export, returning the contract URIs.
- */
-function assertExportAvailable(): array
+function assertExportAvailable(): void
 {
 	if (!canExport()) {
 		throw new UnexpectedValueException(AIRLOCK_MSG_NOT_ALLOWED);
@@ -79,8 +97,6 @@ function assertExportAvailable(): array
 	if (empty($GLOBALS['airlockStagingDir']) || !is_dir($GLOBALS['airlockStagingDir'])) {
 		throw new UnexpectedValueException("Airlock staging area is not available (AIRLOCK_STAGING_DIR).");
 	}
-
-	return airlockConformsTo();
 }
 
 
@@ -105,114 +121,48 @@ function getExportableFile(string $fileId): array
 
 
 /**
- * Croissant file object describing a staged file in the landing move request.
+ * Execution folder (with its job metadata) shared by all the files. An export
+ * describes a single source activity, so files of different executions are
+ * exported separately.
  */
-function buildLandingFileObject(array $file, array $staged, string $activityId): array
+function getExportExecutionFolder(array $files): array
 {
-	$fileObject = array(
-		"@type"                => "cr:FileObject",
-		"@id"                  => airlockTreUri("file", $file['_id']),
-		"name"                 => $staged['name'],
-		"contentUrl"           => $staged['contentUrl'],
-		"contentSize"          => $staged['size'],
-		"encodingFormat"       => $staged['mimeType'],
-		"airlock:fileFormat"   => !empty($file['format']) ? $file['format'] : "UNK",
-		"sha256"               => $staged['sha256'],
-		AIRLOCK_FILE_ROLE_KEY  => AIRLOCK_ROLE_CANDIDATE_RELEASE,
-		"prov:wasGeneratedBy"  => array("@id" => $activityId),
-		"tre:sourceArtifactId" => $file['_id'],
-	);
-	if (!empty($file['data_type'])) {
-		$fileObject["tre:dataType"] = $file['data_type'];
+	$folderIds = array_unique(array_map(fn($file) => (string) ($file['parentDir'] ?? ""), $files));
+	if (count($folderIds) != 1 || reset($folderIds) === "") {
+		throw new UnexpectedValueException("Files of different executions cannot be exported together. Export them separately.");
 	}
-	if (!empty($file['description'])) {
-		$fileObject["description"] = (string) $file['description'];
+	$folder = getGSFile_fromId(reset($folderIds));
+	if (is_null($folder)) {
+		throw new UnexpectedValueException("Execution folder of the files not found.");
 	}
 
-	return $fileObject;
+	return $folder;
 }
 
 
 /**
- * Artifact set of the landing move request, including its manifest digest.
+ * Landing artifact ids allocated by Airlock for the releasable files.
  */
-function buildLandingArtifactSet(array $record, array $distribution, User $user): array
+function landingArtifactIdsFromPlan(array $plan, array $releasableIds): array
 {
-	$fileNames = $record['fileNames'];
-	$artifactSet = array(
-		"@type"                   => "sc:Dataset",
-		"@id"                     => airlockTreUri("export", $record['_id']),
-		"name"                    => count($fileNames) == 1 ? $fileNames[0] : "openVRE export of " . count($fileNames) . " files",
-		"description"             => "Files exported from the openVRE workspace by " . $user->getEmail(),
-		// ASSUMPTION: role of the set as a whole; not constrained by the Airlock API schema
-		"airlock:artifactSetRole" => "egress_candidate",
-		"airlock:releaseUnitType" => "file_set",
-		"distribution"            => $distribution,
-	);
+	$ids = array();
+	foreach ($plan['airlock:artifactAssignments'] ?? array() as $assignment) {
+		if (in_array($assignment['airlock:sourceArtifact']['@id'] ?? null, $releasableIds, true) && isset($assignment['airlock:landingArtifact']['@id'])) {
+			$ids[] = $assignment['airlock:landingArtifact']['@id'];
+		}
+	}
 
-	// ASSUMPTION: the "source artifact set manifest" projection is the
-	// artifact set itself without its digest. Adjust if Airlock rejects it.
-	$artifactSet["airlock:artifactSetDigest"] = array(
-		"airlock:digestProfile"    => "airlock-source-artifact-set-manifest-v1",
-		"airlock:algorithm"        => "sha256",
-		"airlock:canonicalization" => "rfc8785-jcs",
-		"airlock:value"            => hash('sha256', jcsCanonicalize($artifactSet)),
-		"airlock:computedBy"       => "openVRE",
-		"airlock:computedAt"       => date(DATE_ATOM),
-	);
-
-	return $artifactSet;
-}
-
-
-/**
- * LandingMoveCreateRequestV1 for an export record.
- */
-function buildLandingMoveRequest(array $record, array $artifactSet, User $user, array $conformsTo): array
-{
-	return array(
-		"@type"                   => "airlock:LandingMoveCreateRequest",
-		"dct:conformsTo"          => $conformsTo,
-		"airlock:clientRequestId" => "move-" . $record['_id'],
-		"airlock:sourceSystem"    => array(
-			"@type"               => "airlock:SourceSystem",
-			"airlock:systemType"  => "VRE",
-			"airlock:systemName"  => "openVRE",
-		),
-		"airlock:requestedBy"     => array("@type" => "sc:Person", "@id" => airlockTreUri("user", $user->getSecretsId())),
-		"airlock:project"         => array("@type" => "airlock:TREProject", "@id" => airlockTreUri("project", $record['project'])),
-		"airlock:artifactSet"     => $artifactSet,
-		"airlock:sourceActivity"  => array(
-			"@type"                           => "prov:Activity",
-			"@id"                             => $record['activityId'],
-			"name"                            => "Export request from the openVRE workspace",
-			"prov:startedAtTime"              => $record['createdAt'],
-			"airlock:provenanceCompleteness"  => array(
-				"airlock:level"  => "source_record_only",
-				"airlock:reason" => "Files selected by the user from the openVRE workspace; execution provenance is not tracked.",
-			),
-		),
-	);
-}
-
-
-/**
- * Landing artifact ids allocated by Airlock in a landing move plan.
- */
-function landingArtifactIdsFromPlan(array $plan): array
-{
-	$ids = array_map(fn($assignment) => $assignment['airlock:landingArtifact']['@id'] ?? null, $plan['airlock:artifactAssignments'] ?? array());
-
-	return array_values(array_filter($ids));
+	return $ids;
 }
 
 
 /**
  * Stage the given workspace files and create an Airlock landing move for them.
+ * The job log, if any, is landed too as a supporting (not releasable) file.
  */
-function requestLandingMove(array $fileIds, ?string $projectId = null): array
+function requestLandingMove(array $fileIds): array
 {
-	$conformsTo = assertExportAvailable();
+	assertExportAvailable();
 
 	$fileIds = array_values(array_unique(array_filter($fileIds, fn($id) => !empty($id) && $id !== 'undefined')));
 	if (!$fileIds) {
@@ -220,16 +170,22 @@ function requestLandingMove(array $fileIds, ?string $projectId = null): array
 	}
 	// validate every file before staging anything
 	$files = array_map('getExportableFile', $fileIds);
+	$folder = getExportExecutionFolder($files);
+	$project = exportFileLocation($files[0])['project'];
+	$logFile = getJobLogFile($folder, $fileIds);
+	$activity = buildSourceActivity($folder);
 
 	$user = getUserById($_SESSION['userId']);
-	$exportId = uniqid($_SESSION['internalUserId'] . "_export_", false) . bin2hex(random_bytes(3));
+	// staging id: also the landing move clientRequestId, so it is stable for retries
+	$exportId = "export-" . bin2hex(random_bytes(10));
 	$record = array(
 		"_id"        => $exportId,
 		"owner"      => $_SESSION['internalUserId'],
-		"project"    => $projectId ?: ($files[0]['project'] ?? $user->getActiveProject()),
+		"project"    => $project,
+		"folderId"   => $folder['_id'],
 		"fileIds"    => $fileIds,
 		"fileNames"  => array_map(fn($f) => basename($f['path']), $files),
-		"activityId" => airlockTreUri("activity", "export", $exportId),
+		"stagingDir" => $GLOBALS['airlockStagingDir'] . "/" . $project . "/" . $exportId,
 		"state"      => AirlockExportState::MoveRequested->value,
 		"createdAt"  => date(DATE_ATOM),
 		"updatedAt"  => date(DATE_ATOM),
@@ -239,20 +195,22 @@ function requestLandingMove(array $fileIds, ?string $projectId = null): array
 	$staged = array();
 	try {
 		$distribution = array();
-		foreach ($files as $file) {
-			$stagedFile = stageFileForAirlock($file, $exportId);
+		$toStage = array_merge(array_map(fn($f) => array($f, AIRLOCK_ROLE_CANDIDATE_RELEASE), $files), $logFile ? array(array($logFile, AIRLOCK_ROLE_SUPPORTING)) : array());
+		foreach ($toStage as [$file, $role]) {
+			$stagedFile = stageFileForAirlock($file, $record['stagingDir']);
 			$staged[] = $stagedFile['stagedPath'];
-			$distribution[] = buildLandingFileObject($file, $stagedFile, $record['activityId']);
+			$distribution[] = buildLandingFileObject($file, $stagedFile, $activity, $role);
 		}
+		updateAirlockExport($exportId, array("stagedPaths" => $staged));
 
-		$request = buildLandingMoveRequest($record, buildLandingArtifactSet($record, $distribution, $user), $user, $conformsTo);
+		$logArtifactId = $logFile ? airlockTreUri("artifact", $logFile['_id']) : null;
+		$request = buildLandingMoveRequest($record, buildLandingArtifactSet($record, $distribution, $user), $activity, $user, $logArtifactId);
 		$plan = airlockResponseData(AirlockClient::forCurrentUser()->createLandingMove($request), "Export $exportId: landing move failed");
 
 		updateAirlockExport($exportId, array(
-			"stagedPaths"        => $staged,
 			"moveId"             => $plan['@id'] ?? null,
 			"artifactSetId"      => $plan['airlock:landingArtifactSet']['@id'] ?? null,
-			"landingArtifactIds" => landingArtifactIdsFromPlan($plan),
+			"landingArtifactIds" => landingArtifactIdsFromPlan($plan, array_map(fn($f) => airlockTreUri("artifact", $f['_id']), $files)),
 			"moveExpiresAt"      => $plan['airlock:expiresAt'] ?? null,
 		));
 		getAirlockLogger()->info("Landing move " . ($plan['@id'] ?? "?") . " created for export $exportId (" . implode(", ", $fileIds) . ")");
@@ -261,7 +219,7 @@ function requestLandingMove(array $fileIds, ?string $projectId = null): array
 		if (!$e instanceof AirlockException) {
 			getAirlockLogger()->error("Export $exportId: " . $e->getMessage());
 		}
-		cleanAirlockStaging(array("_id" => $exportId, "owner" => $_SESSION['internalUserId'], "stagedPaths" => $staged));
+		cleanAirlockStaging($record + array("stagedPaths" => $staged));
 		updateAirlockExport($exportId, array("state" => AirlockExportState::Failed->value, "error" => $e->getMessage()));
 		throw $e;
 	}
