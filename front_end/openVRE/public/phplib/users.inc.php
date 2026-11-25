@@ -288,31 +288,38 @@ function addUserJob($login, $data, $pid)
 
 function getUserJobs($login): array
 {
-    /** @var OpenVRE\User */
-    $userWithJobs = $GLOBALS['usersCol']->findOne(array(
-        '_id'  => $login,
-        'lastJobs' => array('$exists' => true)
-    ), array('lastJobs' => 1));
-
-    getUsersLogger()->debug("Jobs for user $login: " . json_encode($userWithJobs));
-
-    return $userWithJobs->getLastJobs();
-}
-
-function getAllUserJobs(): User
-{
-    /** @var OpenVRE\User */
-    $usersWithJobs = $GLOBALS['usersCol']->find(
-        array(
-            '$nor' => array(
-                array('lastJobs' => array('$exists' => false)),
-                array('lastJobs' => array('$size' => 0)),
-            )
-        ),
-        array("_id" => 1, "lastJobs" => 1, "id" => 1)
+    /** @var ?OpenVRE\User $userWithJobs */
+    $userWithJobs = $GLOBALS['usersCol']->findOne(
+        array('_id' => $login, 'lastJobs' => array('$exists' => true)),
+        array('projection' => array('lastJobs' => 1))
     );
 
-    getUsersLogger()->debug("Jobs for all users: " . json_encode($usersWithJobs));
+    $lastJobs = $userWithJobs?->getLastJobs() ?? array();
+    getUsersLogger()->debug("Jobs for user $login: " . json_encode($lastJobs));
+
+    return $lastJobs;
+}
+
+/**
+ * @return User[] users with at least one job (only _id and lastJobs are hydrated)
+ */
+function getAllUserJobs(): array
+{
+    $cursor = $GLOBALS['usersCol']->find(
+        array('lastJobs' => array('$exists' => true)),
+        array('projection' => array('_id' => 1, 'lastJobs' => 1))
+    );
+
+    // lastJobs may be stored as an empty map or array; drop those users
+    $usersWithJobs = array_values(array_filter(
+        iterator_to_array($cursor, false),
+        fn(User $user) => !empty($user->getLastJobs())
+    ));
+
+    getUsersLogger()->debug("Jobs for all users: " . json_encode(array_map(
+        fn(User $user) => array($user->get_id() => array_keys($user->getLastJobs())),
+        $usersWithJobs
+    )));
 
     return $usersWithJobs;
 }
