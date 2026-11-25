@@ -11,8 +11,6 @@ $tls = getTools_ListComplete($user);
 $vslzrs = array();
 
 $toolList = array_merge($tls, $vslzrs);
-error_log(json_encode($toolList));
-
 sort($toolList);
 ?>
 
