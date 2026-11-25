@@ -1928,6 +1928,10 @@ function refresh_token($force = false)
 		}
 
 		if ($freshAccessToken === $existingToken->getToken()) {
+			// session.inc already synced the token renewed by mod_auth_openidc
+			if (!$existingToken->hasExpired()) {
+				return true;
+			}
 			getProjectLogger()->error("Token refresh did not produce a new token; forcing re-authentication.");
 			header('Location: ' . $GLOBALS['URL'] . 'redirect_uri?logout=' . $GLOBALS['URL_logout']);
 			exit;
