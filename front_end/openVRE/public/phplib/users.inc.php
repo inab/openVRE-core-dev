@@ -325,14 +325,22 @@ function getAllUserJobs(): array
 }
 
 
-function getUserJobPid($login, $pid)
+/**
+ * @return array [pid => job] if the user has that job, empty array otherwise
+ */
+function getUserJobPid($login, $pid): array
 {
-    $r = $GLOBALS['usersCol']->findOne(array(
-        "_id"      => $login,
-        "lastJobs.$pid" => array('$exists' => true)
-    ), array("lastJobs.$pid" => 1));
+    $pid = strval($pid);
 
-    return $r['lastJobs'] ?? array();
+    /** @var ?OpenVRE\User $userWithJob */
+    $userWithJob = $GLOBALS['usersCol']->findOne(
+        array('_id' => $login, "lastJobs.$pid" => array('$exists' => true)),
+        array('projection' => array("lastJobs.$pid" => 1))
+    );
+
+    $job = $userWithJob?->getLastJobs()[$pid] ?? null;
+
+    return $job === null ? array() : array($pid => $job);
 }
 
 function hasPermissions(string $userId, Permission $requiredPermission)
