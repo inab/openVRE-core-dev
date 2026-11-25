@@ -76,6 +76,13 @@
         ]
       }
     ],
+    "input_files_combinations_internal": [
+      [
+        {
+          "id_list": "+"
+        }
+      ]
+    ],
     "sites": [
       {
         "site_id": "local",

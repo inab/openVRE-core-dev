@@ -52,14 +52,15 @@ function getTools_DataTypes()
 
 	foreach ($dt as $tool) {
 
-		foreach ($tool["input_files_combinations_internal"] as $combination) {
+		$combinations = $tool["input_files_combinations_internal"] ?? deriveInternalCombinations($tool);
 
-			// crear list 3 pels casos específics?????
+		foreach ($combinations as $combination) {
 
 			$array[$c]["id"] = $tool["_id"];
 			$array[$c]["list1"] = array();
 			$array[$c]["list2"] = array();
 			$array[$c]["list3"] = array();
+			$array[$c]["list4"] = array();
 
 			foreach ($combination as $single_c) {
 
@@ -77,6 +78,9 @@ function getTools_DataTypes()
 					// 0 or more (n non mandatory)
 					if ($v == "*") $array[$c]["list2"][] = $k;
 
+					// 0 or 1 (single, non mandatory)
+					if ($v == "?") $array[$c]["list4"][] = $k;
+
 					// special cases where no combinations internal are possible
 					if ($v == "-") $array[$c]["list3"][] = $k;
 				}
@@ -87,6 +91,62 @@ function getTools_DataTypes()
 	}
 
 	return $array;
+}
+
+// build "input_files_combinations_internal" from "input_files" and "input_files_combinations"
+// for tools that do not define it. Inputs accepting several data types expand into one
+// combination per data type choice.
+function deriveInternalCombinations($tool)
+{
+	$inputsByName = array();
+	foreach ($tool["input_files"] ?? [] as $input) {
+		$inputsByName[$input["name"]] = $input;
+	}
+
+	$internal = array();
+	foreach ($tool["input_files_combinations"] ?? [] as $combination) {
+		$variants = expandCombination($combination["input_files"] ?? [], $inputsByName);
+		$internal = array_merge($internal, array_filter($variants));
+	}
+
+	return $internal;
+}
+
+// expand a list of input names into every data type choice, as lists of {data_type: cardinality}
+function expandCombination($inputNames, $inputsByName)
+{
+	$variants = array(array());
+
+	foreach ($inputNames as $name) {
+		if (!isset($inputsByName[$name])) {
+			continue;
+		}
+
+		$input = $inputsByName[$name];
+		$cardinality = getInputCardinality($input);
+
+		$expanded = array();
+		foreach ($variants as $variant) {
+			foreach ($input["data_type"] ?? [] as $dataType) {
+				$expanded[] = array_merge($variant, array(array($dataType => $cardinality)));
+			}
+		}
+		$variants = $expanded;
+	}
+
+	return $variants;
+}
+
+// 1: exactly one, "+": one or more, "?": zero or one, "*": zero or more
+function getInputCardinality($input)
+{
+	$multiple = !empty($input["allow_multiple"]);
+
+	if (empty($input["required"])) {
+		return $multiple ? "*" : "?";
+	}
+
+	return $multiple ? "+" : 1;
 }
 
 // return valid combination of input file datatypes for a given tool
@@ -138,6 +198,7 @@ function getTools_ByDT($toolsDT, $filesDT)
 			$list1 = $tdt["list1"];
 			$list2 = $tdt["list2"];
 			$list3 = $tdt["list3"];
+			$list4 = $tdt["list4"] ?? array();
 			$listF = $filesDT;
 
 			// foreach de tots els fitxers seleccionats
@@ -151,7 +212,15 @@ function getTools_ByDT($toolsDT, $filesDT)
 
 					$key = array_search($itemWS, $listF);
 					unset($listF[$key]);
-				} /*else*/
+				} elseif (in_array($itemWS, $list4)) {
+					// optional single file: each "?" entry accepts at most one file
+
+					$key = array_search($itemWS, $list4);
+					unset($list4[$key]);
+
+					$key = array_search($itemWS, $listF);
+					unset($listF[$key]);
+				}
 				if (in_array($itemWS, $list2)) {
 					// només que n'hi hagi un els esborrem tots???
 
@@ -182,8 +251,9 @@ function getTools_ByDT($toolsDT, $filesDT)
 
 			}
 
-			// if no more items on both lists, it means matching!
-			if ((sizeof($list1) == 0) && (sizeof($list2) == 0) && (sizeof($listF) == 0)) $toolsList[] = $tdt["id"];
+			// matching if all mandatory types are covered and every file was accepted
+			// (list2 holds "+" and "*" types, which may legitimately remain unselected)
+			if ((sizeof($list1) == 0) && (sizeof($listF) == 0)) $toolsList[] = $tdt["id"];
 		}
 	}
 
