@@ -10,7 +10,6 @@ RUN apt-get install -y curl ca-certificates \
 RUN apt-get install -y autoconf pkg-config libssl-dev libapache2-mod-auth-openidc lua5.4 lua-socket
 RUN a2enmod proxy proxy_http ssl auth_openidc lua
 RUN docker-php-ext-install bcmath
-RUN echo "extension=mongodb.so" >> /usr/local/etc/php/conf.d/mongodb.ini
 RUN apt install -y docker.io
 RUN apt-get install -y \
         git libfreetype6-dev \
@@ -41,8 +40,6 @@ WORKDIR /var/www/html
 ADD openVRE /var/www/html/openVRE
 RUN cd openVRE
 WORKDIR /var/www/html/openVRE
-COPY --from=ghcr.io/php/pie:1.3.8-bin /pie /usr/bin/pie
-RUN pie install mongodb/mongodb-extension
 RUN npm ci
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 RUN composer self-update
