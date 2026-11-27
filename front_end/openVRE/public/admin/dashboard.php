@@ -8,7 +8,7 @@ use OpenVRE\UserType;
 redirectAdminOutside();
 
 
-$userAttributesProjection = ['projection' => ['email' => 1, 'surname' => 1, 'name' => 1, 'institution' => 1, 'diskQuota' => 1,  'type' => 1, 'Status' => 1, 'registrationDate' => 1]];
+$userAttributesProjection = ['projection' => ['email' => 1, 'surname' => 1, 'name' => 1, 'institution' => 1, 'diskQuota' => 1,  'type' => 1, 'status' => 1, 'registrationDate' => 1]];
 $filterNamedUsers = array("type" => array('$ne' => UserType::Guest->value));
 $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
 

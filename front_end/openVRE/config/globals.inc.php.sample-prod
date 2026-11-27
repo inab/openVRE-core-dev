@@ -150,10 +150,9 @@ $GLOBALS['placeholder_textarea'] = "Click right button to select file(s)"; // te
 
 
 // Cloud infrastructures
-$GLOBALS['cloud']              = "my_on_premises_cloud"; // VRE central cloud. Options are any of $GLOBALS['clouds']
 $GLOBALS['clouds'] = Array(
                 'local' => array(
-                        "dataDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['dataDir'],
+                        "dataDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['userDataDir'],
                         "pubDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['pubDir'],
                         "scriptsDir_host"    => getenv('FRONTEND_HOST_PATH').$GLOBALS['scriptsDir'],
                         "auth"              => array("required" => False)

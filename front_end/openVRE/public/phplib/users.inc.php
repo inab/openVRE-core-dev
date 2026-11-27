@@ -127,14 +127,20 @@ function getUserById($id, $options = array()): ?User
 
 function getUsersByFilter($filter, $options = array()): array
 {
-    return $GLOBALS['usersCol']->find($filter, $options);
+    return iterator_to_array($GLOBALS['usersCol']->find($filter, $options), false);
 }
 
 
 //delete user data from Mongo and disk
 function delUser($id)
 {
-    $homePath =  $id;
+    $user = getUserById($id);
+    if (is_null($user)) {
+        getUsersLogger()->error("Cannot delete user $id. User not found.");
+        throw new NotFoundException("Cannot delete user $id. User not found.");
+    }
+
+    $homePath = $user->getInternalId();
     $homeId = getGSFileId_fromPath($homePath, 1);
     if (is_null($homeId)) {
         getUsersLogger()->error("Cannot delete directory from database.");
@@ -148,7 +154,7 @@ function delUser($id)
         exec("rm -r \"$rfn\" 2>&1", $output);
     }
 
-    $GLOBALS['usersCol']->deleteOne(array('id' => $id));
+    $GLOBALS['usersCol']->deleteOne(array('_id' => $id));
 }
 
 

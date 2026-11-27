@@ -7,7 +7,7 @@ use OpenVRE\UserType;
 
 redirectAdminOutside();
 
-$userAttributesProjection = ['projection' => ['email' => 1, 'surname' => 1, 'name' => 1, 'institution' => 1, 'diskQuota' => 1, 'lastLogin' => 1, 'type' => 1, 'Status' => 1, 'id' => 1]];
+$userAttributesProjection = ['projection' => ['email' => 1, 'surname' => 1, 'name' => 1, 'institution' => 1, 'diskQuota' => 1, 'lastLogin' => 1, 'type' => 1, 'status' => 1, 'internalId' => 1]];
 $filterNamedUsers = array("type" => array('$ne' => UserType::Guest->value));
 $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
 
@@ -148,9 +148,9 @@ $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
                                                         echo "<span class='$colorRole'>" . UserType::from($user->getType())->name . "</span>";
                                                         ?>
                                                     </td>
-                                                    <td><?php print returnHumanDate($userAttributes["lastLogin"]);
-                                                        $hoursLastLogin = (time() - momentToTime($userAttributes["lastLogin"])) / 3600;
-                                                        $daysLastLogin   = (time() - momentToTime($userAttributes["lastLogin"])) / (3600 * 24);
+                                                    <td><?php print returnHumanDate($user->getLastLogin());
+                                                        $hoursLastLogin = (time() - momentToTime($user->getLastLogin())) / 3600;
+                                                        $daysLastLogin   = (time() - momentToTime($user->getLastLogin())) / (3600 * 24);
 
                                                         ?></td>
                                                     <td>
@@ -165,11 +165,11 @@ $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
                                                         ?>
                                                     </td>
 
-                                                    <td><?php echo (($userAttributes["diskQuota"] / 1024) / 1024) / 1024; ?> GB</td>
+                                                    <td><?php echo (($user->getDiskQuota() / 1024) / 1024) / 1024; ?> GB</td>
                                                     <td>
                                                         <?php if ($user->getType() != 0) { ?>
                                                             <div class="btn-group">
-                                                                <?php if ($userAttributes["Status"] == 0) { ?>
+                                                                <?php if ($user->getStatus() == 0) { ?>
                                                                     <button class="btn btn-xs red dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false"> Actions
                                                                         <i class="fa fa-angle-down"></i>
                                                                     </button>
@@ -185,11 +185,11 @@ $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
                                                                     </button>
                                                                     <ul class="dropdown-menu pull-right" role="menu">
                                                                         <li>
-                                                                            <a class="" href="admin/editUser.php?id=<?php echo $userAttributes["_id"]; ?>">
+                                                                            <a class="" href="admin/editUser.php?id=<?php echo $user->get_id(); ?>">
                                                                                 <i class="fa fa-pencil"></i> Edit user</a>
                                                                         </li>
                                                                         <li>
-                                                                            <a class="" href="applib/loginImpersonate.php?id=<?php echo $key; ?>">
+                                                                            <a class="" href="applib/loginImpersonate.php?id=<?php echo $user->get_id(); ?>">
                                                                                 <i class="fa fa-user"></i> Impersonate user</a>
                                                                         </li>
                                                                         <li>
@@ -197,7 +197,7 @@ $namedUsers = getUsersByFilter($filterNamedUsers, $userAttributesProjection);
                                                                                 <i class="fa fa-ban"></i> Disable user</a>
                                                                         </li>
                                                                         <li>
-                                                                            <a href="javascript:deleteUser('<?php echo $userAttributes["_id"]; ?>');">
+                                                                            <a href="javascript:deleteUser('<?php echo $user->get_id(); ?>');">
                                                                                 <i class="fa fa-trash"></i> Delete user</a>
                                                                         </li>
                                                                     </ul>

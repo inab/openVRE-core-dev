@@ -8,7 +8,7 @@ if ($_POST) {
 	$user = getUserById($login);
 	if ($user->get_id()) {
 		$user->setStatus($status);
-		modifyUser($login, ['Status' => $status]);
+		modifyUser($login, ['status' => (int) $status]);
 		echo '1';
 	} else {
 		echo '0';
