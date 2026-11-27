@@ -20,7 +20,7 @@ function getMongoProjectLogger()
 function isProject($query, $asRoot = 0, $owner = 0)
 {
     if (!$owner || !$asRoot) {
-        $owner = $_SESSION['User']['id'];
+        $owner = $_SESSION['internalUserId'];
     }
 
     // get proj id from proj path
@@ -40,7 +40,7 @@ function getProjects_byOwner($asRoot = 0, $owner = 0)
 {
 
     if (!$owner || !$asRoot)
-        $owner = $_SESSION['User']['id'];
+        $owner = $_SESSION['internalUserId'];
 
     $filters = array(
         'owner' => $owner,
@@ -62,7 +62,7 @@ function getProject($query, $asRoot = 0, $owner = 0)
     $query_type = (preg_match('/__PROJ/', $query) ? "path" : "_id");
 
     if (!$owner || !$asRoot) {
-        $owner = $_SESSION['User']['id'];
+        $owner = $_SESSION['internalUserId'];
     }
 
     if ($query_type == "_id") {
@@ -101,7 +101,7 @@ function createLabel_proj()
 }
 
 
-function createProjectDir($dirfn, $dirrfn, $project_attr = array(), $asRoot = 0)
+function createProjectDir($projectDir, $dirfn, $dirrfn, $project_attr = array(), $asRoot = 0)
 {
     if (is_dir($dirrfn)) {
         getMongoProjectLogger()->error("Cannot create project folder: '$dirfn'. It already exists");
@@ -109,7 +109,7 @@ function createProjectDir($dirfn, $dirrfn, $project_attr = array(), $asRoot = 0)
     }
 
     // register proj dir
-    $dirId = createGSDirBNS($dirfn, $asRoot);
+    $dirId = createGSDirBNS($projectDir, $dirfn, $asRoot);
 
     //  make project directory
     mkdir($dirrfn, 0777);
@@ -159,7 +159,7 @@ function printProjectContent($project_id, $onlyFolders = false, $asRoot = 0, $ow
 function deleteProject($project_id)
 {
     $dir = getGSFile_fromId($project_id);
-    $rfn_dir = $GLOBALS['dataDir'] . "/" . $dir['path'];
+    $rfn_dir = $GLOBALS['userDataDir'] . "/" . $dir['path'];
     deleteGSDirBNS($project_id);
 
     // delete dir from disk

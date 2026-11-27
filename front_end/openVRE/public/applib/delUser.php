@@ -6,14 +6,14 @@ use OpenVRE\UserType;
 
 
 if ($_REQUEST) {
-	$u = getUserById(sanitizeString($_REQUEST["id"]));
+	$user = getUserById(sanitizeString($_REQUEST["id"]));
 
-	if (is_null($u)) {
+	if (is_null($user)) {
 		$_SESSION['errorData']['Error'][] = "You are trying to remove a non existing user.";
 		redirect($GLOBALS['URL'] . 'admin/adminUsers.php');
 	}
 
-	if ($u['Type'] == UserType::Admin->value) { {
+	if ($user->getType() == UserType::Admin->value) { {
 			$_SESSION['errorData']['Error'][] = "You are trying to remove an admin user.";
 			redirect($GLOBALS['URL'] . 'admin/adminUsers.php');
 		}

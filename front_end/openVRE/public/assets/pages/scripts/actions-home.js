@@ -372,20 +372,6 @@ runTool = function (tool) {
 	location.href = baseURL + "tools/" + tool + "/front/input.php?" + query;
 }
 
-runVisualizer = function (tool, user) {
-	var query = "user=" + user + "&";
-	for (i in allFiles) {
-		if (allFiles[i].checked) {
-			query += 'fn[]=' + allFiles[i].fileId + '&';
-		}
-	}
-	query = query.slice(0, -1);
-
-	var target = (tool != 'tadkit' ? 'childWindow' : '_blank');
-
-	window.open(baseURL + "visualizers/" + tool + "/?" + query, target);
-
-}
 
 
 editAllFiles = function () {

@@ -20,17 +20,15 @@ $tool = $_REQUEST['tool'];
 
 
 // fetch user
-$user = getUserById($_SESSION['User']['_id']);
-if (isset($user["ToolsDev"])) $tdev = $user["ToolsDev"];
-else $tdev = array();
+$user = getUserById($_SESSION['userId']);
 
-if ((isset($_SESSION['User'])
-		&& ($user['Status'] == UserStatus::Active->value)
-		&& (in_array($user['Type'], $GLOBALS['TOOLDEV']))
-		&& (in_array($tool, $tdev))) ||
-	(isset($_SESSION['User'])
-		&& ($user['Status'] == UserStatus::Active->value)
-		&& ($user['Type'] == UserType::Admin->value)
+if ((isset($user)
+		&& ($user->getStatus() == UserStatus::Active->value)
+		&& (in_array($user->getType(), $GLOBALS['TOOLDEV']))
+		&& (in_array($tool, $user->getDevelopedTools()))) ||
+	(isset($user)
+		&& ($user->getStatus() == UserStatus::Active->value)
+		&& ($user->getType() == UserType::Admin->value)
 	)
 ) $developer = true;
 else $developer = false;

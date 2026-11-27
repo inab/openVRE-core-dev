@@ -36,8 +36,7 @@ if (! empty($_FILES)) {
 		} else {
 			$filename = uniqid("", true) . ".". pathinfo($file["name"], PATHINFO_EXTENSION);
 	
-			if($_REQUEST["is_view"] == 1) $path = "visualizers";
-			else $path = "tools";
+			$path = "tools";
 
 			$target_dir = $GLOBALS['htmlPath'].$path.'/'.$_REQUEST['tool'].'/help/img/';
 			if ( !is_dir($target_dir) ){

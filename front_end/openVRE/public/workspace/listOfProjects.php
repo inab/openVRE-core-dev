@@ -5,6 +5,7 @@ redirectOutside();
 
 require "../htmlib/header.inc.php";
 
+$user = getUserById($_SESSION['userId']);
 // project list
 $projects = getProjects_byOwner();
 
@@ -164,7 +165,7 @@ $projects = getProjects_byOwner();
 						<button type="button" class="close" data-dismiss="modal" aria-hidden="true"></button>
 						<h4 class="modal-title">Warning!</h4>
 					</div>
-					<div class="modal-body">Are you sure you want to delete the project <strong><?php echo getProject($_SESSION['User']['dataDir'])["name"]; ?></strong>
+					<div class="modal-body">Are you sure you want to delete the project <strong><?php echo getProject($user->getDataDir())["name"]; ?></strong>
 						and <strong>ALL</strong> its executions and files? This action cannot be undone.
 					</div>
 					<div class="modal-footer">

@@ -76,10 +76,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 		$currentSection = 'he';
 		$currentSubSection = 'h10';
 		break;
-	case 'visualizers':
-		$currentSection = 'he';
-		$currentSubSection = 'h11';
-		break;
 	case 'datasets':
 		$currentSection = 'dt';
 		$currentSubSection = 'rp';
@@ -112,11 +108,7 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 	case 'help':
 		$currentSection = 'he';
 		$a = explode("/", dirname($_SERVER['PHP_SELF']));
-		if ($a[1] == "tools") {
-			$currentSubSection = 'h6';
-		} else {
-			$currentSubSection = 'h11';
-		}
+		$currentSubSection = 'h6';
 		$currentSubSubSection = $a[sizeof($a) - 2];
 		break;
 	case 'toolhelp':
@@ -170,13 +162,11 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 		break;
 }
 
-// load all tools
-$tools = getTools_List();
-sort($tools);
+$user = getUserById($_SESSION['userId']);
 
-// load all visualizers
-$visualizers = getVisualizers_List();
-sort($visualizers);
+// load all tools 
+$tools = getTools_List($user);
+sort($tools);
 
 $datasets = [];
 
@@ -240,7 +230,7 @@ $datasets = [];
 				<li class="nav-item  <?php if ($currentSection == 'lt') { ?>active open<?php } ?>">
 					<a href="launch/" class="nav-link nav-toggle">
 						<i class="icon-rocket"></i>
-						<span class="title">Run Tool / Visualizer</span>
+						<span class="title">Run Tool</span>
 					</a>
 				</li>
 				<li class="nav-item  <?php if ($currentSection == 'he') { ?>active open<?php } ?>">
@@ -321,7 +311,7 @@ $datasets = [];
 						</li>
 					</ul>
 				</li>
-				<?php if (in_array($_SESSION['User']['Type'], $GLOBALS['NO_GUEST'])) { ?>
+				<?php if (in_array($_SESSION['userType'], $GLOBALS['NO_GUEST'])) { ?>
 					<li>
 					<li class="nav-item <?php if ($currentSection == 'hd') { ?>active open<?php } ?>">
 						<a href="helpdesk/" class="nav-link nav-toggle">
@@ -330,7 +320,7 @@ $datasets = [];
 						</a>
 					</li>
 				<?php } ?>
-				<?php if (in_array($_SESSION['User']['Type'], $GLOBALS['ADMIN']) || in_array($_SESSION['User']['Type'], $GLOBALS['TOOLDEV'])) { ?>
+				<?php if (in_array($_SESSION['userType'], $GLOBALS['ADMIN']) || in_array($_SESSION['userType'], $GLOBALS['TOOLDEV'])) { ?>
 					<li class="nav-item  <?php if ($currentSection == 'ad') { ?>active open<?php } ?>">
 						<a href="javascript:;" class="nav-link nav-toggle">
 							<i class="icon-settings"></i>
@@ -339,14 +329,14 @@ $datasets = [];
 							<span class="arrow <?php if ($currentSection == 'ad') { ?>open<?php } ?>"></span>
 						</a>
 						<ul class="sub-menu">
-							<?php if (!in_array($_SESSION['User']['Type'], $GLOBALS['TOOLDEV'])) { ?>
+							<?php if (!in_array($_SESSION['userType'], $GLOBALS['TOOLDEV'])) { ?>
 								<li class="nav-item  <?php if ($currentSubSection == 'ds') { ?>active open<?php } ?>">
 									<a href="admin/dashboard.php" class="nav-link ">
 										<span class="title">Dashboard</span>
 									</a>
 								</li>
 							<?php } ?>
-							<?php if (!in_array($_SESSION['User']['Type'], $GLOBALS['TOOLDEV'])) { ?>
+							<?php if (!in_array($_SESSION['userType'], $GLOBALS['TOOLDEV'])) { ?>
 								<li class="nav-item  <?php if ($currentSubSection == 'au') { ?>active open<?php } ?>">
 									<a href="admin/adminUsers.php" class="nav-link ">
 										<span class="title">Users Administration</span>

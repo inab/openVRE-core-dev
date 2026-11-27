@@ -53,11 +53,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 			<script src="assets/global/plugins/select2/js/select2.full.min.js" type="text/javascript"></script>
 		<?php }
 		break;
-	case 'lockScreen': ?>
-		<script src="assets/global/plugins/jquery-validation/js/jquery.validate.min.js" type="text/javascript"></script>
-		<script src="assets/global/plugins/jquery-validation/js/additional-methods.min.js" type="text/javascript"></script>
-	<?php
-		break;
 	case 'datasets': ?>
 		<script src="assets/global/scripts/datatable.js" type="text/javascript"></script>
 		<script src="assets/global/plugins/datatables/datatables.min.js" type="text/javascript"></script>
@@ -158,10 +153,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 			<script src="assets/global/plugins/typeahead/handlebars.min.js" type="text/javascript"></script>
 			<script src="assets/global/plugins/typeahead/typeahead.bundle.min.js" type="text/javascript"></script>
 			<script src="tools/<?php echo $toolId; ?>/front/assets/js/input.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
-		<?php } elseif (strrpos(dirname($_SERVER['PHP_SELF']), "visualizers")) { ?>
-			<script src="assets/pages/scripts/visualizer-input.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
-			<script src="assets/global/plugins/datatables/datatables.min.js" type="text/javascript"></script>
-			<script src="assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.js" type="text/javascript"></script>
 		<?php } ?>
 	<?php break;
 	case 'output': ?>
@@ -188,8 +179,7 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 		<script src="assets/global/plugins/jquery-validation/js/jquery.validate.min.js" type="text/javascript"></script>
 		<script src="assets/global/plugins/jquery-validation/js/additional-methods.min.js" type="text/javascript"></script>
 	<?php break;
-	case 'tools':
-	case 'visualizers': ?>
+	case 'tools': ?>
 		<script src="assets/global/plugins/cubeportfolio/js/jquery.cubeportfolio.min.js" type="text/javascript"></script>
 		<?php break; ?>
 <?php } ?>
@@ -226,9 +216,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 			<script src="assets/pages/scripts/login.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 		<?php } ?>
 	<?php break;
-	case 'lockScreen': ?>
-		<script src="assets/pages/scripts/lock.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
-	<?php break;
 	case 'usrProfile': ?>
 		<script src="assets/pages/scripts/profile.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 	<?php break;
@@ -245,7 +232,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 	<?php break;
 	case 'editFile': ?>
 		<script src="assets/pages/scripts/form-validatefiles.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
-		<script src="assets/pages/scripts/get-taxon-id.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 	<?php break;
 	case 'editFile_v2': ?>
 		<script src="assets/pages/scripts/editFile_v2.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
@@ -253,7 +239,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 	<?php break;
 	case 'uploadForm2': ?>
 		<script src="assets/pages/scripts/form-validatefiles.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
-		<script src="assets/pages/scripts/get-taxon-id.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 	<?php break;
 	case 'dataFromTxt': ?>
 		<script src="assets/pages/scripts/form-validateinput.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
@@ -275,8 +260,7 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 	case 'dashboard': ?>
 		<script src="assets/pages/scripts/dashboard.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 	<?php break;
-	case 'tools':
-	case 'visualizers': ?>
+	case 'tools': ?>
 		<script src="assets/pages/scripts/portfolio.tools.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 	<?php break;
 	case 'sampleDataList': ?>
@@ -351,7 +335,6 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 	case 'tutorials':
 	case 'references':
 	case 'tools':
-	case 'visualizers':
 	case 'sampleDataList':
 	case 'form':
 	case 'linkedAccount':
@@ -392,8 +375,7 @@ switch (pathinfo($_SERVER['PHP_SELF'])['filename']) {
 	case 'results':
 	case 'tutorials':
 	case 'references':
-	case 'tools':
-	case 'visualizers': ?>
+	case 'tools': ?>
 		<script src="assets/pages/scripts/cookie.js?v=<?php echo rand(); ?>" type="text/javascript"></script>
 		<?php break;
 	case 'index':

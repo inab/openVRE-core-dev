@@ -7,11 +7,11 @@ sleep 30 # wait for keycloak
 : "${KEYCLOAK_REALM:?KEYCLOAK_REALM must be set}"
 
 # keep Docker/Compose values if they are provided
-: "${VAULT_ADDR:=http://127.0.0.1:8200}"
-: "${BAO_DEV_ROOT_TOKEN_ID:=root}"
+: "${BAO_ADDR:=http://127.0.0.1:8200}"
 
-export VAULT_ADDR
-export BAO_DEV_ROOT_TOKEN_ID
+export BAO_ADDR
+# fixed root token for dev mode only; also used by the bao CLI below
+export BAO_TOKEN=root
 
 
 CONFIG_DIR="/openbao/config"
@@ -24,7 +24,7 @@ echo "Starting OpenBao in development mode..."
 bao server \
     -dev \
     -dev-listen-address=0.0.0.0:8200 \
-    -dev-root-token-id=root &
+    -dev-root-token-id="$BAO_TOKEN" &
 
 BAO_PID=$!
 

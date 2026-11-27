@@ -4,16 +4,11 @@ require __DIR__ . "/../../config/bootstrap.php";
 
 use OpenVRE\DataTransfer;
 use OpenVRE\LoggerFactory;
+use OpenVRE\NotFoundException;
 use OpenVRE\Site;
 use OpenVRE\Tooljob;
 
 redirectOutside();
-
-function internalErrorRedirect()
-{
-	$_SESSION['errorData']['Internal'][] = "There was an internal error launching the tool.";
-	redirect($GLOBALS['BASEURL'] . "workspace/");
-}
 
 $logger = LoggerFactory::getLogger('Tool launcher');
 
@@ -27,28 +22,30 @@ $logger->debug("Execution: " . $_REQUEST['execution']);
 $logger->debug("Description: " . $_REQUEST['description']);
 
 $tool = getTool_fromId($_REQUEST['tool'], true);
+$user = getUserById($_SESSION['userId']);
 
 if (is_null($tool)) {
 	$logger->error("Tool not found: " . $_REQUEST['tool']);
-	internalErrorRedirect();
+	throw new NotFoundException("Tool not found: " . $_REQUEST['tool']);
 }
 
 if (empty($_REQUEST['execution'])) {
 	$logger->error("Execution is missing");
-	internalErrorRedirect();
+	throw new NotFoundException("Execution is missing");
 }
 
 if (empty($_REQUEST['project'])) {
 	$logger->error("Project is missing");
-	internalErrorRedirect();
+	throw new NotFoundException("Project is missing");
 }
 
 if (empty($tool['infrastructure']['interactive']) && empty($_REQUEST['input_files']) && empty($_REQUEST['input_files_public_dir'])) {
 	$logger->error("Input files are missing");
-	internalErrorRedirect();
+	throw new NotFoundException("Input files are missing");
 }
 
-$jobMeta  = new Tooljob($tool, $_REQUEST['execution'], $_REQUEST['project'], $_REQUEST['description'], $_REQUEST['arguments_exec']);
+$site = getSite($_REQUEST['site']);
+$jobMeta  = new Tooljob($tool, $_REQUEST['description'], $_REQUEST['project'], $site, $_REQUEST['execution'], null, null, false);
 
 $logger->debug("Tool job metadata: ", ['jobMeta' => $jobMeta]);
 
@@ -70,7 +67,7 @@ foreach ($filesId as $fileId) {
 
 	if (is_null($file)) {
 		$logger->error("File not found: " . $fileId);
-		internalErrorRedirect();
+		throw new NotFoundException("File not found: " . $fileId);
 	}
 
 	$files[$file['_id']] = $file;
@@ -79,7 +76,7 @@ foreach ($filesId as $fileId) {
 		$assocFile = getGSFile_fromId($assocId);
 		if (is_null($assocFile)) {
 			$logger->error("Associated file " . $assocId . " not found");
-			internalErrorRedirect();
+			throw new NotFoundException("Associated file " . $assocId . " not found");
 		}
 		$files[$assocFile['_id']] = $assocFile;
 	}
@@ -95,10 +92,9 @@ $jobMeta->setInput_files($_REQUEST['input_files'], $tool, $files);
 
 $logger->debug("Processed input files: ", ['input_files' => $jobMeta->input_files]);
 
-// Checking input_files locally
 foreach ($files as $fnId => $file) {
 	$fn = getAttr_fromGSFileId($fnId, 'path');
-	$rfn  = $GLOBALS['dataDir'] . "/$fn";
+	$rfn  = $GLOBALS['userDataDir'] . "/$fn";
 
 	$fileType = getAttr_fromGSFileId($fnId, 'type');
 	if ($fileType === 'dir') {
@@ -124,13 +120,13 @@ if ($_REQUEST['input_files_public_dir']) {
 }
 
 try {
-	$jobMeta->createWorking_dir();
+	$jobMeta->createWorkingDir($user->getActiveProject());
 } catch (Exception $e) {
 	$logger->error("Cannot create working directory.");
 	redirect($GLOBALS['BASEURL'] . "workspace/");
 }
 
-$logger->debug("Working directory created at: ", ['working_dir' => $jobMeta->working_dir]);
+$logger->debug("Working directory created at: " . $jobMeta->executionDirectories->executionDir);
 
 $dataLocations = [];
 $doSync = !empty($_REQUEST['sync_files']);
@@ -177,9 +173,9 @@ try {
 	redirect($GLOBALS['BASEURL'] . "workspace/");
 }
 
-if ($doSync && in_array(Site::MareNostrum->value, $siteList)) {
+if ($doSync) {
 	try {
-		$dataMeta->syncWorkingDir();
+		$dataMeta->syncWorkingDir($user->getSecretsId());
 	} catch (Exception $e) {
 		$logger->error("Cannot sync working directory. " . $e->getMessage());
 		redirect($GLOBALS['BASEURL'] . "workspace/");
@@ -193,7 +189,7 @@ try {
 	redirect($GLOBALS['BASEURL'] . "workspace/");
 }
 
-addUserJob($_SESSION['User']['_id'], $jobMeta->toDocument(), $jobMeta->pid);
+addUserJob($_SESSION['userId'], $jobMeta->toDocument(), $jobMeta->pid);
 $logger->info("Job submitted. PID = $pid");
 $_SESSION['errorData']['Info'][] = "Job successfully sent! Monitor it at <b>" . $proj['name'] . " &rsaquo; " . $jobMeta->execution . " &rsaquo; " . $jobMeta->title . "</b>.";
 

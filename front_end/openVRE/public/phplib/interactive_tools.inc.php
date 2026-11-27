@@ -3,14 +3,40 @@
 require dirname(__FILE__) . "/../../config/globals.inc.php";
 
 
+// Ask the queue for the current state; fall back to the state stored in Mongo
+function getInteractiveJobState(array $job, $pid): string
+{
+    try {
+        $jobProcess = getRunningJobInfo($pid, $job['launcher'] ?? null);
+    } catch (Exception $e) {
+        getProjectLogger()->warning("checkStatus: cannot query job $pid: " . $e->getMessage());
+        return $job['state'] ?? "";
+    }
+
+    return empty($jobProcess) ? "FINISHED" : ($jobProcess['state'] ?? "");
+}
+
+
+function tailFile(?string $file, int $lines = 50): string
+{
+    if (!$file || !is_file($file)) {
+        return "";
+    }
+    $content = file($file, FILE_IGNORE_NEW_LINES) ?: [];
+
+    return implode("\n", array_slice($content, -$lines));
+}
+
+
+/**
+ * @return array{ready: bool, reload: bool, title: string, message: string, url?: string, log?: string, logPath?: string}
+ */
 function checkStatus($pid)
 {
-    $interactiveToolprefix = "/interactive-tool/";
+    $jobs = getUserJobPid($_SESSION['userId'], $pid);
+    $job  = $jobs[$pid] ?? null;
 
-    $login = $_SESSION['User']['_id'];
-    $jobs  = getUserJobPid($login, $pid);
-
-    if (!isset($jobs[$pid])) {
+    if (!$job) {
         return [
             "ready"   => false,
             "reload"  => false,
@@ -19,14 +45,18 @@ function checkStatus($pid)
         ];
     }
 
-    $job = $jobs[$pid];
+    // the launcher script prints "Service UP" to the queue stdout
+    $stdoutFile = getJobStdoutFile($job);
+    $stdout     = ($stdoutFile && is_file($stdoutFile)) ? file_get_contents($stdoutFile) : "";
+    $logInfo    = [
+        "log"     => tailFile($stdoutFile),
+        "logPath" => $stdoutFile ? fromAbsPath_toPath($stdoutFile) : ""
+    ];
 
-    /*----------------------------------------------------
-     * Job state
-     *---------------------------------------------------*/
+    $state = getInteractiveJobState($job, $pid);
 
-    if ($job['state'] == "PENDING") {
-        return [
+    if ($state == "PENDING" || $state == "HOLD") {
+        return $logInfo + [
             "ready"   => false,
             "reload"  => true,
             "title"   => "Waiting for scheduler",
@@ -34,8 +64,8 @@ function checkStatus($pid)
         ];
     }
 
-    if ($job['state'] != "RUNNING") {
-        return [
+    if ($state != "RUNNING" && $state != "TRANSFERING") {
+        return $logInfo + [
             "ready"   => false,
             "reload"  => false,
             "title"   => "Session finished",
@@ -43,12 +73,8 @@ function checkStatus($pid)
         ];
     }
 
-    /*----------------------------------------------------
-     * Wait until stdout exists
-     *---------------------------------------------------*/
-
-    if (!is_file($job['stdout_file'])) {
-        return [
+    if ($stdout === "") {
+        return $logInfo + [
             "ready"   => false,
             "reload"  => true,
             "title"   => "Starting container",
@@ -56,33 +82,17 @@ function checkStatus($pid)
         ];
     }
 
-    $stdout = file_get_contents($job['stdout_file']);
-
-    /*----------------------------------------------------
-     * Save metadata in the session (KEEP THIS)
-     *---------------------------------------------------*/
-
-    /*
-    if (preg_match('/ExposedPort: (\d+)/', $stdout, $matches)) {
-        $_SESSION['User']['lastjobs'][$pid]['interactive_tool']['port'] = $matches[1];
+    if (strpos($stdout, "Service TIMEOUT") !== false) {
+        return $logInfo + [
+            "ready"   => false,
+            "reload"  => false,
+            "title"   => "Session failed to start",
+            "message" => "The application did not become available in time. Check the launcher logs below."
+        ];
     }
-
-    if (preg_match('/ContainerID: (\w+)/', $stdout, $matches)) {
-        $_SESSION['User']['lastjobs'][$pid]['interactive_tool']['container_id'] = $matches[1];
-    }
-
-    if (preg_match('/ContainerName: (\S+)/', $stdout, $matches)) {
-        $_SESSION['User']['lastjobs'][$pid]['interactive_tool']['containerName'] = $matches[1];
-    }
-    */
-
-    /*----------------------------------------------------
-     * Has the service started?
-     *---------------------------------------------------*/
 
     if (strpos($stdout, "Service UP") === false) {
-
-        return [
+        return $logInfo + [
             "ready"   => false,
             "reload"  => true,
             "title"   => "Preparing interactive session",
@@ -90,21 +100,11 @@ function checkStatus($pid)
         ];
     }
 
-    /*----------------------------------------------------
-     * Mark service ready
-     *---------------------------------------------------*/
-
-    $url = $GLOBALS['SERVER']
-        . $interactiveToolprefix
-        . $job['containerName']
-        . "/";
-
-    return [
+    return $logInfo + [
         "ready"   => true,
         "reload"  => false,
         "title"   => "Interactive session ready",
         "message" => "Your session is ready.",
-        "url"     => $url,
-        "job"     => $job
+        "url"     => $GLOBALS['URL'] . "interactive-tool/" . $job['containerName'] . "/"
     ];
 }

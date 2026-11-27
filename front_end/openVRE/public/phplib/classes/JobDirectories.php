@@ -1,0 +1,23 @@
+<?php
+
+namespace OpenVRE;
+
+
+class JobDirectories
+{
+    readonly ?string $projectDirHost; // pub_dir_host = $GLOBALS['clouds'][$cloudName]["dataDir_host"]
+    readonly ?string $projectDir;         // pub_dir = $GLOBALS['pubDir'] Public dir mounted to VMs. Path as seen by VRE
+    readonly ?string $scriptsDirHost; // scripts_dir_host = $GLOBALS['clouds'][$this->cloudName]['scriptsDir_host']
+    readonly ?string $userDir;          // root_dir  = $GLOBALS['userDataDir'] . "/" . $_SESSION['internalUserId'] User dataDir. Path as seen by VRE
+    readonly ?string $userDirHost; // root_dir_host  = $GLOBALS['clouds'][$cloudName]["pubDir_host"] . "/" . $_SESSION['internalUserId']
+
+
+    public function __construct(?string $projectDirHost, ?string $projectDir, ?string $scriptsDirHost, ?string $userDir, ?string $userDirHost)
+    {
+        $this->projectDirHost = $projectDirHost;
+        $this->projectDir = $projectDir;
+        $this->scriptsDirHost = $scriptsDirHost;
+        $this->userDir = $userDir;
+        $this->userDirHost = $userDirHost;
+    }
+}

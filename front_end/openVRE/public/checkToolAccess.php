@@ -1,5 +1,7 @@
 <?php
 
+// Internal endpoint called by apache/check_tool_access.lua: load only the DB layer, not the full bootstrap (session, redirects)
+require_once __DIR__ . "/../vendor/autoload.php";
 require_once __DIR__ . "/phplib/db.inc.php";
 
 if ($_SERVER['REMOTE_ADDR'] !== '127.0.0.1') {
@@ -20,13 +22,14 @@ if (!$user_email) {
     exit;
 }
 
-$userDoc = $GLOBALS['usersCol']->findOne(['_id' => $user_email], ['projection' => ['id' => 1]]);
+/** @var ?OpenVRE\User $userDoc */
+$userDoc = $GLOBALS['usersCol']->findOne(['_id' => $user_email], ['projection' => ['internalId' => 1]]);
 if (is_null($userDoc)) {
     http_response_code(403);
     exit;
 }
 
-$userInternalId = $userDoc['id'];
+$userInternalId = $userDoc->getInternalId();
 
 $projectExists = $GLOBALS['filesCol']->findOne(['owner' => $userInternalId, 'project' => $project_id], ['projection' => ['_id' => 1]]) !== null;
 

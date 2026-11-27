@@ -58,7 +58,7 @@ redirectOutside();
 					}
 					foreach ($_REQUEST['fn'] as $idx => $v) {
 						$file     = $_REQUEST['fn'][$idx];
-						$fileData = $GLOBALS['filesCol']->findOne(array('_id' => $file, 'owner' => $_SESSION['User']['id']));
+						$fileData = $GLOBALS['filesCol']->findOne(array('_id' => $file, 'owner' => $_SESSION['internalUserId']));
 						$fileMeta = $GLOBALS['filesMetaCol']->findOne(array('_id' => $file));
 						if (empty($fileData)) {
 							$_SESSION['errorData']['Error'][] = "Problems while loading data. $file not found in the database.";
@@ -143,6 +143,7 @@ redirectOutside();
 										}
 
 										$filetypes = getFileTypesList();
+										$datatypes = getDataTypesList();
 
 									?>
 										<label class="mt-radio mt-radio-outline">
@@ -264,41 +265,19 @@ redirectOutside();
 										<div class="form-group display-hide" id="dataType<?php echo $idx; ?>">
 											<label>Data Type <i class="icon-question tooltips" data-container="body" data-placement="right" data-original-title="Data type description"></i></span></label>
 											<select name="data_type" id="data_type_sel<?php echo $idx; ?>" class="form-control data-type-selector" onchange="customfromDataType(this.value, <?php echo $idx; ?>)" disabled>
+												<option value="">Select the data type</option>
+												<?php $selectedDataType = $filesMeta[$idx]['data_type'] ?? ''; ?>
+												<?php foreach ($datatypes as $dt) { ?>
+													<option value="<?php echo $dt['_id']; ?>" data-formats="<?php echo htmlspecialchars(json_encode(array_values($dt['formats'] ?? []))); ?>" <?php if ($selectedDataType == $dt['_id']) {
+																									echo "selected";
+																								} ?>><?php echo $dt['name'] ?? $dt['_id']; ?></option>
+												<?php } ?>
 											</select>
 										</div>
 
-										<!--<div class="form-group display-hide" id="taxonG<?php echo $idx; ?>">
-				        <label>Taxon  <i class="icon-question tooltips" data-container="body" data-placement="right" data-original-title="Taxon description"></i></span></label> 
-				        <input type="text" id="taxon<?php echo $idx; ?>" class="form-control taxon" placeholder="Please enter the taxon name" />
-					</div>-->
-
-										<div class="form-group display-hide" id="taxonG<?php echo $idx; ?>">
-											<label class="control-label" id="label-taxon<?php echo $idx; ?>">Taxon <i class="icon-question tooltips" data-container="body" data-html="true" data-placement="right" data-original-title="<p align='left' style='margin:0'>Insert the taxon for this file. You can provide it by name, ID, or avoid this step.</p>"></i></label>
-											<div class="input-group">
-												<input type="text" class="form-control field_dependency<?php echo $idx; ?> field_dependency<?php echo $idx; ?>_1 taxon_name" name="taxon_name_id" id="taxonName<?php echo $idx; ?>" placeholder="Please enter the taxon name" disabled>
-												<input type="text" class="form-control field_dependency<?php echo $idx; ?> field_dependency<?php echo $idx; ?>_2 taxon_id" style="display:none;" name="taxon_id_name" id="taxonID<?php echo $idx; ?>" placeholder="Please enter the taxon ID" disabled>
-												<input type="text" class="form-control field_dependency<?php echo $idx; ?> field_dependency<?php echo $idx; ?>_3" style="display:none;" id="" disabled placeholder="No taxon provided">
-												<div class="input-group-btn">
-													<img class="Typeahead-spin" src="assets/layouts/layout/img/loading-spinner-blue.gif" style="display:none;">
-													<button type="button" class="btn green dropdown-toggle" data-toggle="dropdown"><span class="arg_dependency<?php echo $idx; ?>">Taxon Name</span>
-														<i class="fa fa-angle-down"></i>
-													</button>
-													<ul class="dropdown-menu pull-right">
-														<li>
-															<a class="arg_dependency<?php echo $idx; ?>_1" href="javascript:changeArgDependency('<?php echo $idx; ?>', '1', true);"> Taxon Name </a>
-														</li>
-														<li>
-															<a class="arg_dependency<?php echo $idx; ?>_2" href="javascript:changeArgDependency('<?php echo $idx; ?>', '2', true);"> Taxon ID </a>
-														</li>
-														<li>
-															<a class="arg_dependency<?php echo $idx; ?>_3" href="javascript:changeArgDependency('<?php echo $idx; ?>', '3', false);"> No Taxon </a>
-														</li>
-													</ul>
-												</div>
-											</div>
+										<div class="alert alert-warning display-hide" id="dataTypeWarning<?php echo $idx; ?>">
+											No data types are associated with the selected file format.
 										</div>
-
-										<input type="hidden" name="taxon_id" name="taxon_id<?php $idx; ?>" value="" />
 
 
 										<div class="form-group display-hide" id="pairedTR<?php echo $idx; ?>">

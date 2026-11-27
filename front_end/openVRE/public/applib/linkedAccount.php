@@ -1,19 +1,36 @@
 <?php
 
-require __DIR__."/../../config/bootstrap.php";
+use OpenVRE\EGALinkedAccount;
+use OpenVRE\LinkedAccount;
+use OpenVRE\Site;
+use OpenVRE\SshLinkedAccount;
+
+require __DIR__ . "/../../config/bootstrap.php";
 
 redirectOutside();
 
-// Check query
-if(!$_REQUEST){
+if (!$_REQUEST) {
 	redirect($GLOBALS['URL']);
-
-}elseif (is_null($_REQUEST['account'])) {
+} elseif (is_null($_REQUEST['account'])) {
 	redirect($_SERVER['HTTP_REFERER']);
 }
 
-$siteId = $_REQUEST['site_id'] ?? null;
+$accountSite = Site::from($_POST['account']);
+$action = $_POST['submitOption'];
+unset($_POST['account'], $_POST['submitOption']);
+$credentials = array_merge($_POST, ['_id' => $_SESSION['userId']]);
+$user = getUserById($_SESSION['userId']);
 
-addUserLinkedAccount($_POST['account'], $_POST['action'], $_SESSION['User']['_id'], $siteId, $_POST);
+if ($accountSite === Site::SSH) {
+	$linkedAccount = new SshLinkedAccount();
+} elseif ($accountSite === Site::EGA) {
+	$linkedAccount = new EGALinkedAccount();
+} else {
+	$linkedAccount = new LinkedAccount($accountSite);
+}
 
-?>
+if ($action === "updateAccount") {
+	updateAccount($linkedAccount, $user->getSecretsId(), $credentials);
+} elseif ($action === "clearAccount") {
+	removeAccount($linkedAccount);
+}

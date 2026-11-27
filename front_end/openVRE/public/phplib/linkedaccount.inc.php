@@ -1,8 +1,7 @@
 <?php
 
+use OpenVRE\LinkedAccount;
 use OpenVRE\LoggerFactory;
-use OpenVRE\Site;
-use OpenVRE\VaultClientFactory;
 
 
 function getLinkedAccountLogger()
@@ -17,194 +16,28 @@ function getLinkedAccountLogger()
 }
 
 
-function addUserLinkedAccount($accountType, $action, $userId, $site_id, $postData)
+function updateAccount(LinkedAccount $linkedAccount, string $userSecretsId, $credentials)
 {
-	switch ($accountType) {
-		case "SSH":
-			if (isset($_POST["submitOption"])) {
-				$submitOption = $_POST["submitOption"];
-				if ($submitOption === "clearAccount") {
-					handleSSHAccount("delete", $userId, $site_id, $postData);
-					break;
-				} elseif ($submitOption === "updateAccount") {
-					handleSSHAccount("update", $userId, $site_id, $postData);
-					break;
-				} else {
-					handleSSHAccount($action, $userId, $site_id, $postData);
-					break;
-				}
-			} else {
-				handleSSHAccount($action, $userId, $site_id, $postData);
-				break;
-			}
-		case "objectstorage":
-			if (isset($_POST["submitOption"])) {
-				$submitOption = $_POST["submitOption"];
-				if ($submitOption === "clearAccount") {
-					handleObjectStorageAccount("delete", $userId, $site_id, $postData);
-					break;
-				} elseif ($submitOption === "updateAccount") {
-					handleObjectStorageAccount("update", $userId, $site_id, $postData);
-					break;
-				} else {
-					handleObjectStorageAccount($action, $userId, $site_id, $postData);
-					break;
-				}
-			} else {
-				handleObjectStorageAccount($action, $userId, $site_id, $postData);
-				break;
-			}
-		case "EGA":
-			try {
-				if (isset($_POST["submitOption"])) {
-					$submitOption = $_POST["submitOption"];
-					if ($submitOption === "clearAccount") {
-						handleEgaAccount("delete", $userId, $postData);
-						break;
-					} elseif ($submitOption === "updateAccount") {
-						handleEgaAccount("update", $userId, $postData);
-						break;
-					} else {
-						handleEgaAccount($action, $userId, $postData);
-						break;
-					}
-				} else {
-					handleEgaAccount($action, $userId, $postData);
-					break;
-				}
-			} catch (Exception $e) {
-				$_SESSION['errorData']['Error'][] = $e->getMessage();
-				redirect($_SERVER['HTTP_REFERER']);
-			}
-
-			break;
-		default:
-			$_SESSION['errorData']['Error'][] = "Account of type '$accountType' is not yet supported.";
+	try {
+		$linkedAccount->storeCredentials($userSecretsId, $credentials);
+		$_SESSION['errorData']['Info'][] = $linkedAccount->getSite()->value . " account successfully linked.";
+		redirect($_SERVER['HTTP_REFERER']);
+	} catch (Exception $e) {
+		getLinkedAccountLogger()->error("Could not connect to " . $linkedAccount->getSite()->value . ": " . $e->getMessage());
+		// Back to the form so the user can retry, instead of the generic exception redirect
+		$_SESSION['errorData']['Error'][] = "Could not connect to " . $linkedAccount->getSite()->value . ". Check your credentials and try again.";
+		if (!empty($_SERVER['HTTP_REFERER'])) {
 			redirect($_SERVER['HTTP_REFERER']);
+		}
+		redirectToLinkedAccount($linkedAccount->getSite()->value, "new");
 	}
 }
 
 
-function handleSSHAccount($action, $userId, $site_id, $postData)
+function removeAccount(LinkedAccount $linkedAccount)
 {
-	$data = [];
-	if ($action === "new") {
-		// Check if the credentials are already saved
-
-		if (isset($postData['private_key'])) {
-			// If credentials are provided, use them directly
-			if (isset($_SESSION['User']['credentials']['timestamp'])) {
-				$savedTime = $_SESSION['User']['credentials']['timestamp'];
-				$currentTime = time();
-
-
-				// Check if the timestamp is more than 2 hours old (validity check)
-				if (($currentTime - $savedTime) > 7200) {
-					$_SESSION['errorData']['Warning'][] = "Credentials were saved more than 2 hours ago. Please update them.";
-				} else {
-					$_SESSION['errorData']['Info'][] = "Credentials are already saved and still valid.";
-					return;
-				}
-			}
-		} elseif (isset($postData["save_credential"]) && $postData["save_credential"] == "true") {
-			$data['data']['SSH'] = [];
-			$data['data']['SSH']['private_key'] = $postData['private_key'];
-			$data['data']['SSH']['username'] = $postData['username'];
-			$data['data']['SSH']['_id'] = $userId;
-			$_SESSION['User']['credentials'] = [
-				'timestamp' => time()  // Only store the timestamp
-			];
-		} else {
-			// Handle the case where app_id or app_secret is empty
-			$_SESSION['errorData']['Error'][] = "Please provide both keys.";
-			$_SESSION['formData'] = $postData;
-			redirect($_SERVER['HTTP_REFERER']);
-		}
-	} elseif ($action === "update") {
-		// Add logic for handling MN account and uploading credentials to Vault for "update" action
-
-		if (!empty($postData['private_key'])) {
-			$data['data']['SSH'] = [];
-			$data['data']['SSH']['private_key'] = $postData['private_key'];
-			$data['data']['SSH']['username'] = $postData['username'];
-			$data['data']['SSH']['_id'] = $userId;
-			$_SESSION['User']['credentials'] = [
-				'timestamp' => time()  // Only store the timestamp
-			];
-		} else {
-			// Handle the case where app_id or app_secret is empty
-			$_SESSION['errorData']['Error'][] = "Please provide both keys.";
-			$_SESSION['formData'] = $postData;
-			redirect($_SERVER['HTTP_REFERER']);
-		}
-	} elseif ($action === "delete") {
-		if (isset($site_id)) {
-			try {
-				$vaultClient = VaultClientFactory::create();
-				$vaultClient->deleteDataFromVault(Site::SSH);
-			} catch (\Throwable $e) {
-				$_SESSION['errorData']['Error'][] = "Failed to remove credentials from Vault: " . $e->getMessage();
-			}
-
-			$updateResult = $GLOBALS['sitesCol']->updateOne(
-				['_id' => $site_id],
-				[
-					'$unset' => [
-						'launcher.access_credentials.username' => '',
-						'launcher.access_credentials.private_key' => '',
-						'launcher.access_credentials.public_key' => '',
-						'launcher.access_credentials.server' => '',
-					]      
-				]
-			);
-
-			if ($updateResult->getMatchedCount() > 0) {
-				$_SESSION['errorData']['Info'][] = "Credentials removed from the database.";
-			} else {
-				$_SESSION['errorData']['Error'][] = "Failed to remove credentials from the database.";
-			}
-		}
-
-		redirect($_SERVER['HTTP_REFERER']);
-	} else {
-		handleInvalidAction();
-	}
-
-	if (empty($postData['username'])) {
-		getLinkedAccountLogger()->error("Error: 'username' is missing in postData.");
-		throw new UnexpectedValueException("Username is required.");
-	}
-
-	$postData['username'] = $postData['username'] . '_' . $site_id;
-	$privateKey = $data['data']['SSH']['private_key'];
-
-	if (!validateOpenSSHPrivateKey($privateKey)) {
-		getLinkedAccountLogger()->error("Invalid SSH private key format.");
-		throw new UnexpectedValueException("Invalid SSH private key format.");
-	}
-	try {
-		$vaultClient = VaultClientFactory::create();
-		$vaultClient->uploadFileToVault(Site::SSH, $data);
-		// Update user data with vault key
-		updateUser($_SESSION['User']);
-
-		$_SESSION['errorData']['Info'][] = "SSH account successfully linked.";
-
-	} catch (\Throwable $e) {
-		getLinkedAccountLogger()->error(
-			"Failed to save SSH account: " . $e->getMessage(),
-			[
-				'exception' => get_class($e),
-				'file' => $e->getFile(),
-				'line' => $e->getLine()
-			]
-		);
-
-		$_SESSION['errorData']['Error'][] =
-			"Failed to save SSH account: " . $e->getMessage();
-	}
-	redirectToLinkedAccount('SSH', $action, $site_id);
-
+	$linkedAccount->removeCredentials();
+	redirect($_SERVER['HTTP_REFERER']);
 }
 
 function redirectToLinkedAccount($account, $action, $site_id = null): void
@@ -223,214 +56,6 @@ function redirectToLinkedAccount($account, $action, $site_id = null): void
 	header('Location: ' . $url);
 	exit;
 }
-
-function handleObjectStorageAccount($action, $userId, $site_id, $postData)
-{
-	$data = [];
-	if ($action === "new") {
-		// Check if the credentials are already saved
-		if (isset($postData['app_id'], $postData['app_secret'])) {
-			// If credentials are provided, use them directly
-			$_SESSION['errorData']['Info'][] = "Credentials are already saved, update the credentials if needed.";
-		} elseif (isset($postData['save_credential']) && $postData['save_credential'] == 'true') {
-
-			// Add logic for handling MN account and uploading credentials to Vault
-			// You can customize this part based on how you obtain Swift credentials
-			$data['data']['Swift'] = [];
-			$data['data']['Swift']['app_id'] = $postData['app_id']; // Modify this
-			$data['data']['Swift']['app_secret'] = $postData['app_secret'];
-			$data['data']['Swift']['projectName'] = $postData['projectName'];	// Modify this
-			$data['data']['Swift']['projectId'] = $postData['projectId'];
-			$data['data']['Swift']['domainName'] = $postData['domainName'];
-			$data['data']['Swift']['projectDomainId'] = $postData['projectDomainId'];
-			$data['data']['Swift']['user_key'] = $postData['user_key'];
-			$data['data']['Swift']['_id'] = $userId;
-		}
-	} elseif ($action === "update") {
-		// Add logic for handling MN account and uploading credentials to Vault for "update" action
-		if (!empty($postData['app_id']) && !empty($postData['app_secret'])) {
-			$data['data']['Swift'] = [];
-			$data['data']['Swift']['app_id'] = $postData['app_id']; // Modify this
-			$data['data']['Swift']['app_secret'] = $postData['app_secret']; // Modify this
-			$data['data']['Swift']['projectName'] = $postData['projectName'];     // Modify this
-			$data['data']['Swift']['projectId'] = $postData['projectId'];
-			$data['data']['Swift']['domainName'] = $postData['domainName'];
-			$data['data']['Swift']['projectDomainId'] = $postData['projectDomainId'];
-			$data['data']['Swift']['user_key'] = $postData['user_key'];
-			$data['data']['Swift']['_id'] = $userId;
-		} else {
-			// Handle the case where app_id or app_secret is empty
-			$_SESSION['errorData']['Error'][] = "Please provide both app_id and app_secret.";
-			$_SESSION['formData'] = $postData;
-			redirect($_SERVER['HTTP_REFERER']);
-		}
-	} elseif ($action === "delete") {
-		// Reset data for "delete" action
-		$data = [];
-		if (isset($postData['app_id'], $postData['app_secret'])) {
-			$postData['app_id'] = null;
-			$postData['app_secret'] = null;
-			$postData['projectName'] = null;
-			$postData['projectId'] = null;
-			$postData['domainName'] = null;
-			$postData['projectDomainId'] = null;
-			$postData['user_key'] = null;
-			$postData['_id'] = null;
-		}
-
-		$postData['timestamp'] = null;
-		$userId = null;
-		getLinkedAccountLogger()->info("Credentials for user erased.");
-
-		if (isset($site_id)) {
-			$updateResult = $GLOBALS['sitesCol']->updateOne(
-				['_id' => $site_id],  // Match document by siteId
-				['$set' => [  // Use the $unset operator to remove fields
-					'access_credentials.app_id' => null,
-					'access_credentials.app_secret' => null,
-					'access_credentials.user_key' => null,
-					'access_credentials.projectName' => null,
-					'access_credentials.domainName' => null,
-					'access_credentials.projectDomainId' => null,
-					'access_credentials.projectId' => null,
-				]]
-			);
-
-			// Check if the update was successful
-			if ($updateResult->getModifiedCount() > 0) {
-				$_SESSION['errorData']['Info'][] = "Credentials removed from the database.";
-			} else {
-				$_SESSION['errorData']['Error'][] = "Failed to remove credentials from the database.";
-			}
-		}
-
-		redirect($_SERVER['HTTP_REFERER']);
-	} else {
-		handleInvalidAction();
-	}
-
-	if (empty($postData['user_key'])) {
-		getLinkedAccountLogger()->error("Error: 'username' is missing in postData.");
-		throw new UnexpectedValueException("Username is required.");
-	}
-
-	try {
-		$postData['user_key'] = $postData['user_key'] . '_' . $site_id;
-		$vaultClient = VaultClientFactory::create();
-
-		$vaultClient->uploadFileToVault(Site::Swift, $data);
-
-		updateUser($_SESSION['User']);
-		$_SESSION['errorData']['Info'][] = "Swift account successfully linked.";
-		getLinkedAccountLogger()->info("Swift account successfully linked.");
-	} catch (\Throwable $e) {
-		getLinkedAccountLogger()->error(
-			"Failed to save SSH account: " . $e->getMessage(),
-			[
-				'exception' => get_class($e),
-				'file' => $e->getFile(),
-				'line' => $e->getLine()
-			]
-		);
-
-		$_SESSION['errorData']['Error'][] =
-			"Failed to save SSH account: " . $e->getMessage();
-	}
-	redirectToLinkedAccount('objectstorage', $action, $site_id);
-}
-
-
-function handleEgaAccount($action, $userId, $postData)
-{
-	if ($action === "update") {
-		try {
-			$egaAuthToken = getEgaAuthToken($postData['username'], $postData['password']);
-			$_SESSION['User']['EGA']['token'] = $egaAuthToken;
-		} catch (Exception $e) {
-			getLinkedAccountLogger()->error("Could not connect to EGA: " . $e->getMessage());
-			throw new UnexpectedValueException("Could not connect to EGA. Check your credentials and try again.");
-		}
-	}
-
-	$data = [];
-	if ($action === "update") {
-		if (empty($postData['username'])  || empty($postData['password'])) {
-			$_SESSION['errorData']['Error'][] = "Please provide username and password.";
-			redirect($_SERVER['HTTP_REFERER']);
-		} else {
-			$data['data']['EGA'] = [];
-			$data['data']['EGA']['username'] = $postData['username'];
-			$data['data']['EGA']['password'] = $postData['password'];
-			$data['data']['EGA']['privateKey'] = $postData['privateKey'];
-			$data['data']['EGA']['_id'] = $userId;
-		}
-	} elseif ($action === "delete") {
-		clearLinkedAccount("EGA");
-		redirect($_SERVER['HTTP_REFERER']);
-	} else {
-		handleInvalidAction();
-	}
-
-	try {
-		$vaultClient = VaultClientFactory::create();
-		$vaultClient->uploadFileToVault(Site::EGA, $data);
-
-		$_SESSION['errorData']['Info'][] = "EGA account successfully linked.";
-		getLinkedAccountLogger()->info("EGA account successfully linked.");
-	} catch (\Throwable $e) {
-		getLinkedAccountLogger()->error(
-			"Failed to save SSH account: " . $e->getMessage(),
-			[
-				'exception' => get_class($e),
-				'file' => $e->getFile(),
-				'line' => $e->getLine()
-			]
-		);
-
-		$_SESSION['errorData']['Error'][] =
-			"Failed to save SSH account: " . $e->getMessage();
-	}
-	redirectToLinkedAccount('EGA', $action);
-}
-
-
-function clearLinkedAccount($account)
-{
-	// TODO: To be implemented
-	$_SESSION['errorData']['Info'][] = "Credentials for user erased, please provide new ones.";
-}
-
-
-function handleInvalidAction()
-{
-	$_SESSION['errorData']['Error'][] = "Action not recognized.";
-	redirect($_SERVER['HTTP_REFERER']);
-}
-
-
-function generateSSHKeyPair($username)
-{
-	// Temporary directory to store key files
-	$tempDir = sys_get_temp_dir();
-	$privateKeyPath = $tempDir . '/id_ed25519_' . $username;
-	$publicKeyPath = $tempDir . '/id_ed25519_' . $username . '.pub';
-
-	// Generate the key pair using ssh-keygen and store it temporarily
-	shell_exec("ssh-keygen -t ed25519 -f " . escapeshellarg($privateKeyPath) . " -N ''");
-
-	$privateKey = file_get_contents($privateKeyPath);
-	$publicKey = file_get_contents($publicKeyPath);
-
-	// Clean up the temporary key files
-	unlink($privateKeyPath);
-	unlink($publicKeyPath);
-
-	return [
-		'privateKey' => base64_encode($privateKey),
-		'publicKey' => $publicKey
-	];
-}
-
 
 function generateSSHButtons()
 {
@@ -457,7 +82,7 @@ function generateSSHButtons()
 			$buttonsHTML .= '
                 <div class="row" style="margin-left:0px;margin-bottom:5px">
                     <div class="col-md-6">
-                        <a href="' . $GLOBALS['BASEURL'] . 'user/linkedAccount.php?account=SSH&action=new&site_id=' . $siteId . '" class="btn green" data-site-id="' . $siteId . '">
+                        <a href="' . $GLOBALS['BASEURL'] . 'user/linkedAccount.php?account=SSH&action=new" class="btn green" data-site-id="' . $siteId . '">
                             <i class="fa fa-plus"></i> &nbsp; Link your account (' . $siteSigla . ')
                         </a>
                     </div>

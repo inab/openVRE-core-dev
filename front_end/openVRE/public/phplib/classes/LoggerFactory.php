@@ -24,7 +24,7 @@ class LoggerFactory
 
         $logger = new Logger($channel);
 
-        $handler = new StreamHandler('php://stdout', Level::Debug);
+        $handler = new StreamHandler('php://stdout', self::getStdoutLevel());
 
         $formatter = new LineFormatter(
             null,          // use default format
@@ -41,6 +41,18 @@ class LoggerFactory
     }
 
 
+    // LOG_LEVEL env var (debug, info, notice, warning, error...); defaults to debug
+    private static function getStdoutLevel(): Level
+    {
+        $name = getenv('LOG_LEVEL') ?: 'debug';
+        try {
+            return Level::fromName($name);
+        } catch (\UnhandledMatchError) {
+            return Level::Debug;
+        }
+    }
+
+
     public static function getPersistentLogger(): Logger
     {
         if (isset(self::$loggers['app-mongodb'])) {
@@ -54,7 +66,7 @@ class LoggerFactory
         $logger->pushProcessor(new UidProcessor());
         $logger->pushProcessor(new PsrLogMessageProcessor());
         $logger->pushProcessor(function ($record) {
-            $record['extra']['userId'] = $_SESSION['User']['id'];
+            $record['extra']['userId'] = $_SESSION['internalUserId'];
             return $record;
         });
         self::$loggers['app-mongodb'] = $logger;

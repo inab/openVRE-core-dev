@@ -3,12 +3,10 @@
 require __DIR__."/../../config/bootstrap.php";
 redirectOutside();
 
-$tls = getTools_ListComplete(1);
-$vslzrs = getVisualizers_ListComplete(1);
+$user = getUserById($_SESSION['userId']);
+$tools = getTools_ListComplete($user);
 
-$toolList = array_merge($tls, $vslzrs);
-
-foreach($toolList as $tool) {
+foreach($tools as $tool) {
 
 	if($_REQUEST["tool"] == $tool["_id"]) {
 		$comb = getInputFilesCombinations($tool);

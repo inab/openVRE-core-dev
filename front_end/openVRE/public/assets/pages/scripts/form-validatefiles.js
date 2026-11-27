@@ -28,103 +28,46 @@ function formBlockState(state, block, input_type, id) {
 	}
 }
 
+// All data type options rendered server-side, cached per form on first use.
+var allDataTypeOptions = {};
+
 function customfromFormat(op, id) {
-
-	var filetype = op;
-
 	$('#refGenome' + id).prop("disabled", true);
 	$('#refGenomeTR' + id).hide();
 
-	$('#taxonG' + id).hide();
-	$('#taxonName' + id).prop("disabled", true);
-	$('#taxonName' + id).val('');
-	$('#taxonID' + id).prop("disabled", true);
-	$('#taxonID' + id).val('');
+	var select = $('#data_type_sel' + id);
+	if (!allDataTypeOptions[id]) {
+		allDataTypeOptions[id] = select.find('option[value!=""]').clone();
+	}
 
-	//if($('#have_taxon_id').val() != 1) $('input[name="taxon_id"]').val('');
+	// Keep only the data types associated with the selected format.
+	var current = select.val();
+	var matching = allDataTypeOptions[id].filter(function () {
+		return ($(this).data('formats') || []).indexOf(op) !== -1;
+	}).clone();
 
-	$('.paired' + id).prop("disabled", true);
-	$('#pairedTR' + id).hide();
+	select.find('option[value!=""]').remove();
+	select.append(matching);
+	select.val(matching.filter('[value="' + current + '"]').length ? current : '');
 
-	$('.sorted' + id).prop("disabled", true);
-	$('#sortedTR' + id).hide();
+	var hasDataTypes = matching.length > 0;
+	select.prop("disabled", !hasDataTypes).trigger('change.select2');
+	$('#dataType' + id).toggle(hasDataTypes);
+	$('#dataTypeWarning' + id).toggle(!!op && !hasDataTypes);
 
-	// call ajax with op and load datatype select 
-
-	$.ajax({
-		type: "POST",
-		url: baseURL + "applib/getDataTypes.php",
-		data: "filetype=" + filetype,
-		success: function (data) {
-			var obj = JSON.parse(data);
-			obj_len = Object.keys(obj).length;
-
-			if (obj_len > 0) {
-
-				var select = '<option value="">Select the data type</option>';
-
-				$.each(obj, function (key, value) {
-
-					select += '<option';
-					$.each(value, function (k, v) {
-
-						if (k == '_id') select += ' value="' + v + '">';
-						if (k == 'name') select += v;
-
-					});
-
-					select += '</option>';
-
-				});
-
-				$('#data_type_sel' + id).prop("disabled", false);
-				$('#data_type_sel' + id).html(select);
-
-				if ($('#data_type_selected').length) {
-
-					$('#data_type_sel' + id).find('option[value="' + $('#data_type_selected').val() + '"]').attr("selected", true).trigger('change');
-
-				}
-
-				$('#dataType' + id).show();
-
-			} else {
-
-				$('#data_type_sel' + id).prop("disabled", true);
-				$('#dataType' + id).hide();
-
-			}
-
-		}
-	});
+	customfromDataType(select.val(), id);
 }
 
 function customfromDataType(op, id) {
-	var dataType = op;
-
 	// Reset optional blocks first.
-	$('#taxonG' + id).hide();
-	$('#taxonName' + id).prop("disabled", true).val('');
-	$('#taxonID' + id).prop("disabled", true).val('');
 	$('.paired' + id).prop("disabled", true);
 	$('#pairedTR' + id).hide();
 	$('.sorted' + id).prop("disabled", true);
 	$('#sortedTR' + id).hide();
 	showHideSortInfo(0, id);
 
-	if (!dataType) {
+	if (!op) {
 		return;
-	}
-
-	// Most scientific data types require taxon; keep configuration/id lists exempt.
-	var noTaxonTypes = ['configuration_file', 'id_list'];
-	if (noTaxonTypes.indexOf(dataType) === -1) {
-		$('#taxonG' + id).show();
-		if (typeof changeArgDependency === 'function') {
-			changeArgDependency(String(id), '1', true);
-		} else {
-			$('#taxonName' + id).prop("disabled", false);
-		}
 	}
 
 	// BAM-specific metadata options are controlled by selected file format.
@@ -269,12 +212,6 @@ var ValidateForm = function () {
 						required: true
 					},
 
-					taxon_name_id: {
-						required: true
-					},
-					taxon_id_name: {
-						required: true
-					},
 					refGenome: {
 						required: true
 					}
@@ -299,11 +236,7 @@ var ValidateForm = function () {
 
 				errorPlacement: function (error, element) {
 
-					if ((element.attr("name") === 'taxon_name_id') || (element.attr("name") === 'taxon_id_name')) {
-						error.insertAfter($("#label-taxon" + formSelected));
-					} else {
-						error.insertAfter(element);
-					}
+					error.insertAfter(element);
 				},
 
 				submitHandler: function (form) {
@@ -314,8 +247,6 @@ var ValidateForm = function () {
 						$('#formInputs' + formSelected + ' .val-metadata-btn').prop('disabled', true);
 						$('#formInputs' + formSelected + ' .val-metadata-btn').val('VALIDATING METADATA...');
 					}
-
-					if ($('input[name="taxon_id"]').val() == "") console.log($("#taxonName").val())
 
 					var data = $('#uploadFiles' + formSelected).serialize();
 					data = data.replace(/%5B/g, "[");
@@ -390,8 +321,6 @@ jQuery(document).ready(function () {
 		//console.log($('#uploadFiles' + id));
 
 		/*		$("#data_type_sel" + id).rules("add", { required:true });
-				$("#taxonName" + id).rules("add", { required:true });
-				$("#taxonID" + id).rules("add", { required:true });
 				$("#refGenome" + id).rules("add", { required:true });*/
 
 		//$('#uploadFiles' + id).valid();

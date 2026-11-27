@@ -87,8 +87,7 @@
 		case 'adminJobs':
 		case 'dashboard':
 		case 'datasets':
-		case 'objStorage': 
-		case 'logs': ?>
+		case 'objStorage': ?>
 			<link href="assets/global/plugins/bootstrap-fileinput/bootstrap-fileinput.css" rel="stylesheet" type="text/css" />
 			<link href="assets/global/plugins/datatables/datatables.min.css" rel="stylesheet" type="text/css" />
 			<link href="assets/global/plugins/datatables/plugins/bootstrap/datatables.bootstrap.css" rel="stylesheet" type="text/css" />
@@ -116,8 +115,7 @@
 			<link href="assets/global/plugins/select2/css/select2.min.css" rel="stylesheet" type="text/css" />
 			<link href="assets/global/plugins/select2/css/select2-bootstrap.min.css" rel="stylesheet" type="text/css" />
 		<?php break;
-		case 'tools':
-		case 'visualizers': ?>
+		case 'tools': ?>
 			<link href="assets/global/plugins/cubeportfolio/css/cubeportfolio.css" rel="stylesheet" type="text/css" />
 			<?php break ?>;
 
@@ -147,9 +145,6 @@
 				<link href="assets/pages/css/login.min.css" rel="stylesheet" type="text/css" />
 			<?php } ?>
 		<?php break;
-		case 'lockScreen': ?>
-			<link href="assets/pages/css/lock.min.css" rel="stylesheet" type="text/css" />
-		<?php break;
 		case 'usrProfile': ?>
 			<link href="assets/pages/css/profile.min.css" rel="stylesheet" type="text/css" />
 		<?php break;
@@ -157,8 +152,7 @@
 		case 'output': ?>
 			<link href="assets/pages/css/customized-tools.css" rel="stylesheet" type="text/css" />
 		<?php break;
-		case 'tools':
-		case 'visualizers': ?>
+		case 'tools': ?>
 			<link href="assets/pages/css/portfolio.min.css" rel="stylesheet" type="text/css" />
 			<?php break; ?>
 	<?php } ?>
@@ -183,7 +177,7 @@
 		case 'adminJobs':
 		case 'dashboard':
 		case 'datasets':
-		case 'objStorage': 
+		case 'objStorage':
 		case 'sampleDataList':
 		case 'dataFromTxt':
 		case 'dataFromID':
@@ -208,7 +202,6 @@
 		case 'tutorials':
 		case 'references':
 		case 'tools':
-		case 'visualizers':
 		case 'restoreLink':
 		case 'form':
 		case 'linkedAccount':
