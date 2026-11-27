@@ -292,8 +292,14 @@ function loadUserWithToken($user, $userInfo, $token)
 
     $auxlastlog = $user['lastLogin'];
     $user['lastLogin'] = moment();
+    // OIDC requires "sub"; without it the token is not a valid login.
+    if (empty($userInfo['sub'])) {
+        getUsersLogger()->error("OIDC user info has no 'sub' claim. Cannot load user.");
+        throw new UnexpectedValueException("OIDC user info has no 'sub' claim. Cannot load user.");
+    }
     $user['secretsId'] = $userInfo['sub'];
-    $user['roles']     = explode(',', $userInfo['roles']);
+    // Roles come only from Keycloak's "roles" claim at every login; none when it is missing.
+    $user['roles']     = isset($userInfo['roles']) ? explode(',', $userInfo['roles']) : [];
     $_SESSION['userToken'] = $token;
     $_SESSION['tokenInfo'] = $userInfo;
 

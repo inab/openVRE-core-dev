@@ -37,6 +37,7 @@ class Tooljob
 	public $pub_dir_intern;
 
 	public $containerName;
+	public $access_path;
 
 	// Paths to files genereted during ToolJob execution
 	public $config_file;
@@ -1483,6 +1484,16 @@ class Tooljob
 		$cpus = $launcherInfo['cpus'] ?? $tool['infrastructure']['cpus'];
 		$queue = $launcherInfo['queue'] ?? $tool['infrastructure']['clouds'][$this->cloudName]['queue'];
 		$this->logger->info("Resolved Parameters: Queue=$queue, CPUs=$cpus, Memory=$memory");
+
+		if ($jobManager === "kubernetes_native" && !empty($tool['infrastructure']['interactive'])) {
+			return $this->enqueueInteractiveK8s($tool, $cpus, $memory);
+		}
+		if ($jobManager === "kubernetes_native") {
+			// Saved with the job: status and stop requests are routed by it
+			// (kubernetes_batch here, kubernetes_interactive for sessions).
+			$this->launcher = "kubernetes_batch";
+		}
+
 		$jobOptions = array();
 		if ($jobManager === "kubernetes_native") {
 			$jobOptions["image"] = $tool['infrastructure']['container_image'] ?? "";
@@ -1496,6 +1507,9 @@ class Tooljob
 					$jobOptions["env"][$env_key] = (string)$env_value;
 				}
 			}
+			if (!empty($tool['infrastructure']['image_pull_secrets']) && is_array($tool['infrastructure']['image_pull_secrets'])) {
+				$jobOptions["image_pull_secrets"] = $tool['infrastructure']['image_pull_secrets'];
+			}
 		}
 
 		$pid = execJob($this->working_dir, $this->submission_file, $queue, $cpus, $memory,  $this->stdout_file, $this->stderr_file, $jobManager, $this->toolId, $jobOptions);
@@ -1504,6 +1518,78 @@ class Tooljob
 
 		$this->pid = $pid;
 		return $pid;
+	}
+
+
+	/**
+	 * Mounts for infrastructure.volumes of a Kubernetes interactive tool: each
+	 * folder is created in the project (on disk and in the workspace listing)
+	 * and mapped to its path in the container, as the Docker launcher does.
+	 */
+	protected function prepareK8sVolumes($tool)
+	{
+		$mounts = array();
+		$volumes = $tool['infrastructure']['volumes'] ?? array();
+		if (!is_array($volumes)) {
+			return $mounts;
+		}
+		$projectRel = $_SESSION['User']['id'] . "/" . $this->project;
+		foreach ($volumes as $hostDir => $containerDir) {
+			$mount = K8sSessionRequest::volumeMount($this->root_dir . "/" . $this->project, $hostDir, $containerDir);
+			if ($mount === null) {
+				continue;
+			}
+			$this->registerProjectDir($projectRel . "/" . trim($hostDir, "/"), $mount['host_path']);
+			$mounts[] = $mount;
+		}
+		return $mounts;
+	}
+
+
+	/** Creates a project folder on disk and lists it in the workspace (idempotent). */
+	protected function registerProjectDir($relPath, $absPath)
+	{
+		// As the Docker launcher does: createGSDirBNS also lists the folder in its parent.
+		$dirId = createGSDirBNS($relPath, 1);
+		if (!$dirId) {
+			$this->logger->warning("Cannot register directory $relPath");
+		} else {
+			addMetadataToFile($dirId, array("expiration" => -1, "description" => "Uploaded personal data"));
+		}
+		if (!is_dir($absPath)) {
+			mkdir($absPath, 0775, true);
+		}
+	}
+
+
+	protected function enqueueInteractiveK8s($tool, $cpus, $memory)
+	{
+		$session = new K8sSession();
+		$ok = $session->create($tool, array(
+			"user_id" => $_SESSION['User']['id'] ?? "",
+			"working_dir" => $this->working_dir,
+			"project" => $this->project,
+			"execution" => $this->execution,
+			"volume_mounts" => $this->prepareK8sVolumes($tool),
+			"cpus" => $cpus,
+			"memory" => $memory,
+		));
+		if (!$ok) {
+			$err = $session->getErr() ?: "Cannot create interactive session";
+			$this->logger->error("K8s interactive session failed: " . $err);
+			$_SESSION['errorData']['Error'][] = "Internal error. Cannot start interactive session.<br/>" . $err;
+			return 0;
+		}
+
+		$this->job_type = "interactive";
+		$this->launcher = "kubernetes_interactive";
+		$this->pid = $session->getPid();
+		// The session's own URL: a gateway path for web tools, a Guacamole link for desktops.
+		$this->access_path = $session->getAccessUrl();
+		$this->containerName = $this->pid;
+
+		$this->logger->info("K8s interactive session started tool={$this->toolId} pid={$this->pid} url={$this->access_path}");
+		return $this->pid;
 	}
 
 
